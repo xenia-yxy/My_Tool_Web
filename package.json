@@ -7,8 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev"
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:seed": "prisma db seed",
+    "verify:prisma": "tsx scripts/verify-prisma.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "latest",
@@ -41,6 +44,7 @@
     "postcss": "latest",
     "prisma": "latest",
     "tailwindcss": "latest",
+    "tsx": "^4.22.3",
     "typescript": "latest"
   }
 }

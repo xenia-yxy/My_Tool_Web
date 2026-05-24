@@ -18,6 +18,32 @@
 
 当前只搭建框架底座，不实现完整登录、笔记 CRUD、发布/撤回和支付等业务能力。
 
+## Prisma
+
+生成客户端：
+
+```bash
+pnpm prisma:generate
+```
+
+迁移数据库：
+
+```bash
+pnpm prisma:migrate
+```
+
+写入种子数据：
+
+```bash
+pnpm prisma:seed
+```
+
+验证连接：
+
+```bash
+pnpm verify:prisma
+```
+
 ## 文档
 
 - `docs/01-mvp-prd.md`

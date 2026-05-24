@@ -79,11 +79,29 @@ pnpm prisma:generate
 pnpm exec prisma migrate dev --name init
 ```
 
+写入种子数据：
+
+```bash
+pnpm prisma:seed
+```
+
+验证连接：
+
+```bash
+pnpm verify:prisma
+```
+
 如果成功，会看到类似：
 
 ```text
 Applying migration `init`
 Your database is now in sync with your schema
+```
+
+或：
+
+```text
+✅ Connected. Users: 1, Notes: 2
 ```
 
 ## 6. Vercel 里要配置什么
@@ -125,3 +143,18 @@ AUTH_URL=https://你的域名
 - 发布和撤回
 - 公开文章展示
 
+## 8. 关于 Prisma 页面一直转
+
+如果本地终端已经出现以下结果，说明数据库连接已经成功：
+
+```text
+Database schema is up to date!
+```
+
+或者：
+
+```text
+✅ Connected. Users: 1, Notes: 2
+```
+
+这时 Prisma 网页向导仍然显示“正在等待连接到你的数据库”通常只是页面没有收到本地 CLI 的完成状态，不代表数据库没有连接成功。
