@@ -187,3 +187,47 @@ shadcn/ui 风格组件 + Tailwind CSS
 - 移动端基础可用。
 - 没有超出第一阶段范围。
 
+## 12. Implementation QA
+
+记录日期：2026-05-25
+
+### 已实现范围
+
+- 首页 `/` 已替换为浅色高级公开首页。
+- 已新增顶部导航、首屏 Hero、入口矩阵、精选内容区、联系转化区。
+- 已新增 `/projects` 和 `/services` 占位页。
+- 首页内容已抽离到 `src/components/home/home-data.ts`，后续可替换为管理端/API 数据。
+- 动效已封装为 `AmbientField`，包含浅色网格、柔光跟随和轻量粒子。
+
+### 已验证路由
+
+- `/`
+- `/knowledge`
+- `/tools`
+- `/projects`
+- `/services`
+
+### 已验证命令
+
+```bash
+pnpm lint
+pnpm build
+```
+
+验证结果：
+
+- `pnpm lint` 通过。
+- `pnpm build` 通过，并生成 `/`、`/knowledge`、`/tools`、`/projects`、`/services` 等静态路由。
+
+### 移动端检查
+
+- 通过 Chrome DevTools Protocol 模拟 `390px` 移动视口检查。
+- `innerWidth`、`clientWidth`、`scrollWidth` 均为 `390`，未发现页面级横向溢出。
+- 首屏标题已增加移动端换行保护，避免中文长标题造成横向裁切。
+
+### 已知限制
+
+- 现在仍是第一阶段公开首页，不包含管理端内容发布、付费、监控和真实联系表单。
+- 首页内容仍是本地静态配置，后续管理端完成后再切换为数据库/API。
+- Worktree 环境下 `pnpm build` 会出现 Next.js 多 lockfile root 推断警告，不影响构建结果。
+
