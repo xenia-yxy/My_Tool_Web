@@ -63,14 +63,15 @@ export function HeroSection() {
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <Link
-            className="inline-flex h-11 items-center justify-center rounded-lg bg-slate-950 px-5 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.16)] transition-colors hover:bg-blue-700"
+            className="inline-flex h-12 min-w-[150px] items-center justify-center rounded-lg bg-slate-950 px-5 text-sm font-semibold !text-white shadow-[0_16px_40px_rgba(15,23,42,0.16)] transition-colors hover:bg-blue-700"
             href="/knowledge"
+            style={{ color: "#ffffff" }}
           >
-            阅读知识库
+            <span className="text-white">阅读知识库</span>
             <ArrowRight aria-hidden="true" className="ml-2 h-4 w-4" />
           </Link>
           <Link
-            className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 transition-colors hover:border-slate-300 hover:bg-slate-50"
+            className="inline-flex h-12 min-w-[128px] items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 transition-colors hover:border-slate-300 hover:bg-slate-50"
             href="/tools"
           >
             查看工具
