@@ -1,96 +1,90 @@
-# AI Practice Homepage Hero and Assistant Design
+# AI Practice 首页首屏与小助手设计方案
 
-Date: 2026-05-25
+记录日期：2026-05-25
 
-## Goal
+## 1. 设计目标
 
-Redesign the public homepage first screen so it feels like a personal AI practice brand rather than a generic SaaS template.
+重新设计公开首页首屏，让它从“通用 SaaS 模板感”转向“个人 AI 实践者品牌感”。
 
-The first impression should be:
+访客第一眼应该产生的判断是：
 
 ```text
-This is a personal AI practitioner building real knowledge, tools, projects, and SOP systems.
+这是一个真实在做 AI 实践的人，正在把知识、工具、项目和 SOP 服务沉淀成自己的数字系统。
 ```
 
-The redesign should keep the current MVP scope small while introducing one distinctive product idea: a floating AI Practice Assistant that helps visitors understand the site, the creator, and basic AI practice methods.
+本次改版仍然保持 MVP 范围克制，但加入一个有识别度的创新点：全站悬浮的 `AI Practice Assistant`。它帮助访客快速理解这个网站、理解站主、理解知识库与工具，并回答一些轻量 AI 实践问题。
 
-## Positioning
+## 2. 品牌与定位
 
-Temporary brand name:
+暂定品牌名：
 
 ```text
 AI Practice
 ```
 
-Public positioning:
-
-```text
-A personal AI practitioner digital base.
-```
-
-Chinese positioning:
+中文定位：
 
 ```text
 个人 AI 实践者的数字据点
 ```
 
-The homepage should balance three meanings:
+首页需要同时承载三层含义：
 
-- Personal IP and knowledge base.
-- AI tool and project showcase.
-- SOP service and cooperation entrance.
+- 个人 IP 与知识据点。
+- AI 工具和项目展示。
+- SOP 服务与合作入口。
 
-The first screen should emphasize the personal AI practitioner identity first, then reveal tools, projects, and service paths.
+首屏优先强调“个人 AI 实践者”身份，再自然带出知识库、工具、项目和 SOP 服务入口。
 
-## Header Design
+## 3. 头部导航设计
 
-The header should be visible immediately on the first screen.
+头部导航需要在首屏第一时间可见，但视觉上要轻，不抢首屏主内容。
 
-Structure:
+结构：
 
 ```text
 AI Practice        知识库   工具   项目   SOP 服务        联系   登录
 ```
 
-Visual hierarchy:
+视觉层级：
 
-- `AI Practice` is the brand mark.
-- Navigation links are light text links, not pill buttons.
-- `联系` is the primary public action.
-- `登录` is a quiet private-workbench entrance.
+- `AI Practice` 是左侧品牌标识。
+- 中间导航是轻量文字链接，不做胶囊按钮。
+- `联系` 是面向访客的主要动作。
+- `登录` 是站主进入私人工作台的低调入口。
 
-Header style:
+样式原则：
 
-- White or near-white background.
-- Subtle bottom border.
-- No blue icon card.
-- No strong colored header band.
-- Height around 64px on desktop.
-- Mobile can wrap or compress links for this MVP, but must not create horizontal overflow.
+- 使用白色或接近白色的背景。
+- 使用细底边线。
+- 去掉当前蓝色图标卡片。
+- 不使用明显的蓝色横向导航背景。
+- 桌面端高度约 64px。
+- 移动端可以换行或压缩，但不能出现横向滚动。
 
-Button behavior:
+按钮行为：
 
-- `联系` points to the homepage contact section.
-- `登录` points to the admin/login entry for the private workbench. If login is not implemented yet, it can point to the existing admin placeholder.
+- `联系` 跳转到首页联系区域。
+- `登录` 跳转到后台 / 登录入口。登录功能未完成前，可先跳转到现有 `/admin` 占位页。
 
-## Logo Direction
+## 4. Logo 方向
 
-Use a text-first logo for the MVP:
+MVP 阶段先使用文字型 Logo：
 
 ```text
 AI Practice
 ```
 
-Do not use generic AI symbols such as sparkles, magic wands, robots, or lightning in the header logo.
+暂不使用星星、魔法棒、机器人、闪电等常见 AI 符号，避免模板感。
 
-Later iterations may derive a compact `AP` monogram or favicon, but the first redesign should keep the logo textual and restrained.
+后续可以基于 `AI Practice` 延展出更紧凑的 `AP` 字母标或 favicon，但本次首屏改版先保持文字标识，保证干净和耐看。
 
-## Hero Design
+## 5. 首屏设计
 
-Recommended first-screen structure:
+推荐首屏结构：
 
 ```text
-Left:
+左侧：
   AI Practice
 
   一个个人 AI 实践者的数字据点
@@ -100,26 +94,26 @@ Left:
 
   [阅读知识库] [查看工具]
 
-Right:
+右侧：
   Practice Map
   Knowledge Notes
   Tool Experiments
   Project Logs
   SOP Systems
 
-Floating:
+右下角悬浮：
   问问 AI Practice
 ```
 
-Hero principles:
+首屏原则：
 
-- Keep the first-screen color system restrained: black, white, gray, and one cool blue accent.
-- Remove the current mixed blue, cyan, violet, and green emphasis from the hero.
-- Use fewer cards and clearer spacing.
-- Keep the right-side visual simple, like a practice map or system summary, not a full chat panel.
-- The floating assistant is the interactive element, not the hero-right visual.
+- 色彩系统收敛到黑、白、灰和一个冷蓝强调色。
+- 移除当前蓝、青、紫、绿同时出现的首屏强调。
+- 减少卡片数量，拉开留白，增强秩序感。
+- 右侧视觉保持简洁，可以是实践地图或系统摘要，不做聊天面板。
+- 真正的互动点放在右下角悬浮小助手，而不是首屏右侧。
 
-Primary hero copy:
+首屏核心文案：
 
 ```text
 AI Practice
@@ -127,49 +121,49 @@ AI Practice
 记录真实 AI 实践，把知识、工具和流程沉淀成可持续生长的系统。
 ```
 
-Primary hero actions:
+首屏主要动作：
 
 - `阅读知识库`
 - `查看工具`
 
-SOP service should be visible in navigation and later page sections, but it should not overpower the first-screen personal-practice message.
+SOP 服务需要在导航和后续页面区块中可见，但不要在首屏压过“个人 AI 实践者”的主定位。
 
-## Floating AI Practice Assistant
+## 6. 全站悬浮 AI Practice Assistant
 
-The assistant is a global floating widget, not a hero-side module.
+小助手是一个全站悬浮组件，不是首屏右侧模块。
 
-Floating entry:
+悬浮入口文案：
 
 ```text
 问问 AI Practice
 ```
 
-Compact icon:
+紧凑状态图标：
 
 ```text
 AI
 ```
 
-Panel title:
+展开面板标题：
 
 ```text
 AI Practice Assistant
 ```
 
-Panel subtitle:
+展开面板副标题：
 
 ```text
 了解这个网站，也问一些 AI 实践问题。
 ```
 
-MVP capabilities:
+首版 MVP 能力：
 
-1. Answer site and personal navigation questions.
-2. Answer lightweight AI practice, tool-building, and SOP method questions.
-3. Provide quick prompt chips for common visitor questions.
-4. Keep answers local and deterministic for the first version.
+1. 回答网站和站主相关的导览问题。
+2. 回答轻量 AI 实践、工具构建、SOP 方法论问题。
+3. 提供常见问题快捷按钮。
+4. 首版使用本地确定性回答，不接真实大模型。
 
-Example prompt chips:
+常见问题快捷按钮：
 
 - `这个网站是做什么的？`
 - `我应该先看哪里？`
@@ -178,62 +172,63 @@ Example prompt chips:
 - `如何联系合作？`
 - `如何开始做 AI 工作流？`
 
-Example answer boundaries:
+回答边界：
 
-- It can explain the website, knowledge base, tools, projects, and service direction.
-- It can answer basic AI workflow and SOP guidance.
-- It should not pretend to be a general-purpose AI assistant.
-- It should not claim to search the full knowledge base until real retrieval exists.
+- 可以解释网站、知识库、工具、项目和服务方向。
+- 可以回答基础 AI 工作流和 SOP 思路。
+- 不伪装成通用 AI 助手。
+- 在真实检索能力完成前，不声称能搜索完整知识库。
 
-Future phases:
+后续阶段：
 
-- P1: connect to public knowledge and project data.
-- P2: add retrieval over article content.
-- P3: add real model-backed RAG with citations.
+- P1：接入公开知识库和项目数据。
+- P2：支持基于文章内容的检索回答。
+- P3：接入真实大模型和 RAG，并提供来源引用。
 
-## Page Behavior
+## 7. 页面行为
 
-Desktop:
+桌面端：
 
-- Header stays visible at top.
-- Hero uses a two-column layout.
-- Assistant floats at bottom right.
-- Assistant panel opens above the floating trigger.
+- 头部导航固定在顶部。
+- 首屏使用左右两栏结构。
+- 小助手悬浮在右下角。
+- 小助手面板从右下角向上展开。
 
-Mobile:
+移动端：
 
-- Header must not overflow horizontally.
-- Hero stacks vertically.
-- Assistant remains bottom right, but panel width must fit the viewport.
-- Navigation may wrap for MVP, but should remain readable.
+- 头部导航不能横向溢出。
+- 首屏改为上下堆叠。
+- 小助手仍然位于右下角。
+- 小助手展开面板宽度必须适配手机视口。
+- 导航在 MVP 阶段可以换行，但必须保持可读。
 
-Accessibility:
+可访问性：
 
-- Assistant open/close control must be a button.
-- Panel should have a clear title.
-- Preset prompt chips should be keyboard-focusable buttons.
-- The chat input can be enabled for keyword matching or disabled with clear placeholder text, depending on implementation scope.
+- 小助手打开 / 关闭必须使用 `button`。
+- 面板需要有明确标题。
+- 预设问题按钮必须可键盘聚焦。
+- 输入框可以做关键词匹配，也可以先做演示占位，但需要清楚表达当前能力。
 
-## Out Of Scope For This Redesign
+## 8. 本次不做范围
 
-- Real model API calls.
-- Vector database.
-- Full RAG pipeline.
-- User accounts for public visitors.
-- Full login/auth redesign.
-- Paid membership or knowledge payment.
-- Heavy 3D/WebGL hero effects.
+- 不接真实大模型 API。
+- 不做向量数据库。
+- 不做完整 RAG 流程。
+- 不做公开访客账号系统。
+- 不做完整登录 / 鉴权重构。
+- 不做会员、付费或知识付费。
+- 不做重 3D 或 WebGL 首屏效果。
 
-## Acceptance Criteria
+## 9. 验收标准
 
-- First screen clearly presents `AI Practice` as a personal AI practitioner brand.
-- Header is visible but visually lighter than the hero content.
-- `联系` is the primary public header action.
-- `登录` is present but quiet.
-- Hero color system is unified and restrained.
-- Hero does not use blue/cyan/violet/green as competing accents.
-- Floating assistant appears as a distinctive global feature.
-- Assistant MVP does not overpromise real AI retrieval.
-- Desktop and mobile layouts avoid horizontal overflow.
-- Existing public routes remain reachable.
+- 首屏能清楚呈现 `AI Practice` 是个人 AI 实践者品牌。
+- 头部导航第一时间可见，但视觉上轻于首屏主内容。
+- `联系` 是右侧主要公开动作。
+- `登录` 存在，但不抢视觉。
+- 首屏色彩统一、克制。
+- 首屏不再使用蓝、青、紫、绿互相竞争的强调色。
+- 右下角悬浮小助手成为清晰的全站特色。
+- 小助手首版不夸大真实 AI 检索能力。
+- 桌面端和移动端都不能出现横向溢出。
+- 现有公开路由仍然可以正常访问。
 
