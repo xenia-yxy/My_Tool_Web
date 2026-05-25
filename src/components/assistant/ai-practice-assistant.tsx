@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MessageCircle, Send, X } from "lucide-react";
+import { Send, X } from "lucide-react";
 import {
   assistantPrompts,
   fallbackAssistantAnswer,
@@ -130,15 +130,14 @@ export function AiPracticeAssistant() {
       <button
         aria-expanded={isOpen}
         aria-label="打开 AI Practice Assistant"
-        className="flex h-12 items-center gap-2 rounded-full border border-slate-200 bg-slate-950 px-3 text-sm font-medium text-white shadow-[0_18px_50px_rgba(15,23,42,0.22)] transition-transform hover:-translate-y-0.5 hover:bg-blue-700"
+        className="group flex h-12 items-center gap-2 rounded-full border border-slate-200 bg-white px-2.5 pr-4 text-sm font-semibold text-slate-950 shadow-[0_18px_50px_rgba(15,23,42,0.16)] transition-transform hover:-translate-y-0.5 hover:border-blue-200 hover:text-blue-700"
         onClick={() => setIsOpen((currentValue) => !currentValue)}
         type="button"
       >
-        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white text-xs font-semibold text-slate-950">
-          AI
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-950 text-[11px] font-semibold text-white transition-colors group-hover:bg-blue-700">
+          AP
         </span>
-        <span className="hidden sm:inline">问问 AI Practice</span>
-        <MessageCircle aria-hidden="true" className="h-4 w-4 sm:hidden" />
+        <span>问问 Practice</span>
       </button>
     </div>
   );

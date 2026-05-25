@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, BookOpen, Layers3, PenLine, Wrench } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 type PracticeMapItem = {
   index: string;
@@ -63,15 +62,19 @@ export function HeroSection() {
         </p>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-          <Button asChild className="h-11 bg-slate-950 px-5 hover:bg-blue-700">
-            <Link href="/knowledge">
-              阅读知识库
-              <ArrowRight aria-hidden="true" className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
-          <Button asChild className="h-11 px-5" variant="secondary">
-            <Link href="/tools">查看工具</Link>
-          </Button>
+          <Link
+            className="inline-flex h-11 items-center justify-center rounded-lg bg-slate-950 px-5 text-sm font-semibold text-white shadow-[0_16px_40px_rgba(15,23,42,0.16)] transition-colors hover:bg-blue-700"
+            href="/knowledge"
+          >
+            阅读知识库
+            <ArrowRight aria-hidden="true" className="ml-2 h-4 w-4" />
+          </Link>
+          <Link
+            className="inline-flex h-11 items-center justify-center rounded-lg border border-slate-200 bg-white px-5 text-sm font-semibold text-slate-900 transition-colors hover:border-slate-300 hover:bg-slate-50"
+            href="/tools"
+          >
+            查看工具
+          </Link>
         </div>
 
         <p className="mt-5 text-sm leading-6 text-slate-500">
