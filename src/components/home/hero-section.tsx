@@ -11,14 +11,14 @@ const systemNodes = [
 
 export function HeroSection() {
   return (
-    <section className="mx-auto grid min-h-[calc(100vh-76px)] w-full max-w-6xl items-center gap-12 px-5 py-14 sm:py-18 lg:grid-cols-[1.02fr_0.98fr] lg:px-8">
-      <div className="max-w-3xl">
+    <section className="mx-auto grid min-h-[calc(100vh-160px)] w-full min-w-0 max-w-6xl items-center gap-12 px-5 py-12 sm:py-16 lg:grid-cols-[1.02fr_0.98fr] lg:px-8">
+      <div className="min-w-0 max-w-3xl">
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white/75 px-3 py-2 text-sm font-medium text-blue-700 shadow-sm backdrop-blur">
           <WandSparkles aria-hidden="true" className="h-4 w-4" />
           AI 实践者 · 一线做东西
         </div>
 
-        <h1 className="text-4xl font-semibold leading-tight text-slate-950 sm:text-5xl lg:text-6xl">
+        <h1 className="hero-title max-w-full break-words text-3xl font-semibold leading-tight text-slate-950 sm:text-5xl lg:text-6xl">
           把 AI 实践、工具和知识沉淀成一个可持续生长的数字系统
         </h1>
 
@@ -47,10 +47,10 @@ export function HeroSection() {
         </Link>
       </div>
 
-      <div className="relative min-h-[420px] overflow-hidden rounded-2xl border border-white/80 bg-white/62 p-5 shadow-[0_30px_90px_rgba(37,99,235,0.14)] backdrop-blur-xl">
+      <div className="relative min-h-[420px] min-w-0 w-full max-w-full overflow-hidden rounded-2xl border border-white/80 bg-white/62 p-5 shadow-[0_30px_90px_rgba(37,99,235,0.14)] backdrop-blur-xl">
         <div className="surface-noise absolute inset-0 opacity-40" />
         <div className="relative flex h-full min-h-[380px] flex-col justify-between">
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-sm font-medium text-slate-500">Live System</p>
               <h2 className="mt-1 text-xl font-semibold text-slate-950">

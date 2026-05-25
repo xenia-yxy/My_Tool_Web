@@ -77,6 +77,11 @@ textarea {
   background-size: 22px 22px;
 }
 
+.hero-title {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 @keyframes float {
   0%,
   100% {
@@ -100,6 +105,12 @@ textarea {
 
   .float-slow {
     animation: none;
+  }
+}
+
+@media (width < 640px) {
+  .hero-title {
+    word-break: break-all;
   }
 }
 
