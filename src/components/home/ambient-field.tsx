@@ -48,12 +48,12 @@ export function AmbientField() {
     >
       <div className="ambient-grid absolute inset-0" />
       <div className="ambient-glow absolute inset-0" />
-      <div className="absolute -left-32 top-16 h-80 w-80 rounded-full bg-cyan-200/35 blur-3xl" />
-      <div className="absolute -right-28 top-48 h-96 w-96 rounded-full bg-violet-200/30 blur-3xl" />
-      <div className="absolute bottom-0 left-1/4 h-72 w-72 rounded-full bg-emerald-200/25 blur-3xl" />
+      <div className="absolute -left-32 top-16 h-80 w-80 rounded-full bg-blue-100/45 blur-3xl" />
+      <div className="absolute -right-28 top-48 h-96 w-96 rounded-full bg-slate-200/35 blur-3xl" />
+      <div className="absolute bottom-0 left-1/4 h-72 w-72 rounded-full bg-blue-200/20 blur-3xl" />
       {particles.map((particle) => (
         <span
-          className={`float-slow absolute rounded-full bg-white shadow-[0_0_28px_rgba(56,189,248,0.45)] ring-1 ring-cyan-200/70 ${particle.size}`}
+          className={`float-slow absolute rounded-full bg-white shadow-[0_0_28px_rgba(37,99,235,0.24)] ring-1 ring-blue-200/70 ${particle.size}`}
           key={`${particle.left}-${particle.top}`}
           style={{
             animationDelay: particle.delay,

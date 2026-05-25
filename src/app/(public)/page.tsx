@@ -1,3 +1,4 @@
+import { AiPracticeAssistant } from "@/components/assistant/ai-practice-assistant";
 import { AmbientField } from "@/components/home/ambient-field";
 import { ContactSection } from "@/components/home/contact-section";
 import { EntranceGrid } from "@/components/home/entrance-grid";
@@ -15,6 +16,7 @@ export default function HomePage() {
         <EntranceGrid />
         <FeaturedSection />
         <ContactSection />
+        <AiPracticeAssistant />
       </div>
     </main>
   );
