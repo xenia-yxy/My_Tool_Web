@@ -32,3 +32,6 @@ next-env.d.ts
 
 # generated prisma client
 /generated/
+
+# local feature worktrees
+/.worktrees/
