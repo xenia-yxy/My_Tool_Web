@@ -7,6 +7,7 @@ const eslintConfig = [
   {
     ignores: [
       "node_modules/**",
+      ".worktrees/**",
       ".next/**",
       "out/**",
       "build/**",
@@ -16,4 +17,3 @@ const eslintConfig = [
 ];
 
 export default eslintConfig;
-
