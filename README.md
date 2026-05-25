@@ -14,9 +14,9 @@
 
 ## 当前阶段
 
-项目处于 MVP 框架初始化阶段。
+项目处于 MVP 第一阶段首页设计阶段。
 
-当前只搭建框架底座，不实现完整登录、笔记 CRUD、发布/撤回和支付等业务能力。
+当前已完成框架底座和 Prisma Postgres 连接，第一阶段准备实现高级公开首页。
 
 ## Prisma
 
@@ -46,8 +46,11 @@ pnpm verify:prisma
 
 ## 文档
 
+- `docs/00-ne-ti-ni-te-process.md`
 - `docs/01-mvp-prd.md`
 - `docs/02-technical-architecture.md`
 - `docs/03-open-source-reference.md`
 - `docs/04-framework-design.md`
 - `docs/05-database-setup-guide.md`
+- `docs/06-stage-01-homepage-mvp.md`
+- `docs/07-stage-01-homepage-ui-blueprint.md`
