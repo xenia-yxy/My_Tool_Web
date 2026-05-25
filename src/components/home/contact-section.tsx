@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { ArrowRight, Github, Mail, MessageCircle, Workflow } from "lucide-react";
+import { ArrowRight, Mail, MessageCircle, Workflow } from "lucide-react";
 import { contactActions } from "@/components/home/home-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-const contactIcons = [MessageCircle, Workflow, Github];
+const contactIcons = [MessageCircle, Workflow, Mail];
 
 export function ContactSection() {
   return (
