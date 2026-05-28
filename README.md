@@ -34,6 +34,16 @@ pnpm prisma:seed
 
 种子脚本会读取 `.env` 中的 `ADMIN_EMAIL` 和 `ADMIN_PASSWORD`，创建或更新单管理员账号。
 
+## Docker 部署
+
+生产部署示例：
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+默认映射到宿主机 `3001` 端口，不占用已有 `80` 端口服务。
+
 ## Prisma
 
 生成客户端：
