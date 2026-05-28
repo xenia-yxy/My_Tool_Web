@@ -18,7 +18,7 @@ export function LoginForm() {
       new URLSearchParams(window.location.search).get("callbackUrl") ?? "/admin";
 
     const result = await signIn("credentials", {
-      email: String(formData.get("email") ?? ""),
+      identifier: String(formData.get("identifier") ?? ""),
       password: String(formData.get("password") ?? ""),
       redirect: false,
       callbackUrl,
@@ -37,16 +37,17 @@ export function LoginForm() {
   return (
     <form className="mt-8 grid gap-4" onSubmit={handleSubmit}>
       <div className="grid gap-2">
-        <label className="text-sm font-medium text-slate-700" htmlFor="email">
-          管理员邮箱
+        <label className="text-sm font-medium text-slate-700" htmlFor="identifier">
+          管理员账号
         </label>
         <input
-          autoComplete="email"
+          autoComplete="username"
           className="h-11 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-          id="email"
-          name="email"
+          id="identifier"
+          name="identifier"
+          placeholder="yangxinyu"
           required
-          type="email"
+          type="text"
         />
       </div>
 

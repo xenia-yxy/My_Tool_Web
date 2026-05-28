@@ -4,6 +4,7 @@ import { hashPassword } from "../src/server/password";
 
 async function main() {
   const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const username = process.env.ADMIN_USERNAME?.trim().toLowerCase() ?? "yangxinyu";
   const password = process.env.ADMIN_PASSWORD;
 
   if (!email || !password) {
@@ -15,12 +16,13 @@ async function main() {
   await prisma.user.upsert({
     where: { email },
     update: {
+      name: username,
       passwordHash,
       role: "ADMIN",
     },
     create: {
       email,
-      name: "YXY",
+      name: username,
       passwordHash,
       role: "ADMIN",
     },

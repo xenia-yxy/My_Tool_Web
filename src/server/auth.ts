@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession, type NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
+import { buildAdminCredentialWhere } from "@/server/admin-credentials";
 import { verifyPassword } from "@/server/password";
 
 export const authOptions: NextAuthOptions = {
@@ -16,19 +17,19 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "管理员账号",
       credentials: {
-        email: { label: "邮箱", type: "email" },
+        identifier: { label: "账号或邮箱", type: "text" },
         password: { label: "密码", type: "password" },
       },
       async authorize(credentials) {
-        const email = credentials?.email?.trim().toLowerCase();
+        const identifier = credentials?.identifier;
         const password = credentials?.password;
 
-        if (!email || !password) {
+        if (!identifier || !password) {
           return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email },
+        const user = await prisma.user.findFirst({
+          where: buildAdminCredentialWhere(identifier),
         });
 
         if (!user?.passwordHash || user.role !== "ADMIN") {
