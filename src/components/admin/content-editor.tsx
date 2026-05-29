@@ -25,8 +25,12 @@ type ContentEditorProps = {
 };
 
 export function ContentEditor({ note }: ContentEditorProps) {
+  const [title, setTitle] = useState(note?.title ?? "");
+  const [excerpt, setExcerpt] = useState(note?.excerpt ?? "");
   const [content, setContent] = useState(note?.content ?? "");
   const action = note ? updateContentAsset.bind(null, note.id) : createContentAsset;
+  const previewTitle = title.trim() || "未命名内容";
+  const previewExcerpt = excerpt.trim();
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -38,11 +42,12 @@ export function ContentEditor({ note }: ContentEditorProps) {
             </label>
             <input
               className="h-11 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-              defaultValue={note?.title}
               id="title"
               name="title"
+              onChange={(event) => setTitle(event.target.value)}
               placeholder="例如：一次 AI SOP 实践复盘"
               required
+              value={title}
             />
           </div>
 
@@ -66,10 +71,11 @@ export function ContentEditor({ note }: ContentEditorProps) {
           </label>
           <textarea
             className="min-h-24 rounded-md border border-slate-200 bg-white px-3 py-3 text-sm leading-6 text-slate-950 outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-            defaultValue={note?.excerpt ?? ""}
             id="excerpt"
             name="excerpt"
+            onChange={(event) => setExcerpt(event.target.value)}
             placeholder="一句话说明这条内容资产的价值。"
+            value={excerpt}
           />
         </div>
 
@@ -91,17 +97,34 @@ export function ContentEditor({ note }: ContentEditorProps) {
 
           <section className="grid gap-2">
             <div>
-              <p className="text-sm font-medium text-slate-700">Markdown 预览</p>
+              <p className="text-sm font-medium text-slate-700">公开效果预览</p>
               <p className="mt-1 text-xs text-slate-500">
-                预览接近公开知识详情页的正文排版。
+                包含标题、摘要和正文，接近公开知识详情页排版。
               </p>
             </div>
             <div className="min-h-[520px] overflow-hidden rounded-md border border-slate-200 bg-slate-50">
               <div className="h-full min-h-[520px] overflow-auto bg-white px-5 py-4">
+                <header className="border-b border-slate-100 pb-5">
+                  <p className="text-xs font-medium text-slate-400">
+                    内容资产预览
+                  </p>
+                  <h2 className="mt-2 text-2xl font-semibold leading-tight text-slate-950">
+                    {previewTitle}
+                  </h2>
+                  {previewExcerpt ? (
+                    <p className="mt-3 text-base leading-7 text-slate-600">
+                      {previewExcerpt}
+                    </p>
+                  ) : (
+                    <p className="mt-3 text-sm leading-6 text-slate-400">
+                      摘要为空，发布后正文前不会显示摘要。
+                    </p>
+                  )}
+                </header>
                 {content.trim() ? (
                   <MarkdownPreview content={content} />
                 ) : (
-                  <p className="text-sm leading-6 text-slate-400">
+                  <p className="mt-5 text-sm leading-6 text-slate-400">
                     在左侧输入 Markdown 后，这里会实时显示预览。
                   </p>
                 )}

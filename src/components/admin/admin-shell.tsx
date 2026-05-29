@@ -1,16 +1,6 @@
 import Link from "next/link";
-import {
-  BarChart3,
-  FileText,
-  Gauge,
-  Globe2,
-  KeyRound,
-  Package,
-  Settings,
-  ShoppingBag,
-  Users,
-  Wrench,
-} from "lucide-react";
+import { Globe2, Package } from "lucide-react";
+import { AdminNav } from "@/components/admin/admin-nav";
 import { LogoutButton } from "@/components/admin/logout-button";
 
 type AdminShellProps = {
@@ -18,17 +8,6 @@ type AdminShellProps = {
   title: string;
   description: string;
 };
-
-const navItems = [
-  { title: "仪表盘", href: "/admin", icon: Gauge },
-  { title: "内容资产", href: "/admin/content", icon: FileText },
-  { title: "工具管理", href: "/admin/tools", icon: Wrench },
-  { title: "用户管理", href: "/admin/users", icon: Users },
-  { title: "权限管理", href: "/admin/roles", icon: KeyRound },
-  { title: "订单管理", href: "/admin/orders", icon: ShoppingBag },
-  { title: "数据大屏", href: "/admin/analytics", icon: BarChart3 },
-  { title: "系统设置", href: "/admin/settings", icon: Settings },
-];
 
 export function AdminShell({ children, title, description }: AdminShellProps) {
   return (
@@ -40,22 +19,7 @@ export function AdminShell({ children, title, description }: AdminShellProps) {
             <p className="mt-1 text-xs text-slate-500">内容资产工作台</p>
           </Link>
 
-          <nav aria-label="后台导航" className="mt-8 flex flex-wrap gap-2 lg:flex-col">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-
-              return (
-                <Link
-                  className="inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950"
-                  href={item.href}
-                  key={item.href}
-                >
-                  <Icon aria-hidden="true" className="h-4 w-4" />
-                  {item.title}
-                </Link>
-              );
-            })}
-          </nav>
+          <AdminNav />
 
           <div className="mt-8 flex flex-col items-start gap-3 border-t border-slate-200 pt-5">
             <Link

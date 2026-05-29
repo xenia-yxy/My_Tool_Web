@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  getPublishedContentAssetHref,
   makeSlug,
   normalizeContentAssetInput,
   normalizeContentAssetFilter,
@@ -86,5 +87,16 @@ test("summarizeContentAssetStats counts draft and published assets", () => {
       private: 1,
       published: 2,
     },
+  );
+});
+
+test("getPublishedContentAssetHref only returns public hrefs for published assets", () => {
+  assert.equal(
+    getPublishedContentAssetHref({ slug: "ai-sop-flow", status: "PUBLISHED" }),
+    "/knowledge/ai-sop-flow",
+  );
+  assert.equal(
+    getPublishedContentAssetHref({ slug: "draft-note", status: "PRIVATE" }),
+    null,
   );
 });

@@ -79,20 +79,42 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
       <div className="grid gap-5">
         <div className="grid gap-3 md:grid-cols-3">
           {[
-            { label: "内容总数", value: stats.total, detail: "全部沉淀内容" },
-            { label: "已发布", value: stats.published, detail: "公开知识库可见" },
-            { label: "草稿", value: stats.private, detail: "仅后台可见" },
+            {
+              label: "内容总数",
+              value: stats.total,
+              detail: "全部沉淀内容",
+              href: "/admin/content",
+            },
+            {
+              label: "已发布",
+              value: stats.published,
+              detail: "公开知识库可见",
+              href: "/admin/content?status=PUBLISHED",
+            },
+            {
+              label: "草稿",
+              value: stats.private,
+              detail: "仅后台可见",
+              href: "/admin/content?status=PRIVATE",
+            },
           ].map((item) => (
-            <section
-              className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm"
-              key={item.label}
+            <Link
+              className="group rounded-lg border border-slate-200 bg-white p-5 shadow-sm transition-colors hover:border-blue-200 hover:bg-blue-50/30"
+              href={item.href}
+              key={item.href}
             >
               <p className="text-sm font-medium text-slate-500">{item.label}</p>
               <p className="mt-3 text-3xl font-semibold text-slate-950">
                 {item.value}
               </p>
-              <p className="mt-2 text-sm text-slate-500">{item.detail}</p>
-            </section>
+              <p className="mt-2 flex items-center justify-between gap-3 text-sm text-slate-500">
+                {item.detail}
+                <ArrowRight
+                  aria-hidden="true"
+                  className="h-4 w-4 text-slate-300 transition-colors group-hover:text-blue-700"
+                />
+              </p>
+            </Link>
           ))}
         </div>
 
@@ -180,6 +202,16 @@ export default async function AdminPage({ searchParams }: AdminPageProps) {
                   title: "内容资产中心",
                   description: "搜索、筛选、发布和撤回内容。",
                   href: "/admin/content",
+                },
+                {
+                  title: "最近草稿",
+                  description: "继续编辑还没有公开的内容。",
+                  href: "/admin/content?status=PRIVATE",
+                },
+                {
+                  title: "已发布内容",
+                  description: "查看当前公开知识库内容。",
+                  href: "/admin/content?status=PUBLISHED",
                 },
               ].map((item) => (
                 <Link

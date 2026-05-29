@@ -53,6 +53,13 @@ export function summarizeContentAssetStats(
   );
 }
 
+export function getPublishedContentAssetHref(asset: {
+  slug: string;
+  status: ContentAssetStatus;
+}) {
+  return asset.status === "PUBLISHED" ? `/knowledge/${asset.slug}` : null;
+}
+
 export function makeSlug(value: string, fallbackSeed = Date.now().toString()) {
   const slug = value
     .trim()
