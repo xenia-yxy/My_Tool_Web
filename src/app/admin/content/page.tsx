@@ -12,6 +12,7 @@ import {
 import {
   normalizeContentAssetFilter,
   normalizeContentAssetQuery,
+  getPublishedContentAssetHref,
 } from "@/server/content-assets";
 import { requireAdminUser } from "@/server/auth";
 
@@ -71,6 +72,7 @@ export default async function AdminContentPage({
     listAdminContentAssets({ status: activeFilter, query }),
     getAdminContentAssetStats(),
   ]);
+  const hasActiveSearch = activeFilter !== "ALL" || Boolean(query);
 
   return (
     <AdminShell
@@ -97,20 +99,32 @@ export default async function AdminContentPage({
         </div>
 
         <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex flex-wrap gap-2">
-            {filters.map((filter) => (
-              <Link
-                className={
-                  activeFilter === filter.value
-                    ? "rounded-md bg-slate-950 px-3 py-2 text-sm font-medium text-white"
-                    : "rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                }
-                href={buildFilterHref(filter.value, query)}
-                key={filter.value}
-              >
-                {filter.title}
-              </Link>
-            ))}
+          <div className="grid gap-2">
+            <div className="flex flex-wrap gap-2">
+              {filters.map((filter) => (
+                <Link
+                  className={
+                    activeFilter === filter.value
+                      ? "rounded-md bg-slate-950 px-3 py-2 text-sm font-medium text-white"
+                      : "rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                  }
+                  href={buildFilterHref(filter.value, query)}
+                  key={filter.value}
+                >
+                  {filter.title}
+                </Link>
+              ))}
+            </div>
+            {hasActiveSearch ? (
+              <p className="text-xs text-slate-500">
+                当前显示 {notes.length} 条结果
+                {query ? `，关键词“${query}”` : ""}
+                {activeFilter !== "ALL"
+                  ? `，状态为${activeFilter === "PUBLISHED" ? "已发布" : "草稿"}`
+                  : ""}
+                。
+              </p>
+            ) : null}
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -138,6 +152,14 @@ export default async function AdminContentPage({
                 搜索
               </Button>
             </form>
+            {hasActiveSearch ? (
+              <Link
+                className="inline-flex h-10 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                href="/admin/content"
+              >
+                清空
+              </Link>
+            ) : null}
 
             <Button asChild>
               <Link href="/admin/content/new">新建内容</Link>
@@ -163,11 +185,14 @@ export default async function AdminContentPage({
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {notes.map((note) => (
-              <article
-                className="grid gap-4 px-5 py-4 sm:grid-cols-[1fr_auto] sm:items-center"
-                key={note.id}
-              >
+            {notes.map((note) => {
+              const publicHref = getPublishedContentAssetHref(note);
+
+              return (
+                <article
+                  className="grid gap-4 px-5 py-4 sm:grid-cols-[1fr_auto] sm:items-center"
+                  key={note.id}
+                >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge
@@ -198,6 +223,16 @@ export default async function AdminContentPage({
                 </div>
 
                 <div className="flex items-center justify-between gap-3 sm:justify-end">
+                  {publicHref ? (
+                    <Link
+                      className="rounded-md border border-blue-100 bg-blue-50 px-3 py-1.5 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-100"
+                      href={publicHref}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      公开页
+                    </Link>
+                  ) : null}
                   <Link
                     className="rounded-md border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
                     href={`/admin/content/${note.id}`}
@@ -207,7 +242,8 @@ export default async function AdminContentPage({
                   <ContentAssetActions id={note.id} status={note.status} />
                 </div>
               </article>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

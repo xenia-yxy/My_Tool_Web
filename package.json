@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test tests/admin-credentials.test.ts tests/content-assets.test.ts tests/password.test.ts",
+    "test": "tsx --test tests/admin-credentials.test.ts tests/admin-navigation.test.ts tests/content-assets.test.ts tests/password.test.ts",
     "postinstall": "prisma generate",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
