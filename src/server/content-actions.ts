@@ -26,6 +26,7 @@ function readIntentStatus(formData: FormData): ContentAssetStatus {
 
 function revalidateContentPaths(slug?: string) {
   revalidatePath("/admin");
+  revalidatePath("/admin/content");
   revalidatePath("/knowledge");
 
   if (slug) {

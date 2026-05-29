@@ -23,7 +23,16 @@ export default async function EditContentAssetPage({
       description="编辑 Markdown 内容，控制草稿、发布和撤回状态。"
       title="编辑内容"
     >
-      <ContentEditor note={note} />
+      <ContentEditor
+        note={{
+          id: note.id,
+          title: note.title,
+          slug: note.slug,
+          excerpt: note.excerpt,
+          content: note.content,
+          status: note.status === "PUBLISHED" ? "PUBLISHED" : "PRIVATE",
+        }}
+      />
     </AdminShell>
   );
 }

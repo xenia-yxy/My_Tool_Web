@@ -3,7 +3,10 @@ import { test } from "node:test";
 import {
   makeSlug,
   normalizeContentAssetInput,
+  normalizeContentAssetFilter,
+  normalizeContentAssetQuery,
   resolvePublication,
+  summarizeContentAssetStats,
 } from "../src/server/content-assets";
 
 test("makeSlug normalizes ascii titles and falls back for non-ascii titles", () => {
@@ -48,4 +51,40 @@ test("resolvePublication sets publishedAt only while published", () => {
     status: "PRIVATE",
     publishedAt: null,
   });
+});
+
+test("normalizeContentAssetFilter falls back to all for invalid status values", () => {
+  assert.equal(normalizeContentAssetFilter("PRIVATE"), "PRIVATE");
+  assert.equal(normalizeContentAssetFilter("PUBLISHED"), "PUBLISHED");
+  assert.equal(normalizeContentAssetFilter(["PUBLISHED", "PRIVATE"]), "PUBLISHED");
+  assert.equal(normalizeContentAssetFilter("ARCHIVED"), "ALL");
+  assert.equal(normalizeContentAssetFilter(undefined), "ALL");
+});
+
+test("normalizeContentAssetQuery trims search text and ignores empty values", () => {
+  assert.equal(normalizeContentAssetQuery("  ai sop  "), "ai sop");
+  assert.equal(normalizeContentAssetQuery(["  published  ", "draft"]), "published");
+  assert.equal(normalizeContentAssetQuery("   "), undefined);
+  assert.equal(normalizeContentAssetQuery(undefined), undefined);
+});
+
+test("summarizeContentAssetStats counts draft and published assets", () => {
+  assert.deepEqual(summarizeContentAssetStats([]), {
+    total: 0,
+    private: 0,
+    published: 0,
+  });
+
+  assert.deepEqual(
+    summarizeContentAssetStats([
+      { status: "PRIVATE" },
+      { status: "PUBLISHED" },
+      { status: "PUBLISHED" },
+    ]),
+    {
+      total: 3,
+      private: 1,
+      published: 2,
+    },
+  );
 });

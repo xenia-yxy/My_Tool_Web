@@ -1,18 +1,65 @@
 import { notFound } from "next/navigation";
 import { NoteStatus } from "../../generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import {
+  normalizeContentAssetFilter,
+  normalizeContentAssetQuery,
+  summarizeContentAssetStats,
+  type ContentAssetFilter,
+} from "@/server/content-assets";
 
-export type ContentAssetFilter = "ALL" | "PRIVATE" | "PUBLISHED";
+export type { ContentAssetFilter };
 
-export async function listAdminContentAssets(filter: ContentAssetFilter = "ALL") {
+export type ContentAssetListInput = {
+  status?: ContentAssetFilter;
+  query?: string;
+};
+
+export async function listAdminContentAssets(input: ContentAssetListInput = {}) {
+  const status = normalizeContentAssetFilter(input.status);
+  const query = normalizeContentAssetQuery(input.query);
+
   return prisma.note.findMany({
-    where:
-      filter === "ALL"
-        ? undefined
-        : {
-            status: filter,
-          },
+    where: {
+      ...(status === "ALL" ? {} : { status }),
+      ...(query
+        ? {
+            OR: [
+              { title: { contains: query, mode: "insensitive" } },
+              { excerpt: { contains: query, mode: "insensitive" } },
+              { slug: { contains: query, mode: "insensitive" } },
+            ],
+          }
+        : {}),
+    },
     orderBy: [{ updatedAt: "desc" }],
+    select: {
+      id: true,
+      title: true,
+      slug: true,
+      excerpt: true,
+      status: true,
+      publishedAt: true,
+      updatedAt: true,
+      createdAt: true,
+    },
+  });
+}
+
+export async function getAdminContentAssetStats() {
+  const assets = await prisma.note.findMany({
+    select: {
+      status: true,
+    },
+  });
+
+  return summarizeContentAssetStats(assets);
+}
+
+export async function listRecentAdminContentAssets(limit = 5) {
+  return prisma.note.findMany({
+    orderBy: [{ updatedAt: "desc" }],
+    take: limit,
     select: {
       id: true,
       title: true,

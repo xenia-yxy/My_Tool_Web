@@ -1,4 +1,9 @@
 export type ContentAssetStatus = "PRIVATE" | "PUBLISHED";
+export type ContentAssetFilter = "ALL" | ContentAssetStatus;
+
+type ContentAssetStatusSummaryItem = {
+  status: ContentAssetStatus;
+};
 
 type ContentAssetFormInput = {
   title: string;
@@ -6,6 +11,47 @@ type ContentAssetFormInput = {
   excerpt?: string | null;
   content: string;
 };
+
+export function normalizeContentAssetFilter(
+  value?: string | string[],
+): ContentAssetFilter {
+  const status = Array.isArray(value) ? value[0] : value;
+
+  if (status === "PRIVATE" || status === "PUBLISHED") {
+    return status;
+  }
+
+  return "ALL";
+}
+
+export function normalizeContentAssetQuery(value?: string | string[]) {
+  const query = (Array.isArray(value) ? value[0] : value)?.trim();
+
+  return query || undefined;
+}
+
+export function summarizeContentAssetStats(
+  assets: ContentAssetStatusSummaryItem[],
+) {
+  return assets.reduce(
+    (stats, asset) => {
+      stats.total += 1;
+
+      if (asset.status === "PUBLISHED") {
+        stats.published += 1;
+      } else {
+        stats.private += 1;
+      }
+
+      return stats;
+    },
+    {
+      total: 0,
+      private: 0,
+      published: 0,
+    },
+  );
+}
 
 export function makeSlug(value: string, fallbackSeed = Date.now().toString()) {
   const slug = value

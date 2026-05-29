@@ -1,47 +1,63 @@
+"use client";
+
 import Link from "next/link";
-import type { Note } from "../../../generated/prisma/client";
+import { useState } from "react";
+import { MarkdownPreview } from "@/components/content/markdown-preview";
 import { Button } from "@/components/ui/button";
 import {
   createContentAsset,
   updateContentAsset,
   withdrawContentAsset,
 } from "@/server/content-actions";
+import type { ContentAssetStatus } from "@/server/content-assets";
+
+type ContentEditorNote = {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  content: string;
+  status: ContentAssetStatus;
+};
 
 type ContentEditorProps = {
-  note?: Note;
+  note?: ContentEditorNote;
 };
 
 export function ContentEditor({ note }: ContentEditorProps) {
+  const [content, setContent] = useState(note?.content ?? "");
   const action = note ? updateContentAsset.bind(null, note.id) : createContentAsset;
 
   return (
     <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
       <form action={action} className="grid gap-6 p-5 sm:p-6">
-        <div className="grid gap-2">
-          <label className="text-sm font-medium text-slate-700" htmlFor="title">
-            标题
-          </label>
-          <input
-            className="h-11 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-            defaultValue={note?.title}
-            id="title"
-            name="title"
-            placeholder="例如：一次 AI SOP 实践复盘"
-            required
-          />
-        </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-2">
+            <label className="text-sm font-medium text-slate-700" htmlFor="title">
+              标题
+            </label>
+            <input
+              className="h-11 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              defaultValue={note?.title}
+              id="title"
+              name="title"
+              placeholder="例如：一次 AI SOP 实践复盘"
+              required
+            />
+          </div>
 
-        <div className="grid gap-2">
-          <label className="text-sm font-medium text-slate-700" htmlFor="slug">
-            链接标识
-          </label>
-          <input
-            className="h-11 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-            defaultValue={note?.slug}
-            id="slug"
-            name="slug"
-            placeholder="留空时会根据标题生成"
-          />
+          <div className="grid gap-2">
+            <label className="text-sm font-medium text-slate-700" htmlFor="slug">
+              链接标识
+            </label>
+            <input
+              className="h-11 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              defaultValue={note?.slug}
+              id="slug"
+              name="slug"
+              placeholder="留空时会根据标题生成"
+            />
+          </div>
         </div>
 
         <div className="grid gap-2">
@@ -57,24 +73,47 @@ export function ContentEditor({ note }: ContentEditorProps) {
           />
         </div>
 
-        <div className="grid gap-2">
-          <label className="text-sm font-medium text-slate-700" htmlFor="content">
-            Markdown 正文
-          </label>
-          <textarea
-            className="min-h-[460px] rounded-md border border-slate-200 bg-white px-3 py-3 font-mono text-sm leading-7 text-slate-950 outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-            defaultValue={note?.content ?? ""}
-            id="content"
-            name="content"
-            placeholder={"# 标题\n\n记录真实实践、方法论、提示词、流程和复盘。"}
-            required
-          />
+        <div className="grid gap-4 xl:grid-cols-2">
+          <div className="grid gap-2">
+            <label className="text-sm font-medium text-slate-700" htmlFor="content">
+              Markdown 正文
+            </label>
+            <textarea
+              className="min-h-[520px] rounded-md border border-slate-200 bg-white px-3 py-3 font-mono text-sm leading-7 text-slate-950 outline-none transition-colors focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              id="content"
+              name="content"
+              onChange={(event) => setContent(event.target.value)}
+              placeholder={"# 标题\n\n记录真实实践、方法论、提示词、流程和复盘。"}
+              required
+              value={content}
+            />
+          </div>
+
+          <section className="grid gap-2">
+            <div>
+              <p className="text-sm font-medium text-slate-700">Markdown 预览</p>
+              <p className="mt-1 text-xs text-slate-500">
+                预览接近公开知识详情页的正文排版。
+              </p>
+            </div>
+            <div className="min-h-[520px] overflow-hidden rounded-md border border-slate-200 bg-slate-50">
+              <div className="h-full min-h-[520px] overflow-auto bg-white px-5 py-4">
+                {content.trim() ? (
+                  <MarkdownPreview content={content} />
+                ) : (
+                  <p className="text-sm leading-6 text-slate-400">
+                    在左侧输入 Markdown 后，这里会实时显示预览。
+                  </p>
+                )}
+              </div>
+            </div>
+          </section>
         </div>
 
         <div className="flex flex-col gap-3 border-t border-slate-200 pt-5 sm:flex-row sm:items-center sm:justify-between">
           <Link
             className="text-sm font-medium text-slate-500 transition-colors hover:text-slate-950"
-            href="/admin"
+            href="/admin/content"
           >
             返回内容资产列表
           </Link>
