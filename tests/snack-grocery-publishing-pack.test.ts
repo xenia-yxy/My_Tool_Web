@@ -90,3 +90,18 @@ test("publishing pack includes complete preview sections for the workbench", () 
   assert.ok(pack.tags.includes("#抖音图文"));
   assert.ok(pack.productKeywords.length >= 5);
 });
+
+test("each storyboard image prompt is safe for direct image generation", () => {
+  const pack = buildSnackGroceryPublishingPack({
+    columnTemplate: "office_snack_drawer",
+    materialMode: "product_only",
+    itemDescription: "办公室坚果小包",
+  });
+
+  assert.equal(pack.storyboard.length, 6);
+  for (const frame of pack.storyboard) {
+    assert.match(frame.imagePrompt, /不要出现任何中文、英文、数字标题/);
+    assert.match(frame.imagePrompt, /不要夸张食品功效/);
+    assert.ok(frame.imagePrompt.includes(frame.role));
+  }
+});
