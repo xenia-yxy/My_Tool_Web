@@ -73,3 +73,20 @@ test("publishing presets expose six first-stage columns", () => {
   assert.ok(presets.columnTemplates.some((item) => item.value === "office_snack_drawer"));
   assert.ok(presets.columnTemplates.some((item) => item.value === "rental_bathroom_cleaning"));
 });
+
+test("publishing pack includes complete preview sections for the workbench", () => {
+  const pack = buildSnackGroceryPublishingPack({
+    columnTemplate: "office_snack_drawer",
+    publishingGoal: "traffic",
+    materialMode: "category_only",
+  });
+
+  assert.ok(pack.positioning.includes("跑流量"));
+  assert.equal(pack.titleOptions.length, 3);
+  assert.equal(pack.firstImageHooks.length, 3);
+  assert.ok(pack.caption.length > 20);
+  assert.ok(pack.pinnedComment.length > 5);
+  assert.ok(pack.materialNeeds.length >= 3);
+  assert.ok(pack.tags.includes("#抖音图文"));
+  assert.ok(pack.productKeywords.length >= 5);
+});
