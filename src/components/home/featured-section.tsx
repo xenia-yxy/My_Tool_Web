@@ -80,7 +80,7 @@ export function FeaturedSection() {
           先展示方向，再持续填充真实内容
         </h2>
         <p className="mt-3 text-sm leading-6 text-slate-600">
-          MVP 阶段先把入口和表达做好，后续由管理端把笔记、工具和项目逐步上线。
+          MVP 阶段先把入口和表达做好，后续再把笔记、工具和项目逐步上线。
         </p>
       </div>
 

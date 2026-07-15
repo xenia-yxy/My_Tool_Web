@@ -1,34 +1,39 @@
 import "dotenv/config";
 import { prisma } from "../src/lib/prisma";
+import {
+  readAdminSeedAccounts,
+  readUserSeedAccounts,
+} from "../src/server/admin-seed-accounts";
 import { hashPassword } from "../src/server/password";
 
 async function main() {
-  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-  const username = process.env.ADMIN_USERNAME?.trim().toLowerCase() ?? "yangxinyu";
-  const password = process.env.ADMIN_PASSWORD;
+  const accounts = [...readAdminSeedAccounts(), ...readUserSeedAccounts()];
 
-  if (!email || !password) {
-    throw new Error("ADMIN_EMAIL and ADMIN_PASSWORD are required for seed.");
+  for (const account of accounts) {
+    const passwordHash = await hashPassword(account.password);
+    const passwordChangedAt = new Date();
+
+    await prisma.user.upsert({
+      where: { email: account.email },
+      update: {
+        name: account.username,
+        passwordHash,
+        passwordChangedAt,
+        failedLoginCount: 0,
+        lockedUntil: null,
+        role: account.role,
+      },
+      create: {
+        email: account.email,
+        name: account.username,
+        passwordHash,
+        passwordChangedAt,
+        role: account.role,
+      },
+    });
+
+    console.log(`Seeded ${account.role.toLowerCase()} user: ${account.email}`);
   }
-
-  const passwordHash = await hashPassword(password);
-
-  await prisma.user.upsert({
-    where: { email },
-    update: {
-      name: username,
-      passwordHash,
-      role: "ADMIN",
-    },
-    create: {
-      email,
-      name: username,
-      passwordHash,
-      role: "ADMIN",
-    },
-  });
-
-  console.log(`Seeded admin user: ${email}`);
 }
 
 main()

@@ -1,0 +1,124 @@
+classDiagram
+    class WorkflowStage {
+        <<enumeration>>
+        PLAN
+        CREATE
+        GENERATE
+        PUBLISH
+    }
+
+    class WorkflowStageMeta {
+        +id: WorkflowStage
+        +label: string
+        +description: string
+        +icon: LucideIcon
+    }
+
+    class NextStepConfig {
+        +label: string
+        +href: string
+        +stage: WorkflowStage
+    }
+
+    class WorkflowNextStep {
+        +stage: WorkflowStage
+        +label?: string
+        +href?: string
+        +render() JSX.Element
+    }
+
+    class NavItem {
+        +id: string
+        +label: string
+        +href: string
+        +icon: LucideIcon
+    }
+
+    class NavGroup {
+        +id: string
+        +label: string
+        +icon: LucideIcon
+        +items: NavItem[]
+    }
+
+    class NavConfig {
+        +navGroups: NavGroup[]
+        +getActiveNavId(pathname) string
+        +getActiveGroupId(pathname) string
+    }
+
+    class DashboardSummary {
+        +todayTasks: ~total, completed~
+        +unpublishedDrafts: int
+        +todayImages: int
+        +ipPrototypeProjects: int
+    }
+
+    class DashboardData {
+        +summary: DashboardSummary
+        +recentImages: DashboardRecentImage[]
+        +recentDrafts: DashboardRecentDraft[]
+        +currentStage: WorkflowStage
+        +nextStep: NextStepConfig
+    }
+
+    class ToolsDashboardServer {
+        +getToolsDashboardData(userId) DashboardData
+        +inferWorkflowStage(summary) WorkflowStage
+        +getNextStepSuggestion(stage, summary) NextStepConfig
+    }
+
+    class WorkflowProgressBar {
+        +currentStage: WorkflowStage
+        +stageStatuses: Record
+        +nextStep: NextStepConfig
+        +render() JSX.Element
+    }
+
+    class DashboardSummaryCards {
+        +summary: DashboardSummary
+        +render() JSX.Element
+    }
+
+    class DashboardRecentImages {
+        +images: DashboardRecentImage[]
+        +render() JSX.Element
+    }
+
+    class DashboardRecentDrafts {
+        +drafts: DashboardRecentDraft[]
+        +render() JSX.Element
+    }
+
+    class DashboardQuickActions {
+        +render() JSX.Element
+    }
+
+    class FashionPromptsWorkbench {
+        +initialTab: string
+        +render() JSX.Element
+    }
+
+    class ToolsPage {
+        +getToolsDashboardData(userId) DashboardData
+        +render() JSX.Element
+    }
+
+    NavGroup --> NavItem : contains
+    NavConfig --> NavGroup : exports
+    DashboardData --> DashboardSummary : contains
+    DashboardData --> NextStepConfig : contains
+    ToolsDashboardServer --> DashboardData : returns
+    ToolsDashboardServer --> DashboardSummary : input
+    ToolsDashboardServer --> WorkflowStage : infers
+    ToolsPage --> ToolsDashboardServer : calls
+    ToolsPage --> DashboardData : receives
+    ToolsPage --> WorkflowProgressBar : renders
+    ToolsPage --> DashboardSummaryCards : renders
+    ToolsPage --> DashboardRecentImages : renders
+    ToolsPage --> DashboardRecentDrafts : renders
+    ToolsPage --> DashboardQuickActions : renders
+    WorkflowProgressBar --> WorkflowStageMeta : iterates
+    WorkflowProgressBar --> NextStepConfig : displays
+    WorkflowNextStep --> NextStepConfig : uses
+    FashionPromptsWorkbench --> NavItem : tab config

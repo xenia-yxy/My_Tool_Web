@@ -33,7 +33,7 @@ export function ContactSection() {
               </Link>
             </Button>
             <Button asChild className="h-11 px-5" variant="secondary">
-              <Link href="mailto:admin@example.com">
+              <Link href="mailto:hello@xenia.local">
                 <Mail aria-hidden="true" className="mr-2 h-4 w-4" />
                 邮件联系
               </Link>

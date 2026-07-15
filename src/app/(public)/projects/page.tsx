@@ -2,8 +2,13 @@ import Link from "next/link";
 import { ArrowLeft, PanelsTopLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { requireSignedInUser } from "@/server/auth";
 
-export default function ProjectsPage() {
+export const dynamic = "force-dynamic";
+
+export default async function ProjectsPage() {
+  await requireSignedInUser("/projects");
+
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(221,214,254,0.45),transparent_34rem),linear-gradient(180deg,#ffffff_0%,#f8fafc_100%)] px-5 py-12">
       <div className="mx-auto max-w-4xl">

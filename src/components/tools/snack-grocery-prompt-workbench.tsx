@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { AdvancedParameterModal } from "@/components/tools/advanced-parameter-modal";
+import { PromptEditorDialog } from "@/components/tools/prompt-editor-dialog";
 import {
   buildSnackGroceryPublishingPack,
   getSnackGroceryPublishingPresets,
@@ -113,6 +114,8 @@ export function SnackGroceryPromptWorkbench() {
   const [batchCount, setBatchCount] = useState(6);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isPromptEditorOpen, setIsPromptEditorOpen] = useState(false);
+  const [promptDraft, setPromptDraft] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const previewUrls = useObjectUrls(imageFiles);
@@ -155,23 +158,43 @@ export function SnackGroceryPromptWorkbench() {
     setImageFiles((current) => current.filter((_, fileIndex) => fileIndex !== index));
   }
 
-  async function generateImages() {
+  function getGenerationFrames() {
+    return publishingPack.storyboard.slice(
+      0,
+      Math.min(batchCount, publishingPack.storyboard.length),
+    );
+  }
+
+  function requestImageGeneration() {
+    setPromptDraft(
+      getGenerationFrames()
+        .map((frame) => `--- 第 ${frame.index} 张 ---\n${frame.imagePrompt}`)
+        .join("\n\n"),
+    );
+    setIsPromptEditorOpen(true);
+  }
+
+  async function generateImages(editablePrompt: string) {
+    if (!editablePrompt.trim()) {
+      setError("完整提示词不能为空");
+      return;
+    }
+
     setError(null);
     setNotice(null);
     setIsGenerating(true);
 
     try {
       const meta = buildPublishingMeta(publishingPack);
-      const frames = publishingPack.storyboard.slice(
-        0,
-        Math.min(batchCount, publishingPack.storyboard.length),
-      );
+      const frames = getGenerationFrames();
+      const prompts = splitEditablePrompts(editablePrompt, frames.map((frame) => frame.imagePrompt));
 
-      for (const frame of frames) {
+      for (const [index, frame] of frames.entries()) {
+        const prompt = prompts[index] || frame.imagePrompt;
         const response =
           imageFiles.length > 0
-            ? await submitMultipart(frame.imagePrompt, meta)
-            : await submitJson(frame.imagePrompt, meta);
+            ? await submitMultipart(prompt, meta)
+            : await submitJson(prompt, meta);
         const payload = (await response.json()) as { error?: string };
 
         if (!response.ok) {
@@ -203,6 +226,7 @@ export function SnackGroceryPromptWorkbench() {
         aspectRatio: getAspectRatio(outputType),
         quality: "low",
         batchCount: 1,
+        finalPrompt: prompt,
       }),
     });
   }
@@ -220,6 +244,7 @@ export function SnackGroceryPromptWorkbench() {
     formData.set("aspectRatio", getAspectRatio(outputType));
     formData.set("quality", "low");
     formData.set("batchCount", "1");
+    formData.set("finalPrompt", prompt);
     imageFiles.forEach((file) => formData.append("image", file));
 
     return fetch("/api/tools/image-generation", {
@@ -459,7 +484,7 @@ export function SnackGroceryPromptWorkbench() {
           <Button
             className="h-11 w-full gap-2"
             disabled={isGenerating}
-            onClick={() => void generateImages()}
+            onClick={requestImageGeneration}
             type="button"
           >
             {isGenerating ? (
@@ -471,6 +496,14 @@ export function SnackGroceryPromptWorkbench() {
           </Button>
         </CardContent>
       </Card>
+      <PromptEditorDialog
+        description="每一段对应一张分镜图。可直接修改文本，保存后按顺序提交。"
+        onClose={() => setIsPromptEditorOpen(false)}
+        onSave={generateImages}
+        open={isPromptEditorOpen}
+        prompt={promptDraft}
+        title="确认零食百货完整分镜提示词"
+      />
 
       <section className="space-y-5">
         <Card>
@@ -575,6 +608,15 @@ function buildPublishingMeta(pack: ReturnType<typeof buildSnackGroceryPublishing
     tags: pack.tags,
     productKeywords: pack.productKeywords,
   };
+}
+
+function splitEditablePrompts(prompt: string, fallbackPrompts: string[]) {
+  const prompts = prompt
+    .split(/---\s*第\s*\d+\s*张\s*---/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return fallbackPrompts.map((fallback, index) => prompts[index] || fallback);
 }
 
 function getAspectRatio(outputType: OutputType) {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { listPublishedContentAssets } from "@/server/content-queries";
+import { requireSignedInUser } from "@/server/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ function formatDate(date: Date | null) {
 }
 
 export default async function KnowledgePage() {
+  await requireSignedInUser("/knowledge");
   const notes = await listPublishedContentAssets();
 
   return (

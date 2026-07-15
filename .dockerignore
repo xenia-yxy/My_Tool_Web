@@ -1,8 +1,13 @@
 .git
 .next
+admin-frontend/.next
 .worktrees
+.deploy-private
+deploy-artifacts
+.runtime
 node_modules
 generated
+output
 .env
 .env.*
 !.env.example

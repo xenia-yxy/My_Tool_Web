@@ -79,18 +79,18 @@ export const featuredKnowledge: FeaturedItem[] = [
 
 export const featuredTools: FeaturedItem[] = [
   {
-    title: "闪念捕获",
-    description: "把临时想法快速收进私人工作台，后续再筛选为公开文章或项目素材。",
-    meta: "效率工具",
-    href: "/tools",
+    title: "AI 自定义生图",
+    description: "输入话语生成封面、海报、头像、电商图等视觉素材。",
+    meta: "生图工具",
+    href: "/tools/ai-image",
     status: "内测中",
   },
   {
-    title: "内容 SOP 助手",
-    description: "把选题、拆解、发布和复盘做成可重复执行的创作流程。",
-    meta: "创作工具",
-    href: "/tools",
-    status: "规划中",
+    title: "AI 穿搭生图",
+    description: "上传服装参考图，生成平铺或模特穿搭展示图。",
+    meta: "穿搭工具",
+    href: "/tools/outfit-image",
+    status: "内测中",
   },
 ];
 
@@ -120,7 +120,7 @@ export const contactActions: ContactAction[] = [
   {
     title: "GitHub / 邮箱",
     description: "适合项目合作、工具反馈和更正式的沟通。",
-    href: "mailto:admin@example.com",
+    href: "mailto:hello@xenia.local",
     status: "可替换",
   },
 ];

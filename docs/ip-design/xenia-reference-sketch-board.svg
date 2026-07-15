@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1020" viewBox="0 0 1440 1020" role="img" aria-labelledby="title desc">
+  <title id="title">Xenia IP reference sketch board</title>
+  <desc id="desc">A monochrome and light color sketch board for the Xenia workflow persona IP.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f7faf8; }
+      .panel { fill: #ffffff; stroke: #d9e5df; stroke-width: 2; }
+      .ink { stroke: #1f2a28; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .thin { stroke: #5c6f68; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .accent { stroke: #30a46c; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .blue { stroke: #2780b8; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .note { fill: #fff7d6; stroke: #c9a227; stroke-width: 2; }
+      .glass { fill: #eaf7f2; stroke: #30a46c; stroke-width: 2; }
+      .label { font-family: Arial, "Microsoft YaHei", sans-serif; fill: #1f2a28; font-size: 28px; font-weight: 700; }
+      .small { font-family: Arial, "Microsoft YaHei", sans-serif; fill: #53645f; font-size: 18px; }
+      .caption { font-family: Arial, "Microsoft YaHei", sans-serif; fill: #1f2a28; font-size: 20px; font-weight: 700; }
+    </style>
+  </defs>
+  <rect class="bg" width="1440" height="1020"/>
+  <g opacity="0.55">
+    <path class="thin" d="M80 120H1360M80 240H1360M80 360H1360M80 480H1360M80 600H1360M80 720H1360M80 840H1360"/>
+    <path class="thin" d="M160 80V940M320 80V940M480 80V940M640 80V940M800 80V940M960 80V940M1120 80V940M1280 80V940"/>
+  </g>
+
+  <text x="80" y="72" class="label">Xenia IP 第一参考图：简笔画 + 风格出 IP</text>
+  <text x="80" y="106" class="small">目标：先固定轮廓、动作、道具和气质，再进入真实生图。</text>
+
+  <rect x="80" y="150" width="390" height="700" rx="24" class="panel"/>
+  <text x="116" y="202" class="caption">A. 数字主理人</text>
+  <text x="116" y="232" class="small">人物识别强，适合公开首页和头像。</text>
+  <g transform="translate(150 285)">
+    <circle cx="125" cy="65" r="42" class="ink"/>
+    <path d="M94 58c18 12 43 12 62 0" class="thin"/>
+    <path d="M106 79c12 10 27 10 38 0" class="thin"/>
+    <path d="M125 108v118" class="ink"/>
+    <path d="M125 132c-42 22-67 51-76 88" class="ink"/>
+    <path d="M125 132c42 22 67 51 76 88" class="ink"/>
+    <path d="M125 226l-48 128" class="ink"/>
+    <path d="M125 226l52 128" class="ink"/>
+    <rect x="178" y="154" width="92" height="64" rx="10" class="glass"/>
+    <path d="M191 176h54M191 195h35" class="accent"/>
+    <path d="M65 202l-35 32" class="ink"/>
+    <rect x="18" y="226" width="60" height="82" rx="8" class="note"/>
+    <path d="M31 250h33M31 270h24" class="thin"/>
+  </g>
+  <text x="116" y="760" class="small">保留：真实人形、屏幕、笔记。</text>
+  <text x="116" y="792" class="small">避免：网红感、过度精英感、幼态。</text>
+
+  <rect x="525" y="150" width="390" height="700" rx="24" class="panel"/>
+  <text x="561" y="202" class="caption">B. 工作流助手</text>
+  <text x="561" y="232" class="small">工具属性强，适合流程引导和状态页。</text>
+  <g transform="translate(590 286)">
+    <rect x="72" y="24" width="130" height="102" rx="28" class="ink"/>
+    <circle cx="116" cy="72" r="8" fill="#1f2a28"/>
+    <circle cx="159" cy="72" r="8" fill="#1f2a28"/>
+    <path d="M112 100c20 12 38 12 56 0" class="thin"/>
+    <path d="M137 126v96" class="ink"/>
+    <path d="M137 158H48" class="ink"/>
+    <path d="M137 158h95" class="ink"/>
+    <path d="M137 222l-58 102" class="ink"/>
+    <path d="M137 222l58 102" class="ink"/>
+    <circle cx="42" cy="156" r="23" class="accent"/>
+    <circle cx="238" cy="156" r="23" class="blue"/>
+    <rect x="17" y="360" width="88" height="58" rx="10" class="note"/>
+    <rect x="130" y="360" width="88" height="58" rx="10" class="glass"/>
+    <rect x="242" y="360" width="88" height="58" rx="10" fill="#ffffff" stroke="#2780b8" stroke-width="2"/>
+    <path d="M105 389h25M218 389h24" class="thin"/>
+  </g>
+  <text x="561" y="760" class="small">保留：节点、阶段、清晰工具感。</text>
+  <text x="561" y="792" class="small">避免：机甲、冰冷机器人、强科幻。</text>
+
+  <rect x="970" y="150" width="390" height="700" rx="24" class="panel"/>
+  <text x="1006" y="202" class="caption">C. 知识工匠</text>
+  <text x="1006" y="232" class="small">适合知识库、SOP 服务和内容沉淀。</text>
+  <g transform="translate(1035 282)">
+    <circle cx="128" cy="68" r="40" class="ink"/>
+    <path d="M106 84c16 13 31 13 47 0" class="thin"/>
+    <path d="M128 108v120" class="ink"/>
+    <path d="M128 137c-35 30-54 63-60 102" class="ink"/>
+    <path d="M128 137c35 30 54 63 60 102" class="ink"/>
+    <path d="M128 228l-36 126" class="ink"/>
+    <path d="M128 228l38 126" class="ink"/>
+    <rect x="8" y="126" width="76" height="92" rx="10" class="note"/>
+    <path d="M23 151h43M23 173h35M23 195h26" class="thin"/>
+    <rect x="184" y="130" width="110" height="75" rx="14" class="glass"/>
+    <path d="M200 154h70M200 177h48" class="accent"/>
+    <path d="M42 258c55 34 132 34 195 0" class="blue"/>
+    <circle cx="42" cy="258" r="10" fill="#2780b8"/>
+    <circle cx="139" cy="276" r="10" fill="#2780b8"/>
+    <circle cx="237" cy="258" r="10" fill="#2780b8"/>
+  </g>
+  <text x="1006" y="760" class="small">保留：卡片、整理、结构化动作。</text>
+  <text x="1006" y="792" class="small">避免：书呆子、办公室素材感。</text>
+
+  <rect x="80" y="884" width="1280" height="82" rx="22" class="panel"/>
+  <text x="116" y="934" class="caption">推荐融合：A + C</text>
+  <text x="340" y="934" class="small">人物型 IP 承接个人品牌，便签、节点、小屏幕承接 AI 工具工作流。B 的工具感只作为道具和场景元素出现。</text>
+</svg>
+
