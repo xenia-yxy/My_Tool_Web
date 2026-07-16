@@ -19,6 +19,7 @@ import {
 } from "react";
 import { PromptEditorDialog } from "@/components/tools/prompt-editor-dialog";
 import { ReferenceSlot } from "@/components/tools/menswear/reference-slot";
+import { SceneReferenceUploader } from "@/components/tools/menswear/scene-reference-uploader";
 import type {
   DraftReference,
   MenswearMaterial,
@@ -30,6 +31,7 @@ import {
   type MenswearCameraDistance,
   type MenswearReferencePolicy,
   type MenswearReferenceRole,
+  type MenswearSceneMode,
 } from "@/lib/menswear-studio";
 
 type GeneratedResult = {
@@ -101,6 +103,15 @@ const cameraDistanceOptions: Array<[MenswearCameraDistance, string]> = [
   ["close_detail", "近景细节"],
 ];
 
+const sceneModeOptions: Array<[MenswearSceneMode, string, string]> = [
+  ["try_on", "人物换装", "保留人物、姿势、表情、镜头和场景，只替换锁定商品。"],
+  ["product_replace", "商品替换", "保留场景构图和光线，只替换主商品。"],
+  ["background_only", "纯背景生成", "仅生成背景空间，不出现人物或商品。"],
+];
+
+const sceneAspectRatioOptions = ["1:1", "3:4", "4:3", "9:16", "16:9"] as const;
+const productCategoryOptions = ["上衣", "内搭", "裤子", "鞋子", "包", "配饰", "整套穿搭", "其他"] as const;
+
 type SystemControls = Record<keyof typeof systemControlOptions, string>;
 
 const defaultSystemControls: SystemControls = {
@@ -119,6 +130,11 @@ export function StrictFidelityGenerator() {
   const [description, setDescription] = useState("");
   const [modelProfileId, setModelProfileId] = useState("");
   const [references, setReferences] = useState<DraftReference[]>([]);
+  const [sceneMaterialIds, setSceneMaterialIds] = useState<string[]>([]);
+  const [sceneMode, setSceneMode] = useState<MenswearSceneMode>("try_on");
+  const [sceneAspectRatio, setSceneAspectRatio] = useState<(typeof sceneAspectRatioOptions)[number]>("3:4");
+  const [sceneInstruction, setSceneInstruction] = useState("");
+  const [mainProductCategory, setMainProductCategory] = useState("");
   const [selectedSlotRoles, setSelectedSlotRoles] = useState<DraftReference["role"][]>(["top"]);
   const [stylePreset, setStylePreset] = useState("自定义");
   const [customStyle, setCustomStyle] = useState("");
@@ -139,7 +155,24 @@ export function StrictFidelityGenerator() {
   const [linkedProjectId, setLinkedProjectId] = useState<string | null>(null);
 
   const modelName = profiles.find((profile) => profile.id === modelProfileId)?.name;
-  const selectedSlots = allSlots.filter((slot) => selectedSlotRoles.includes(slot.role));
+  const activeReferences = sceneMode === "background_only" ? [] : references;
+  const selectedSlots = sceneMode === "background_only"
+    ? []
+    : allSlots.filter((slot) => selectedSlotRoles.includes(slot.role));
+  const sceneMaterials = sceneMaterialIds.flatMap((materialId) => {
+    const material = materials.find((item) => item.id === materialId);
+    return material ? [material] : [];
+  });
+  const projectReferences = [
+    ...activeReferences,
+    ...sceneMaterialIds.map((materialId) => ({
+      allowedChanges: [],
+      fidelity: 100,
+      materialId,
+      policy: "REPLACE" as const,
+      role: "scene",
+    })),
+  ].map((reference, position) => ({ ...reference, position }));
   const promptStyle = stylePreset === "自定义" ? customStyle : stylePreset;
   const promptSystemControls = (Object.keys(systemControls) as Array<keyof SystemControls>)
     .map((key) => systemControls[key] === "自定义" ? customSystemControls[key] : systemControls[key])
@@ -149,16 +182,20 @@ export function StrictFidelityGenerator() {
     cameraDistance,
     customInstructions,
     description: description || "请根据锁定的商品素材生成真实男装穿搭图",
+    mainProductCategory,
     modelName,
-    references: references.map((reference) => ({
+    references: projectReferences.map((reference) => ({
       fidelity: reference.fidelity,
       materialName: materials.find((material) => material.id === reference.materialId)?.name || "未命名素材",
       policy: reference.policy as MenswearReferencePolicy,
       role: reference.role as MenswearReferenceRole,
     })),
+    sceneAspectRatio,
+    sceneInstruction,
+    sceneMode,
     stylePreset: promptStyle,
     systemControls: promptSystemControls,
-  }), [aspectRatio, cameraDistance, customInstructions, description, materials, modelName, promptStyle, promptSystemControls, references]);
+  }), [aspectRatio, cameraDistance, customInstructions, description, mainProductCategory, materials, modelName, projectReferences, promptStyle, promptSystemControls, sceneAspectRatio, sceneInstruction, sceneMode]);
 
   const loadDependencies = useCallback(async () => {
     setIsLoading(true);
@@ -210,7 +247,16 @@ export function StrictFidelityGenerator() {
           setProjectName(payload.project.name);
           setDescription(payload.project.description || "");
           setModelProfileId(payload.project.modelProfileId || "");
-          setReferences(normalizeRestoredReferences(payload.project.references));
+          setReferences(
+            normalizeRestoredReferences(payload.project.references).filter(
+              (reference) => reference.role !== "scene",
+            ),
+          );
+          setSceneMaterialIds(
+            payload.project.references
+              .filter((reference) => reference.role === "scene")
+              .map((reference) => reference.materialId),
+          );
           setSelectedSlotRoles(settings.selectedSlotRoles.length
             ? settings.selectedSlotRoles
             : ["top"]);
@@ -222,6 +268,10 @@ export function StrictFidelityGenerator() {
           setCustomStyle(settings.customStyle);
           setSystemControls(settings.systemControls);
           setCustomSystemControls(settings.customSystemControls);
+          setSceneMode(settings.sceneMode);
+          setSceneAspectRatio(settings.sceneAspectRatio);
+          setSceneInstruction(settings.sceneInstruction);
+          setMainProductCategory(settings.mainProductCategory);
         } catch (caughtError) {
           setError(caughtError instanceof Error ? caughtError.message : "加载男装项目失败");
         } finally {
@@ -256,11 +306,19 @@ export function StrictFidelityGenerator() {
     setMaterials((current) => [material, ...current.filter((item) => item.id !== material.id)]);
   }
 
+  function updateSceneMaterials(nextMaterials: MenswearMaterial[]) {
+    setSceneMaterialIds(nextMaterials.map((material) => material.id));
+    setMaterials((current) => [
+      ...nextMaterials,
+      ...current.filter((material) => !nextMaterials.some((item) => item.id === material.id)),
+    ]);
+  }
+
   function openPrompt() {
     const hasLockedProduct = references.some((reference) =>
       productRoleSet.has(reference.role as DraftReference["role"]) && reference.policy === "LOCKED",
     );
-    if (!hasLockedProduct) {
+    if (sceneMode !== "background_only" && !hasLockedProduct) {
       setError("至少选择一件服装、鞋包或整套穿搭素材，并设为锁定保留");
       return;
     }
@@ -282,7 +340,7 @@ export function StrictFidelityGenerator() {
           description,
           modelProfileId: modelProfileId || null,
           name: projectName.trim(),
-          references,
+          references: projectReferences,
           settings: {
             aspectRatio,
             batchCount,
@@ -291,6 +349,10 @@ export function StrictFidelityGenerator() {
             customStyle,
             customSystemControls,
             selectedSlotRoles,
+            sceneAspectRatio,
+            sceneInstruction,
+            sceneMode,
+            mainProductCategory,
             stylePreset,
             systemControls,
           },
@@ -310,7 +372,7 @@ export function StrictFidelityGenerator() {
       }
       setLinkedProjectId(savedProject.project.id);
       const response = await fetch(`/api/tools/menswear/projects/${savedProject.project.id}/generate`, {
-        body: JSON.stringify({ aspectRatio, batchCount, cameraDistance, finalPrompt, quality }),
+        body: JSON.stringify({ aspectRatio, batchCount, cameraDistance, finalPrompt, quality, sceneMode }),
         headers: { "Content-Type": "application/json" },
         method: "POST",
       });
@@ -398,6 +460,89 @@ export function StrictFidelityGenerator() {
           </div>
         </div>
 
+        <section className="grid gap-4 rounded-lg border border-slate-200 bg-white p-4">
+          <div>
+            <p className="text-xs font-bold text-blue-700">SCENE</p>
+            <h2 className="mt-1 text-lg font-semibold text-slate-950">场景图</h2>
+            <p className="mt-1 text-sm leading-6 text-slate-500">上传场景图后，系统会按选择的模式保留人物、姿势、背景、光线或构图。</p>
+          </div>
+
+          <div className="grid gap-2">
+            <span className="text-sm font-semibold text-slate-800">场景类型</span>
+            <div className="grid grid-cols-3 rounded-md bg-slate-100 p-1">
+              {sceneModeOptions.map(([value, label, helper]) => (
+                <button
+                  className={[
+                    "min-h-10 rounded-md px-2 text-sm font-medium transition-colors",
+                    sceneMode === value ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-800",
+                  ].join(" ")}
+                  key={value}
+                  onClick={() => setSceneMode(value)}
+                  title={helper}
+                  type="button"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <span className="text-sm font-semibold text-slate-800">输出比例</span>
+            <div className="grid grid-cols-5 rounded-md bg-slate-100 p-1">
+              {sceneAspectRatioOptions.map((ratio) => (
+                <button
+                  className={[
+                    "h-9 rounded-md text-sm font-medium transition-colors",
+                    sceneAspectRatio === ratio ? "bg-white text-slate-950 shadow-sm" : "text-slate-500 hover:text-slate-800",
+                  ].join(" ")}
+                  key={ratio}
+                  onClick={() => {
+                    setSceneAspectRatio(ratio);
+                    setAspectRatio(toImageAspectRatio(ratio));
+                  }}
+                  type="button"
+                >
+                  {ratio}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <label className="grid gap-2">
+            <span className="text-sm font-semibold text-slate-800">动作 / 场景补充要求（优先执行）</span>
+            <textarea
+              className="min-h-24 rounded-md border border-slate-200 px-3 py-2 text-sm leading-6"
+              maxLength={500}
+              onChange={(event) => setSceneInstruction(event.target.value)}
+              placeholder={sceneMode === "try_on" ? "例如：保留背景但改成站姿；手放口袋；只换衣服不要换脸。" : sceneMode === "product_replace" ? "例如：商品放在桌面中央；保留手提袋；商品正面朝向镜头；不要生成人物。" : "例如：保留午后自然光；空出画面中央；不要人物、商品或文字。"}
+              value={sceneInstruction}
+            />
+            <span className="text-right text-sm font-semibold text-slate-600">{sceneInstruction.length} / 500</span>
+          </label>
+
+          <SceneReferenceUploader materials={sceneMaterials} onChange={updateSceneMaterials} />
+
+          <div className="border-t border-slate-200 pt-4">
+            <p className="text-sm font-semibold text-slate-900">主商品信息</p>
+            <p className="mt-1 text-sm text-slate-500">主商品品类可留空，让 AI 基于锁定素材识别。</p>
+            <label className="mt-3 grid gap-2">
+              <span className="text-sm font-semibold text-slate-800">主商品品类</span>
+              <input
+                className="h-10 rounded-md border border-slate-200 px-3 text-sm"
+                list="menswear-product-category-options"
+                onChange={(event) => setMainProductCategory(event.target.value)}
+                placeholder="选择或输入品类，可留空让 AI 识别"
+                value={mainProductCategory}
+              />
+              <datalist id="menswear-product-category-options">
+                {productCategoryOptions.map((category) => <option key={category} value={category} />)}
+              </datalist>
+            </label>
+          </div>
+        </section>
+
+        {sceneMode !== "background_only" ? <>
         <section className="grid gap-3 rounded-lg border border-slate-200 bg-white p-4">
           <div>
             <h2 className="text-sm font-semibold text-slate-900">选择需要上传或引用的素材</h2>
@@ -428,6 +573,11 @@ export function StrictFidelityGenerator() {
             ))}
           </div>
         </CollapsibleSection>
+        </> : (
+          <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm leading-6 text-blue-900">
+            纯背景生成不会携带商品、模特或人体参考图，只使用上方场景图和补充要求。
+          </div>
+        )}
 
         {/* 参数区 */}
         <div className="grid gap-4 rounded-lg border border-slate-200 bg-white p-4 md:grid-cols-5">
@@ -636,7 +786,11 @@ function normalizeProjectSettings(value: unknown): {
   customInstructions: string;
   customStyle: string;
   customSystemControls: Partial<SystemControls>;
+  mainProductCategory: string;
   selectedSlotRoles: DraftReference["role"][];
+  sceneAspectRatio: (typeof sceneAspectRatioOptions)[number];
+  sceneInstruction: string;
+  sceneMode: MenswearSceneMode;
   stylePreset: string;
   systemControls: SystemControls;
 } {
@@ -652,6 +806,14 @@ function normalizeProjectSettings(value: unknown): {
   const cameraDistance = cameraDistanceOptions.some(([option]) => option === settings.cameraDistance)
     ? settings.cameraDistance as MenswearCameraDistance
     : "three_quarter";
+  const sceneAspectRatio = sceneAspectRatioOptions.includes(
+    settings.sceneAspectRatio as (typeof sceneAspectRatioOptions)[number],
+  )
+    ? settings.sceneAspectRatio as (typeof sceneAspectRatioOptions)[number]
+    : "3:4";
+  const sceneMode = sceneModeOptions.some(([option]) => option === settings.sceneMode)
+    ? settings.sceneMode as MenswearSceneMode
+    : "try_on";
 
   return {
     aspectRatio,
@@ -662,9 +824,17 @@ function normalizeProjectSettings(value: unknown): {
       : "",
     customStyle: typeof settings.customStyle === "string" ? settings.customStyle : "",
     customSystemControls: normalizeSystemControls(settings.customSystemControls),
+    mainProductCategory: typeof settings.mainProductCategory === "string"
+      ? settings.mainProductCategory
+      : "",
     selectedSlotRoles: Array.isArray(settings.selectedSlotRoles)
       ? settings.selectedSlotRoles.filter((role): role is DraftReference["role"] => allSlots.some((slot) => slot.role === role))
       : [],
+    sceneAspectRatio,
+    sceneInstruction: typeof settings.sceneInstruction === "string"
+      ? settings.sceneInstruction.slice(0, 500)
+      : "",
+    sceneMode,
     stylePreset: styleOptions.includes(settings.stylePreset as typeof styleOptions[number])
       ? settings.stylePreset as string
       : "自定义",
@@ -673,6 +843,12 @@ function normalizeProjectSettings(value: unknown): {
       ...normalizeSystemControls(settings.systemControls),
     },
   };
+}
+
+function toImageAspectRatio(value: (typeof sceneAspectRatioOptions)[number]) {
+  if (value === "1:1") return "square" as const;
+  if (value === "4:3" || value === "16:9") return "landscape" as const;
+  return "portrait" as const;
 }
 
 function normalizeSystemControls(value: unknown): Partial<SystemControls> {

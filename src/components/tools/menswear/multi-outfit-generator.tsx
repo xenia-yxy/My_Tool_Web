@@ -15,6 +15,8 @@ import {
   type MenswearMultiOutfitAspectRatio,
   type MenswearMultiOutfitCameraDistance,
   type MenswearMultiOutfitDisplayMode,
+  type MenswearMultiOutfitModelFaceMode,
+  type MenswearMultiOutfitModelGender,
   type MenswearMultiOutfitSeason,
   type MenswearMultiOutfitTextMode,
 } from "@/lib/menswear-multi-outfit";
@@ -61,10 +63,27 @@ const cameraDistanceOptions: Array<[MenswearMultiOutfitCameraDistance, string]> 
   ["product_grid", "商品陈列"],
 ];
 
+const modelGenderOptions: Array<[MenswearMultiOutfitModelGender, string]> = [
+  ["any", "不限"],
+  ["male", "男模特"],
+  ["female", "女模特"],
+  ["none", "无模特"],
+];
+
+const modelFaceOptions: Array<[MenswearMultiOutfitModelFaceMode, string]> = [
+  ["hidden_face", "不露脸 / 无头"],
+  ["visible_face", "露脸"],
+  ["no_model", "无模特"],
+];
+
 export function MenswearMultiOutfitGenerator() {
   const [subjectImages, setSubjectImages] = useState<File[]>([]);
   const [displayMode, setDisplayMode] = useState<MenswearMultiOutfitDisplayMode>("model");
+  const [modelGender, setModelGender] = useState<MenswearMultiOutfitModelGender>("male");
+  const [modelFaceMode, setModelFaceMode] = useState<MenswearMultiOutfitModelFaceMode>("hidden_face");
   const [textMode, setTextMode] = useState<MenswearMultiOutfitTextMode>("with_labels");
+  const [targetAudience, setTargetAudience] = useState("");
+  const [usageScene, setUsageScene] = useState("");
   const [season, setSeason] = useState<MenswearMultiOutfitSeason>("spring_autumn");
   const [aspectRatio, setAspectRatio] = useState<MenswearMultiOutfitAspectRatio>("landscape");
   const [cameraDistance, setCameraDistance] = useState<MenswearMultiOutfitCameraDistance>("three_quarter");
@@ -92,14 +111,32 @@ export function MenswearMultiOutfitGenerator() {
         aspectRatio,
         cameraDistance,
         displayMode,
+        modelFaceMode,
+        modelGender,
         outfitCount,
         preserveInstructions,
         season,
         styleInstructions,
         subjectImageCount: subjectImages.length,
+        targetAudience,
         textMode,
+        usageScene,
       }),
-    [aspectRatio, cameraDistance, displayMode, outfitCount, preserveInstructions, season, styleInstructions, subjectImages.length, textMode],
+    [
+      aspectRatio,
+      cameraDistance,
+      displayMode,
+      modelFaceMode,
+      modelGender,
+      outfitCount,
+      preserveInstructions,
+      season,
+      styleInstructions,
+      subjectImages.length,
+      targetAudience,
+      textMode,
+      usageScene,
+    ],
   );
   const canSubmit = subjectImages.length > 0 && !isGenerating;
 
@@ -129,7 +166,11 @@ export function MenswearMultiOutfitGenerator() {
       restoredSessionId.current = session.id;
       const input = session.inputSnapshot;
       if (input.displayMode === "model" || input.displayMode === "flatlay") setDisplayMode(input.displayMode);
+      if (isModelGender(input.modelGender)) setModelGender(input.modelGender);
+      if (isModelFaceMode(input.modelFaceMode)) setModelFaceMode(input.modelFaceMode);
       if (input.textMode === "with_labels" || input.textMode === "no_text") setTextMode(input.textMode);
+      if (typeof input.targetAudience === "string") setTargetAudience(input.targetAudience);
+      if (typeof input.usageScene === "string") setUsageScene(input.usageScene);
       if (isSeason(input.season)) setSeason(input.season);
       if (isAspectRatio(input.aspectRatio)) setAspectRatio(input.aspectRatio);
       if (isCameraDistance(input.cameraDistance)) setCameraDistance(input.cameraDistance);
@@ -175,7 +216,11 @@ export function MenswearMultiOutfitGenerator() {
         prompt: finalPrompt,
         inputSnapshot: {
           displayMode,
+          modelGender,
+          modelFaceMode,
           textMode,
+          targetAudience,
+          usageScene,
           season,
           aspectRatio,
           cameraDistance,
@@ -231,7 +276,7 @@ export function MenswearMultiOutfitGenerator() {
     formData.set("description", "男装一衣多搭主体参考生成");
     formData.set("purpose", "男装一衣多搭生图");
     formData.set("style", styleInstructions);
-    formData.set("caption", `${outfitCount} 套男装一衣多搭，展示方式：${displayMode === "model" ? "上身模特" : "无模特平铺"}，季节：${seasonLabel(season)}`);
+    formData.set("caption", `${outfitCount} 套男装一衣多搭，展示方式：${displayModeLabel(displayMode)}，模特：${modelGenderLabel(displayMode === "flatlay" ? "none" : modelGender)}，脸部：${modelFaceLabel(displayMode === "flatlay" ? "no_model" : modelFaceMode)}，季节：${seasonLabel(season)}`);
     formData.set("tags", "#男装 #一衣多搭 #AI生图");
     formData.set("productKeywords", "男装 一衣多搭 搭配合集");
     formData.set("aspectRatio", aspectRatio);
@@ -250,6 +295,41 @@ export function MenswearMultiOutfitGenerator() {
       headers: { "content-type": "application/json" },
       body: JSON.stringify(patch),
     });
+  }
+
+  function updateDisplayMode(value: MenswearMultiOutfitDisplayMode) {
+    setDisplayMode(value);
+    if (value === "flatlay") {
+      setModelGender("none");
+      setModelFaceMode("no_model");
+      setCameraDistance("product_grid");
+    } else {
+      if (modelGender === "none") setModelGender("male");
+      if (modelFaceMode === "no_model") setModelFaceMode("hidden_face");
+      if (cameraDistance === "product_grid") setCameraDistance("three_quarter");
+    }
+  }
+
+  function updateModelGender(value: MenswearMultiOutfitModelGender) {
+    setModelGender(value);
+    if (value === "none") {
+      updateDisplayMode("flatlay");
+    } else if (displayMode === "flatlay") {
+      setDisplayMode("model");
+      if (modelFaceMode === "no_model") setModelFaceMode("hidden_face");
+      if (cameraDistance === "product_grid") setCameraDistance("three_quarter");
+    }
+  }
+
+  function updateModelFaceMode(value: MenswearMultiOutfitModelFaceMode) {
+    setModelFaceMode(value);
+    if (value === "no_model") {
+      updateDisplayMode("flatlay");
+    } else if (displayMode === "flatlay") {
+      setDisplayMode("model");
+      if (modelGender === "none") setModelGender("male");
+      if (cameraDistance === "product_grid") setCameraDistance("three_quarter");
+    }
   }
 
   return (
@@ -276,15 +356,53 @@ export function MenswearMultiOutfitGenerator() {
               />
 
               <div className="grid gap-3 md:grid-cols-2">
+                <Field label="目标客群">
+                  <input
+                    className={inputClass}
+                    onChange={(event) => setTargetAudience(event.target.value)}
+                    placeholder="选择或输入客群，可留空让 AI 推断"
+                    value={targetAudience}
+                  />
+                </Field>
+                <Field label="使用场景">
+                  <input
+                    className={inputClass}
+                    onChange={(event) => setUsageScene(event.target.value)}
+                    placeholder="例如详情页、社媒运营、小红书内容"
+                    value={usageScene}
+                  />
+                </Field>
+              </div>
+
+              <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 md:grid-cols-3">
+                <div className="md:col-span-3">
+                  <p className="text-sm font-semibold text-slate-900">模特设置</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">默认无模特平铺；选择半身或全身后会写入生图提示词。</p>
+                </div>
                 <SelectField
                   label="展示方式"
-                  onChange={(value) => setDisplayMode(value as MenswearMultiOutfitDisplayMode)}
+                  onChange={(value) => updateDisplayMode(value as MenswearMultiOutfitDisplayMode)}
                   options={[
-                    ["model", "上身模特"],
                     ["flatlay", "无模特平铺"],
+                    ["model", "有模特上身"],
                   ]}
                   value={displayMode}
                 />
+                <SelectField
+                  label="模特性别"
+                  onChange={(value) => updateModelGender(value as MenswearMultiOutfitModelGender)}
+                  options={modelGenderOptions}
+                  value={modelGender}
+                />
+                <SelectField
+                  label="脸部"
+                  onChange={(value) => updateModelFaceMode(value as MenswearMultiOutfitModelFaceMode)}
+                  options={modelFaceOptions}
+                  value={modelFaceMode}
+                />
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2">
                 <SelectField
                   label="版式文字"
                   onChange={(value) => setTextMode(value as MenswearMultiOutfitTextMode)}
@@ -356,7 +474,9 @@ export function MenswearMultiOutfitGenerator() {
         <PromptPreviewPanel
           meta={[
             { label: "主体参考", value: `${subjectImages.length} 张` },
-            { label: "展示方式", value: displayMode === "model" ? "上身模特" : "无模特平铺" },
+            { label: "展示方式", value: displayModeLabel(displayMode) },
+            { label: "模特性别", value: modelGenderLabel(displayMode === "flatlay" ? "none" : modelGender) },
+            { label: "脸部", value: modelFaceLabel(displayMode === "flatlay" ? "no_model" : modelFaceMode) },
             { label: "季节", value: seasonLabel(season) },
             { label: "人物远近", value: cameraDistanceLabel(cameraDistance) },
             { label: "搭配套数", value: `${outfitCount} 套` },
@@ -454,6 +574,26 @@ function isAspectRatio(value: unknown): value is MenswearMultiOutfitAspectRatio 
 
 function isCameraDistance(value: unknown): value is MenswearMultiOutfitCameraDistance {
   return cameraDistanceOptions.some(([option]) => option === value);
+}
+
+function isModelGender(value: unknown): value is MenswearMultiOutfitModelGender {
+  return modelGenderOptions.some(([option]) => option === value);
+}
+
+function isModelFaceMode(value: unknown): value is MenswearMultiOutfitModelFaceMode {
+  return modelFaceOptions.some(([option]) => option === value);
+}
+
+function displayModeLabel(value: MenswearMultiOutfitDisplayMode) {
+  return value === "model" ? "有模特上身" : "无模特平铺";
+}
+
+function modelGenderLabel(value: MenswearMultiOutfitModelGender) {
+  return modelGenderOptions.find(([option]) => option === value)?.[1] || "不限";
+}
+
+function modelFaceLabel(value: MenswearMultiOutfitModelFaceMode) {
+  return modelFaceOptions.find(([option]) => option === value)?.[1] || "不露脸 / 无头";
 }
 
 function seasonLabel(value: MenswearMultiOutfitSeason) {

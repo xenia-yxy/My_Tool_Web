@@ -5,6 +5,7 @@ import {
   buildStrictMenswearPrompt,
   normalizeMenswearGenerationInput,
 } from "../src/lib/menswear-studio";
+import { normalizeMenswearMaterialAnalysis } from "../src/lib/menswear-material-analysis";
 
 test("normalizes reference roles and forces product attributes to remain locked", () => {
   const input = normalizeMenswearGenerationInput({
@@ -24,6 +25,7 @@ test("normalizes reference roles and forces product attributes to remain locked"
     customInstructions: "",
     description: "浅黄色短袖衬衫和浅色牛仔裤",
     modelProfileId: null,
+    sceneMode: "try_on",
     references: [
       {
         allowedChanges: [],
@@ -115,6 +117,32 @@ test("strict prompt keeps missing materials realistic through selected style and
   assert.match(prompt, /不得虚构未上传商品的具体品牌、Logo、版型或材质/);
 });
 
+test("scene modes add mode-specific constraints and allow a pure background without product references", () => {
+  const input = normalizeMenswearGenerationInput({
+    description: "夏季男装拍摄背景",
+    sceneMode: "background_only",
+    references: [],
+  });
+
+  assert.equal(input.sceneMode, "background_only");
+
+  const prompt = buildStrictMenswearPrompt({
+    aspectRatio: "landscape",
+    description: "干净的城市天台背景",
+    mainProductCategory: "男装拍摄背景",
+    references: [],
+    sceneAspectRatio: "16:9",
+    sceneInstruction: "保留午后自然光，不要人物或商品",
+    sceneMode: "background_only",
+  });
+
+  assert.match(prompt, /场景模式：纯背景生成/);
+  assert.match(prompt, /输出比例：16:9/);
+  assert.match(prompt, /主商品品类：男装拍摄背景/);
+  assert.match(prompt, /不得出现人物、服装、鞋包、商品或手部/);
+  assert.match(prompt, /优先执行的场景补充要求：保留午后自然光/);
+});
+
 test("rejects generation without a locked product reference", () => {
   assert.throws(
     () =>
@@ -143,6 +171,23 @@ test("builds gallery provenance from the project model and locked references", (
         { fidelity: 100, materialId: "shirt-1", policy: "LOCKED", role: "top" },
         { fidelity: 60, materialId: "scene-1", policy: "REPLACE", role: "background" },
       ],
+    },
+  );
+});
+
+test("normalizes AI material recognition into editable product metadata", () => {
+  assert.deepEqual(
+    normalizeMenswearMaterialAnalysis(
+      "```json\n{\"name\":\"深蓝牛仔衬衫\",\"category\":\"top\",\"description\":\"深蓝色牛仔长袖衬衫，适合通勤和叠穿。\",\"tags\":[\"牛仔\",\"通勤\",\"牛仔\"],\"sellPoints\":[\"挺括面料\",\"基础百搭\"],\"keywords\":[\"男士牛仔衬衫\"]}\n```",
+      "other",
+    ),
+    {
+      category: "top",
+      description: "深蓝色牛仔长袖衬衫，适合通勤和叠穿。",
+      keywords: ["男士牛仔衬衫"],
+      name: "深蓝牛仔衬衫",
+      sellPoints: ["挺括面料", "基础百搭"],
+      tags: ["牛仔", "通勤"],
     },
   );
 });

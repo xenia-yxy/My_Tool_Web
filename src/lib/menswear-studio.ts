@@ -13,6 +13,7 @@ export const menswearReferenceRoles = [
   "composition",
   "lighting",
   "mood",
+  "scene",
 ] as const;
 
 export const menswearReferencePolicies = [
@@ -31,6 +32,10 @@ export type MenswearCameraDistance =
   | "three_quarter"
   | "half_body"
   | "close_detail";
+export type MenswearSceneMode =
+  | "try_on"
+  | "product_replace"
+  | "background_only";
 
 export type MenswearGenerationReference = {
   allowedChanges: string[];
@@ -48,6 +53,7 @@ export type NormalizedMenswearGenerationInput = {
   description: string;
   modelProfileId: string | null;
   references: MenswearGenerationReference[];
+  sceneMode: MenswearSceneMode;
 };
 
 const productRoles = new Set<MenswearReferenceRole>([
@@ -79,6 +85,7 @@ const roleLabels: Record<MenswearReferenceRole, string> = {
   composition: "构图",
   lighting: "光线",
   mood: "氛围",
+  scene: "场景图",
 };
 
 export const policyLabels: Record<MenswearReferencePolicy, string> = {
@@ -97,16 +104,18 @@ export function normalizeMenswearGenerationInput(input: {
   description?: unknown;
   modelProfileId?: unknown;
   references?: unknown;
+  sceneMode?: unknown;
 }): NormalizedMenswearGenerationInput {
   const description = normalizeRequiredText(input.description, "请描述要生成的男装图片");
   const references = normalizeReferences(input.references);
+  const sceneMode = normalizeSceneMode(input.sceneMode);
 
   const hasLockedProduct = references.some(
     (reference) =>
       productRoles.has(reference.role) && reference.policy === "LOCKED",
   );
 
-  if (!hasLockedProduct) {
+  if (sceneMode !== "background_only" && !hasLockedProduct) {
     throw new Error("至少选择一件锁定的商品素材");
   }
 
@@ -118,6 +127,7 @@ export function normalizeMenswearGenerationInput(input: {
     description,
     modelProfileId: normalizeOptionalId(input.modelProfileId),
     references,
+    sceneMode,
   };
 }
 
@@ -126,6 +136,7 @@ export function buildStrictMenswearPrompt(input: {
   cameraDistance?: MenswearCameraDistance;
   customInstructions?: string;
   description: string;
+  mainProductCategory?: string;
   modelName?: string | null;
   references: Array<{
     fidelity: number;
@@ -133,6 +144,9 @@ export function buildStrictMenswearPrompt(input: {
     policy: MenswearReferencePolicy;
     role: MenswearReferenceRole;
   }>;
+  sceneAspectRatio?: string;
+  sceneInstruction?: string;
+  sceneMode?: MenswearSceneMode;
   stylePreset?: string;
   systemControls?: string[];
 }) {
@@ -150,14 +164,21 @@ export function buildStrictMenswearPrompt(input: {
     ...referenceLines,
     "",
     `选用模特：${input.modelName?.trim() || "系统生成男模特"}。`,
-    `输出比例：${input.aspectRatio}。`,
+    input.mainProductCategory?.trim()
+      ? `主商品品类：${input.mainProductCategory.trim()}。`
+      : "",
+    `场景模式：${sceneModeLabels[input.sceneMode || "try_on"]}。`,
+    `输出比例：${input.sceneAspectRatio?.trim() || input.aspectRatio}。`,
     `人物远近：${cameraDistanceInstructions[input.cameraDistance || "three_quarter"]}`,
     input.stylePreset?.trim() ? `画面风格：${input.stylePreset.trim()}。` : "",
     input.systemControls?.filter(Boolean).length
       ? `系统补全设置：${input.systemControls.filter(Boolean).join("；")}。`
       : "",
+    input.sceneInstruction?.trim()
+      ? `优先执行的场景补充要求：${input.sceneInstruction.trim()}。`
+      : "",
     "",
-    "严格商品规则：必须保持商品的颜色、版型、图案、Logo、材质、领口、袖型、口袋、纽扣、拉链和配饰数量；不得新增、删除或替换商品细节；不得补全不可见商品细节；不得把推测内容当作真实商品。",
+    sceneModeRules[input.sceneMode || "try_on"],
     "画面规则：只能按参考策略改变人物、姿势、背景、构图、光线或氛围；未提供参考素材的部分只能按系统补全设置生成真实、协调的基础元素；不得虚构未上传商品的具体品牌、Logo、版型或材质；不要生成文字、水印、价格、账号、品牌宣传语或无关商品。",
     input.customInstructions?.trim()
       ? `用户补充要求：${input.customInstructions.trim()}`
@@ -246,6 +267,14 @@ function normalizeCameraDistance(value: unknown): MenswearCameraDistance {
   return "three_quarter";
 }
 
+function normalizeSceneMode(value: unknown): MenswearSceneMode {
+  if (value === "product_replace" || value === "background_only") {
+    return value;
+  }
+
+  return "try_on";
+}
+
 function normalizeBatchCount(value: unknown) {
   const number = Number(value);
   return Number.isFinite(number)
@@ -289,4 +318,16 @@ const cameraDistanceInstructions: Record<MenswearCameraDistance, string> = {
   three_quarter: "七分身或膝上到全身之间，人物不要离镜头太近，主体占画面约 60%-75%，服装整体比例清楚。",
   half_body: "半身到大半身，用于展示上衣细节，脸部和胸口不要过度放大，保留肩袖和下摆关系。",
   close_detail: "近景细节，用于强调面料、印花或领口，仍需保持真实服装结构，不要把人物脸部放得过大。",
+};
+
+const sceneModeLabels: Record<MenswearSceneMode, string> = {
+  background_only: "纯背景生成",
+  product_replace: "商品替换",
+  try_on: "人物换装",
+};
+
+const sceneModeRules: Record<MenswearSceneMode, string> = {
+  background_only: "纯背景规则：仅生成场景、背景、光线与空间氛围；不得出现人物、服装、鞋包、商品或手部；不要从描述中补全任何商品。",
+  product_replace: "商品替换规则：保留场景图中的环境、构图、光线和镜头关系；仅替换锁定的主商品；必须保持商品的颜色、版型、图案、Logo、材质、领口、袖型、口袋、纽扣、拉链和配饰数量；不得新增、删除或替换商品细节；不得补全不可见商品细节；除非场景图已有可保留人物，否则不要新增人物。",
+  try_on: "人物换装规则：保留场景图中的人物、姿势、表情、镜头、背景和光线；只替换锁定的服装、鞋包或配饰；必须保持商品的颜色、版型、图案、Logo、材质、领口、袖型、口袋、纽扣、拉链和配饰数量；不得新增、删除或替换商品细节；不得补全不可见商品细节。",
 };

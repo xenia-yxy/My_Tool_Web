@@ -34,6 +34,7 @@ export async function POST(request: Request) {
       category: formText(formData, "category"),
       imageUrl,
       name: formText(formData, "name") || file.name.replace(/\.[^.]+$/, ""),
+      analysis: formJson(formData, "analysis"),
       promptNotes: formText(formData, "promptNotes"),
       sourceType: "UPLOAD",
       sourceUrl: formText(formData, "sourceUrl"),
@@ -54,4 +55,18 @@ export async function POST(request: Request) {
 function formText(formData: FormData, key: string) {
   const value = formData.get(key);
   return typeof value === "string" ? value.trim() : "";
+}
+
+function formJson(formData: FormData, key: string) {
+  const value = formData.get(key);
+  if (typeof value !== "string" || !value.trim()) return {};
+
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed
+      : {};
+  } catch {
+    return {};
+  }
 }

@@ -1,5 +1,14 @@
 export type MenswearMultiOutfitDisplayMode = "model" | "flatlay";
 export type MenswearMultiOutfitTextMode = "with_labels" | "no_text";
+export type MenswearMultiOutfitModelGender =
+  | "any"
+  | "male"
+  | "female"
+  | "none";
+export type MenswearMultiOutfitModelFaceMode =
+  | "hidden_face"
+  | "visible_face"
+  | "no_model";
 export type MenswearMultiOutfitAspectRatio = "square" | "portrait" | "landscape";
 export type MenswearMultiOutfitCameraDistance =
   | "full_body"
@@ -19,11 +28,15 @@ export function buildMenswearMultiOutfitPrompt(input: {
   cameraDistance?: MenswearMultiOutfitCameraDistance;
   subjectImageCount: number;
   displayMode: MenswearMultiOutfitDisplayMode;
+  modelFaceMode?: MenswearMultiOutfitModelFaceMode;
+  modelGender?: MenswearMultiOutfitModelGender;
   outfitCount: number;
   preserveInstructions?: string;
   season?: MenswearMultiOutfitSeason;
   styleInstructions?: string;
+  targetAudience?: string;
   textMode: MenswearMultiOutfitTextMode;
+  usageScene?: string;
 }) {
   const preserve =
     input.preserveInstructions?.trim() ||
@@ -33,13 +46,21 @@ export function buildMenswearMultiOutfitPrompt(input: {
     "干净白底横版合集，电商穿搭板式，商品清晰、留白充足、光线均匀";
   const aspectRatio = input.aspectRatio || "landscape";
   const season = seasonInstructions[input.season || "spring_autumn"];
+  const targetAudience = input.targetAudience?.trim() || "空缺项交给 AI 根据商品图片与整体风格判断";
+  const usageScene = input.usageScene?.trim() || "空缺项交给 AI 根据商品图片与整体风格判断";
+  const modelGender = modelGenderInstructions[
+    input.displayMode === "flatlay" ? "none" : input.modelGender || "male"
+  ];
+  const modelFace = modelFaceInstructions[
+    input.displayMode === "flatlay" ? "no_model" : input.modelFaceMode || "hidden_face"
+  ];
   const cameraDistance = cameraDistanceInstructions[
     input.cameraDistance || (input.displayMode === "flatlay" ? "product_grid" : "three_quarter")
   ];
   const display =
     input.displayMode === "model"
-      ? "上身模特展示：使用真实男模特或不露脸模特，每套搭配都自然穿着主商品，人体比例真实。"
-      : "无模特平铺展示：所有服装与鞋包配饰平铺或悬挂展示，像商品搭配陈列图，不出现人体。";
+      ? `上身模特展示：${modelGender}${modelFace}每套搭配都自然穿着主商品，人体比例真实。`
+      : "无模特平铺展示：所有服装与鞋包配饰平铺或悬挂展示，像商品搭配陈列图，不出现真人模特、不出现人体。";
   const textRule =
     input.textMode === "with_labels"
       ? "版式可包含标题和每套搭配名；文字必须简洁、清晰、无错字，如果无法保证文字准确，可以保留空白标题区。"
@@ -49,6 +70,8 @@ export function buildMenswearMultiOutfitPrompt(input: {
     "你是专业男装一衣多搭视觉生成师。",
     `图片顺序：前 ${input.subjectImageCount} 张为服装主体参考图。`,
     `输出目标：生成一张一衣多搭展示图，展示 ${input.outfitCount} 套不同男装搭配。`,
+    `目标客群：${targetAudience}。`,
+    `使用场景：${usageScene}。`,
     `输出比例：${aspectRatio}。`,
     `季节搭配：${season}`,
     `人物远近与主体占比：${cameraDistance}`,
@@ -69,6 +92,19 @@ const seasonInstructions: Record<MenswearMultiOutfitSeason, string> = {
   autumn_winter: "秋冬过渡搭配，外套、针织、长裤和低饱和配色，保暖但不过度臃肿。",
   winter: "冬季保暖搭配，羽绒服、呢大衣、围巾、厚裤装或靴子等元素可参与搭配，保持真实可穿。",
   all_season: "四季通用搭配，避免明显季节冲突，按主商品属性生成可长期销售的基础穿搭。",
+};
+
+const modelGenderInstructions: Record<MenswearMultiOutfitModelGender, string> = {
+  any: "模特性别不限，按主商品风格选择真实自然的模特；",
+  male: "使用男模特；",
+  female: "使用女模特；",
+  none: "不使用模特；",
+};
+
+const modelFaceInstructions: Record<MenswearMultiOutfitModelFaceMode, string> = {
+  hidden_face: "脸部不露脸或无头构图，重点展示服装和搭配；",
+  visible_face: "可以露脸，五官自然真实，不要夸张表情；",
+  no_model: "不出现真人模特；",
 };
 
 const cameraDistanceInstructions: Record<MenswearMultiOutfitCameraDistance, string> = {

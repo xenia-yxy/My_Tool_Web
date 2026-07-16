@@ -1,8 +1,11 @@
 export type MenswearMaterial = {
+  analysis?: Record<string, unknown>;
   id: string;
   name: string;
   category: string;
   imageUrl: string;
+  promptNotes?: string | null;
+  sourceType?: string;
   tags: string[];
   rightsStatus: string;
   updatedAt: string;

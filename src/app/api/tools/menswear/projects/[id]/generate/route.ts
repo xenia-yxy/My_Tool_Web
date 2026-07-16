@@ -37,6 +37,7 @@ type GenerateBody = {
   cameraDistance?: unknown;
   finalPrompt?: unknown;
   quality?: unknown;
+  sceneMode?: unknown;
 };
 
 export async function POST(
@@ -65,6 +66,7 @@ export async function POST(
       customInstructions: settings.customInstructions,
       description: project.description || project.name,
       modelProfileId: project.modelProfileId,
+      sceneMode: body.sceneMode ?? settings.sceneMode,
       references: project.references.map((reference) => ({
         allowedChanges: reference.allowedChanges,
         fidelity: reference.fidelity,
@@ -78,6 +80,7 @@ export async function POST(
       cameraDistance: generation.cameraDistance,
       customInstructions: generation.customInstructions,
       description: generation.description,
+      mainProductCategory: stringSetting(settings.mainProductCategory),
       modelName: project.modelProfile?.name,
       references: project.references.map((reference) => ({
         fidelity: reference.fidelity,
@@ -85,6 +88,11 @@ export async function POST(
         policy: reference.policy as MenswearReferencePolicy,
         role: reference.role as MenswearReferenceRole,
       })),
+      sceneAspectRatio: stringSetting(settings.sceneAspectRatio),
+      sceneInstruction: stringSetting(settings.sceneInstruction),
+      sceneMode: generation.sceneMode,
+      stylePreset: stringSetting(settings.customStyle) || stringSetting(settings.stylePreset),
+      systemControls: resolveSystemControls(settings),
     });
     const finalPrompt = typeof body.finalPrompt === "string" && body.finalPrompt.trim()
       ? body.finalPrompt.trim()
@@ -222,6 +230,17 @@ async function materialToFile(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function stringSetting(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function resolveSystemControls(settings: Record<string, unknown>) {
+  if (!isRecord(settings.systemControls)) return [];
+  return Object.values(settings.systemControls)
+    .filter((value): value is string => typeof value === "string" && Boolean(value.trim()))
+    .map((value) => value.trim());
 }
 
 function toPublicErrorMessage(error: unknown) {

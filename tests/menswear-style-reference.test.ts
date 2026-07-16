@@ -59,17 +59,23 @@ test("builds a menswear one-piece multi outfit prompt for model and flatlay layo
     cameraDistance: "three_quarter",
     subjectImageCount: 2,
     displayMode: "model",
+    modelFaceMode: "hidden_face",
+    modelGender: "female",
     outfitCount: 5,
     preserveInstructions: "保留卫衣的紫色、印花、连帽和宽松版型",
     season: "spring_autumn",
     styleInstructions: "干净白底横版合集",
+    targetAudience: "小红书年轻女性用户",
     textMode: "with_labels",
+    usageScene: "社媒种草封面",
   });
   const flatlayPrompt = buildMenswearMultiOutfitPrompt({
     aspectRatio: "square",
     cameraDistance: "product_grid",
     subjectImageCount: 1,
     displayMode: "flatlay",
+    modelFaceMode: "no_model",
+    modelGender: "none",
     outfitCount: 4,
     preserveInstructions: "",
     season: "winter",
@@ -80,12 +86,17 @@ test("builds a menswear one-piece multi outfit prompt for model and flatlay layo
   assert.match(modelPrompt, /前 2 张为服装主体参考图/);
   assert.match(modelPrompt, /同一件主商品必须出现在每一套搭配里/);
   assert.match(modelPrompt, /上身模特/);
+  assert.match(modelPrompt, /女模特/);
+  assert.match(modelPrompt, /不露脸|无头/);
+  assert.match(modelPrompt, /目标客群：小红书年轻女性用户/);
+  assert.match(modelPrompt, /使用场景：社媒种草封面/);
   assert.match(modelPrompt, /5 套/);
   assert.match(modelPrompt, /春秋过渡搭配/);
   assert.match(modelPrompt, /输出比例：landscape/);
   assert.match(modelPrompt, /七分身或膝上到全身之间/);
   assert.match(modelPrompt, /可包含标题和每套搭配名/);
   assert.match(flatlayPrompt, /无模特平铺/);
+  assert.match(flatlayPrompt, /不出现真人模特/);
   assert.match(flatlayPrompt, /冬季保暖搭配/);
   assert.match(flatlayPrompt, /输出比例：square/);
   assert.match(flatlayPrompt, /不要出现文字/);
@@ -100,6 +111,10 @@ test("menswear workspace exposes one-piece multi outfit generation and registers
   assert.match(workspace, /\/tools\/menswear\/multi-outfit/);
   assert.match(page, /MenswearMultiOutfitGenerator/);
   assert.match(component, /menswear-multi-outfit/);
+  assert.match(component, /模特性别/);
+  assert.match(component, /脸部/);
+  assert.match(component, /目标客群/);
+  assert.match(component, /使用场景/);
   assert.equal(getWorkbenchTool("menswear-multi-outfit")?.label, "男装一衣多搭生图");
   assert.equal(resolveImageWorkbenchToolId("menswear-multi-outfit"), "menswear-multi-outfit");
 });

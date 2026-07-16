@@ -46,6 +46,13 @@ type GenerateTextInput = {
   temperature?: number;
 };
 
+type GenerateVisionTextInput = {
+  imageDataUrl: string;
+  prompt: string;
+  systemPrompt: string;
+  temperature?: number;
+};
+
 type GenerateImageInput = {
   prompt: string;
   size: string;
@@ -142,6 +149,15 @@ export function createAiGateway(options: AiGatewayOptions) {
       return generateOpenAiCompatibleText(fetchImpl, model, input);
     },
 
+    async generateVisionText(input: GenerateVisionTextInput) {
+      const model = selectModelForCapability(options.models, "vision");
+      if (model.provider === "anthropic" || model.provider === "google") {
+        throw new Error("当前视觉识别仅支持 OpenAI 兼容模型，请在模型配置中启用支持 vision 的兼容模型");
+      }
+
+      return generateOpenAiCompatibleVisionText(fetchImpl, model, input);
+    },
+
     async generateImage(input: GenerateImageInput) {
       const model = selectModelForCapability(options.models, "image.generate");
       const response = await fetchImpl(
@@ -221,6 +237,46 @@ async function generateOpenAiCompatibleText(
 
   if (!content) {
     throw new Error("模型没有返回文本内容");
+  }
+
+  return content;
+}
+
+async function generateOpenAiCompatibleVisionText(
+  fetchImpl: typeof fetch,
+  model: AiModelRuntimeConfig,
+  input: GenerateVisionTextInput,
+) {
+  const response = await fetchImpl(
+    buildOpenAiCompatibleEndpointForModel(model, model.chatPath || "/v1/chat/completions"),
+    {
+      method: "POST",
+      headers: buildJsonHeaders(model),
+      body: JSON.stringify({
+        model: model.model,
+        messages: [
+          { role: "system", content: input.systemPrompt },
+          {
+            role: "user",
+            content: [
+              { type: "text", text: input.prompt },
+              { type: "image_url", image_url: { url: input.imageDataUrl } },
+            ],
+          },
+        ],
+        ...(typeof input.temperature === "number"
+          ? { temperature: input.temperature }
+          : {}),
+      }),
+    },
+  );
+  const payload = (await readJsonResponse(response)) as {
+    choices?: Array<{ message?: { content?: string } }>;
+  };
+  const content = payload.choices?.[0]?.message?.content?.trim();
+
+  if (!content) {
+    throw new Error("视觉模型没有返回识别结果");
   }
 
   return content;

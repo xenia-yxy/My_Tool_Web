@@ -189,7 +189,7 @@ test("model library supports direct face and body uploads and allows a system mo
   assert.match(manager, /上传全身参考图/);
   assert.match(manager, /hasReference \? consentConfirmed : true/);
   assert.match(manager, /创建模特档案/);
-  assert.match(materials, /保存到公开素材库/);
+  assert.match(materials, /保存选品/);
 });
 
 test("material library lets a user crop an uploaded image before storing it as a reusable material", () => {
@@ -203,7 +203,46 @@ test("material library lets a user crop an uploaded image before storing it as a
   );
 
   assert.match(materials, /ImageCropDialog/);
-  assert.match(materials, /先框选需要的区域/);
+  assert.match(materials, /先框选需要的商品或素材区域/);
   assert.match(cropDialog, /canvas\.toBlob/);
   assert.match(cropDialog, /框选需要保存的区域/);
+});
+
+test("menswear generator provides screenshot-style scene modes and persistent scene image uploads", () => {
+  const generator = readFileSync(
+    "src/components/tools/menswear/strict-fidelity-generator.tsx",
+    "utf8",
+  );
+  const uploader = readFileSync(
+    "src/components/tools/menswear/scene-reference-uploader.tsx",
+    "utf8",
+  );
+
+  assert.match(generator, /人物换装/);
+  assert.match(generator, /商品替换/);
+  assert.match(generator, /纯背景生成/);
+  assert.match(generator, /主商品品类/);
+  assert.match(generator, /动作 \/ 场景补充要求/);
+  assert.match(generator, /SceneReferenceUploader/);
+  assert.match(generator, /sceneMode !== "background_only"/);
+  assert.match(generator, /const activeReferences = sceneMode === "background_only"/);
+  assert.match(uploader, /maxFiles = 6/);
+  assert.match(uploader, /\/api\/tools\/menswear\/materials\/upload/);
+});
+
+test("material library supports AI product recognition, editing, and private CRUD", () => {
+  const materials = readFileSync(
+    "src/components/tools/menswear/material-library.tsx",
+    "utf8",
+  );
+  const analysisRoute = readFileSync(
+    "src/app/api/tools/menswear/materials/analyze/route.ts",
+    "utf8",
+  );
+
+  assert.match(materials, /AI 识别图片/);
+  assert.match(materials, /编辑选品/);
+  assert.match(materials, /\/api\/tools\/menswear\/materials\/\$\{material\.id\}/);
+  assert.match(materials, /选品素材库/);
+  assert.match(analysisRoute, /generateVisionText/);
 });
