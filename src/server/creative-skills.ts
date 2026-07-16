@@ -14,6 +14,25 @@ export type CreativeSkillCreateInput = {
 };
 
 export function normalizeCreativeSkillCreateInput(value: unknown): CreativeSkillCreateInput {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Skill 创建内容格式不正确");
+  }
+
+  const allowedKeys = new Set([
+    "name",
+    "description",
+    "category",
+    "executorKey",
+    "inputs",
+    "promptTemplate",
+    "negativePrompt",
+    "agentInstructions",
+  ]);
+
+  if (Object.keys(value).some((key) => !allowedKeys.has(key))) {
+    throw new Error("Skill 创建字段不正确");
+  }
+
   return {
     ownerType: customOwnerType,
     config: normalizeCreativeSkillDraft(value),

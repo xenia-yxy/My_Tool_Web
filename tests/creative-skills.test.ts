@@ -97,3 +97,13 @@ test("custom Skill input uses the shared template contract", () => {
   assert.equal(input.ownerType, "CUSTOM");
   assert.equal(input.config.name, "我的秋季搭配");
 });
+
+test("custom Skill input rejects unknown configuration fields", () => {
+  assert.throws(() => normalizeCreativeSkillCreateInput({
+    name: "我的秋季搭配",
+    executorKey: "menswear-multi-outfit",
+    promptTemplate: "主体：{product}",
+    inputs: [],
+    unexpected: true,
+  }));
+});
