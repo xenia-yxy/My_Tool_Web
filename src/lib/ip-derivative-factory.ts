@@ -19,6 +19,7 @@ export type IpDerivativePromptInput = {
   preserveRules: string;
   userInstruction: string;
   referenceFocus: string;
+  outfitTransfer?: string[];
   stickerText: string;
   hasBaseImage: boolean;
   hasReferenceImages: boolean;
@@ -154,7 +155,7 @@ export function buildIpDerivativePrompt(input: IpDerivativePromptInput) {
       : "必须保留：脸部特征、轮廓比例、主色、标志性元素和原有视觉风格。",
     "身份一致性要求：不要把角色替换成另一个人物或物种；不要改变核心脸型、眼睛、发型、体型比例、标志性图案与配色关系。",
     input.mode === "outfit"
-      ? "换装规则：主 IP 图决定角色的原始画风、线条、上色方式、脸部与比例。服装/穿搭参考图只迁移服装版型、颜色、材质层次、搭配关系和指定配饰；不得迁移真人五官、摄影风格、背景、光影风格或参考图本身的画风。"
+      ? `换装规则：主 IP 图决定角色的原始画风、线条、上色方式、脸部与比例。服装/穿搭参考图只允许迁移：${input.outfitTransfer?.length ? input.outfitTransfer.join("、") : "服装版型、配色、材质层次、搭配关系和指定配饰"}；不得迁移真人五官、摄影风格、背景、光影风格或参考图本身的画风。`
       : "",
     input.userInstruction.trim()
       ? `本次修改说明：${input.userInstruction.trim()}。`

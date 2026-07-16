@@ -36,6 +36,7 @@ export function IpDerivativeFactoryWorkbench() {
   const [preserveRules, setPreserveRules] = useState("");
   const [userInstruction, setUserInstruction] = useState("");
   const [referenceFocus, setReferenceFocus] = useState("");
+  const [outfitTransfer, setOutfitTransfer] = useState<string[]>(["服装版型", "配色", "搭配关系", "配饰"]);
   const [stickerText, setStickerText] = useState("");
   const [aspectRatio, setAspectRatio] = useState("square");
   const [quality, setQuality] = useState("medium");
@@ -62,6 +63,7 @@ export function IpDerivativeFactoryWorkbench() {
         preserveRules,
         userInstruction,
         referenceFocus,
+        outfitTransfer,
         stickerText,
         modeControlValues,
         modeControlCustomValues,
@@ -77,6 +79,7 @@ export function IpDerivativeFactoryWorkbench() {
       modeControlValues,
       preserveRules,
       referenceFocus,
+      outfitTransfer,
       referenceImages.length,
       stickerText,
       userInstruction,
@@ -122,6 +125,7 @@ export function IpDerivativeFactoryWorkbench() {
       if (typeof input.preserveRules === "string") setPreserveRules(input.preserveRules);
       if (typeof input.userInstruction === "string") setUserInstruction(input.userInstruction);
       if (typeof input.referenceFocus === "string") setReferenceFocus(input.referenceFocus);
+      if (Array.isArray(input.outfitTransfer)) setOutfitTransfer(input.outfitTransfer.filter((item): item is string => typeof item === "string"));
       if (typeof input.stickerText === "string") setStickerText(input.stickerText);
       if (isRecord(input.modeControlCustomValues)) {
         setModeControlCustomValues(
@@ -173,6 +177,7 @@ export function IpDerivativeFactoryWorkbench() {
           preserveRules,
           userInstruction,
           referenceFocus,
+          outfitTransfer,
           stickerText,
           aspectRatio,
           quality,
@@ -300,6 +305,8 @@ export function IpDerivativeFactoryWorkbench() {
                   </div>
                 ))}
               </div>
+
+              {mode === "outfit" ? <section className="grid gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4"><div><p className="text-sm font-semibold text-emerald-950">IP 画风锁定</p><p className="mt-1 text-sm leading-6 text-emerald-800">主 IP 图锁定角色身份、脸部、比例、线条、上色和原始画风。服装参考图不会覆盖这些内容。</p></div><div className="grid gap-2"><p className="text-sm font-semibold text-slate-800">仅迁移参考图中的</p><div className="flex flex-wrap gap-2">{["服装版型", "配色", "材质层次", "搭配关系", "配饰"].map((item) => <label className="flex h-9 items-center gap-2 rounded-md border border-emerald-200 bg-white px-3 text-sm text-slate-700" key={item}><input checked={outfitTransfer.includes(item)} onChange={() => setOutfitTransfer((current) => current.includes(item) ? current.filter((value) => value !== item) : [...current, item])} type="checkbox" />{item}</label>)}</div></div></section> : null}
 
               <div className="grid gap-3 md:grid-cols-2">
                 <ImageReferenceUploader
