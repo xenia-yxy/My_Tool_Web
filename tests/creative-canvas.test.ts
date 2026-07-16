@@ -7,7 +7,7 @@ import {
 import { serializeCreativeCanvas } from "../src/server/creative-canvas";
 import { buildCreativeCanvasPlan } from "../src/server/creative-canvas-agent";
 import { buildCanvasTemplateNodes, creativeCanvasTemplates } from "../src/lib/creative-canvas-templates";
-import { getCanvasFlowStage } from "../src/lib/creative-canvas-flow";
+import { getCanvasFlowStage, getCanvasNodeAccentColor } from "../src/lib/creative-canvas-flow";
 
 test("connecting an asset to a Skill records a labelled role edge", () => {
   const initial = createCanvasState();
@@ -84,4 +84,10 @@ test("canvas flow guides creators from material to Skill and refinement", () => 
   assert.equal(getCanvasFlowStage([]), "MATERIAL");
   assert.equal(getCanvasFlowStage([{ kind: "ASSET" }]), "SKILL");
   assert.equal(getCanvasFlowStage([{ kind: "ASSET" }, { kind: "SKILL" }]), "REFINE");
+});
+
+test("asset cards prefer their extracted image accent color", () => {
+  assert.equal(getCanvasNodeAccentColor({ accentColor: "#336699" }, "ASSET"), "#336699");
+  assert.equal(getCanvasNodeAccentColor({}, "ASSET"), "#0ea5e9");
+  assert.equal(getCanvasNodeAccentColor({}, "SKILL"), "#8b5cf6");
 });
