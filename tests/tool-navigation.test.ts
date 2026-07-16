@@ -54,6 +54,18 @@ test("IP derivative factory route activates create sidebar entry", () => {
   assert.equal(getActiveGroupId("/tools/ip-factory"), "create");
 });
 
+test("creative center exposes canvas and Skill management as a top-level group", () => {
+  const creativeCenter = navGroups.find((group) => group.id === "creative-center");
+
+  assert.ok(creativeCenter);
+  assert.deepEqual(
+    creativeCenter.items.map((item) => item.id),
+    ["creative-canvas", "creative-skills"],
+  );
+  assert.equal(getActiveNavId("/tools/creative-center/canvas"), "creative-canvas");
+  assert.equal(getActiveGroupId("/tools/creative-center/skills"), "creative-center");
+});
+
 test("legacy fashion prompt route redirects to isolated gender tools", () => {
   assert.equal(resolveFashionPromptsRedirectTarget(), "/tools/menswear");
   assert.equal(resolveFashionPromptsRedirectTarget("menswear"), "/tools/menswear");

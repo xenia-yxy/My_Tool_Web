@@ -5,6 +5,8 @@ export const workbenchTools = [
   { id: "platform-cover-design", label: "平台封面设计", href: "/tools/platform-cover-design", supportsPrompt: true },
   { id: "ip-prototype", label: "IP 原型", href: "/tools/ip-prototype", supportsPrompt: true },
   { id: "ip-factory", label: "IP 衍生工厂", href: "/tools/ip-factory", supportsPrompt: true },
+  { id: "creative-canvas", label: "创作画布", href: "/tools/creative-center/canvas", supportsPrompt: true },
+  { id: "creative-skills", label: "Skill 管理", href: "/tools/creative-center/skills", supportsPrompt: false },
   { id: "series-video-analyzer", label: "系列视频分析", href: "/tools/series-video-analyzer", supportsPrompt: true },
   { id: "hotspots", label: "热点查询", href: "/tools/hotspots", supportsPrompt: true },
   { id: "menswear", label: "男装视觉工作台", href: "/tools/menswear", supportsPrompt: true },
