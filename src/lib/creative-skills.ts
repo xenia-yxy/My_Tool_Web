@@ -223,8 +223,8 @@ export function buildSkillPrompt(skill: CreativeSkillDraft, values: Record<strin
   });
 }
 
-function createSystemSkill(skill: SystemCreativeSkill) {
-  return skill;
+function createSystemSkill(skill: Omit<SystemCreativeSkill, "ownerType">): SystemCreativeSkill {
+  return { ...skill, ownerType: "SYSTEM" };
 }
 
 function imageInput(key: string, label: string, required: boolean): CreativeSkillInput {

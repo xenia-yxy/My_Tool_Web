@@ -54,7 +54,7 @@ export function normalizeCreativeCanvasPatch(value: unknown): CreativeCanvasPatc
 }
 
 export async function createCreativeCanvas(authorId: string, title = "未命名创作") {
-  return prisma.creativeCanvasSession.create({
+  const canvas = await prisma.creativeCanvasSession.create({
     data: {
       authorId,
       title: normalizeOptionalText(title, 160) || "未命名创作",
@@ -62,6 +62,7 @@ export async function createCreativeCanvas(authorId: string, title = "未命名�
     },
     include: canvasInclude,
   });
+  return serializeCreativeCanvas(canvas);
 }
 
 export async function listCreativeCanvases(authorId: string) {
@@ -76,10 +77,11 @@ export async function listCreativeCanvases(authorId: string) {
 }
 
 export async function getCreativeCanvas(authorId: string, sessionId: string) {
-  return prisma.creativeCanvasSession.findFirst({
+  const canvas = await prisma.creativeCanvasSession.findFirst({
     where: { id: sessionId, authorId },
     include: canvasInclude,
   });
+  return canvas ? serializeCreativeCanvas(canvas) : null;
 }
 
 export async function patchCreativeCanvas(authorId: string, sessionId: string, value: unknown) {
@@ -119,7 +121,7 @@ export async function patchCreativeCanvas(authorId: string, sessionId: string, v
       });
     }
 
-    return transaction.creativeCanvasSession.update({
+    const canvas = await transaction.creativeCanvasSession.update({
       where: { id: sessionId },
       data: {
         ...(patch.title ? { title: patch.title } : {}),
@@ -128,6 +130,7 @@ export async function patchCreativeCanvas(authorId: string, sessionId: string, v
       },
       include: canvasInclude,
     });
+    return serializeCreativeCanvas(canvas);
   });
 }
 
@@ -135,7 +138,7 @@ export async function duplicateCreativeCanvas(authorId: string, sessionId: strin
   const source = await getCreativeCanvas(authorId, sessionId);
   if (!source) return null;
 
-  return prisma.creativeCanvasSession.create({
+  const duplicated = await prisma.creativeCanvasSession.create({
     data: {
       authorId,
       title: `${source.title} 副本`,
@@ -152,14 +155,45 @@ export async function duplicateCreativeCanvas(authorId: string, sessionId: strin
       },
       edges: {
         create: source.edges.map((edge) => ({
-          sourceNodeId: edge.sourceNodeId,
-          targetNodeId: edge.targetNodeId,
+          sourceNodeId: edge.sourceClientId,
+          targetNodeId: edge.targetClientId,
           role: edge.role,
         })),
       },
     },
     include: canvasInclude,
   });
+  return serializeCreativeCanvas(duplicated);
+}
+
+export function serializeCreativeCanvas(canvas: {
+  id: string;
+  title: string;
+  status: string;
+  viewport: unknown;
+  nodes: Array<{ clientId: string; kind: string; position: unknown; snapshot: unknown; skillVersionId?: string | null }>;
+  edges: Array<{ sourceNodeId: string; targetNodeId: string; role: string }>;
+  runs: unknown[];
+}) {
+  return {
+    id: canvas.id,
+    title: canvas.title,
+    status: canvas.status,
+    viewport: canvas.viewport,
+    nodes: canvas.nodes.map((node) => ({
+      clientId: node.clientId,
+      kind: node.kind,
+      position: node.position,
+      snapshot: node.snapshot,
+      ...(node.skillVersionId ? { skillVersionId: node.skillVersionId } : {}),
+    })),
+    edges: canvas.edges.map((edge) => ({
+      sourceClientId: edge.sourceNodeId,
+      targetClientId: edge.targetNodeId,
+      role: edge.role,
+    })),
+    runs: canvas.runs,
+  };
 }
 
 function normalizeCanvasNodes(value: unknown): CreativeCanvasNodeInput[] {

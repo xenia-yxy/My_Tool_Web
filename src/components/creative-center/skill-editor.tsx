@@ -91,7 +91,7 @@ export function SkillEditor({ initialValue, onCancel, onSave, saving }: SkillEdi
       <div className="grid gap-3">
         <div className="flex items-center justify-between gap-3">
           <span className="text-sm font-medium text-slate-700">输入项</span>
-          <Button className="gap-2" onClick={() => setValue({ ...value, inputs: [...value.inputs, emptyInput()] })} size="sm" type="button" variant="secondary">
+          <Button className="h-8 gap-2 px-3 text-xs" onClick={() => setValue({ ...value, inputs: [...value.inputs, emptyInput()] })} type="button" variant="secondary">
             <Plus aria-hidden="true" className="h-4 w-4" /> 添加输入项
           </Button>
         </div>
