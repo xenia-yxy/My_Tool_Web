@@ -8,6 +8,7 @@ import {
   LayoutGrid,
   LineChart,
   PackageCheck,
+  PanelsTopLeft,
   Shapes,
   Shirt,
   Sparkles,
@@ -94,6 +95,25 @@ export const navGroups: NavGroup[] = [
         label: "热点查询",
         href: "/tools/hotspots",
         icon: Flame,
+      },
+    ],
+  },
+  {
+    id: "creative-center",
+    label: "智能创作中心",
+    icon: PanelsTopLeft,
+    items: [
+      {
+        id: "creative-canvas",
+        label: "创作画布",
+        href: "/tools/creative-center/canvas",
+        icon: PanelsTopLeft,
+      },
+      {
+        id: "creative-skills",
+        label: "Skill 管理",
+        href: "/tools/creative-center/skills",
+        icon: Shapes,
       },
     ],
   },
