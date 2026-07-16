@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "YXY AI Practice | AI 实践者数字据点",
+  title: "Xenia | 个人 AI 实践网站",
   description:
-    "一个 AI 实践者的公开首页，连接知识库、自研工具、项目展示和 SOP 服务。",
+    "Xenia 的个人网站，用来记录 AI 实践、工具实验和数字系统构建。部分内容和工具仅登录后可见。",
 };
 
 export default function RootLayout({

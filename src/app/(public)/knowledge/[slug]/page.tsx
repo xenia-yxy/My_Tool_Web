@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MarkdownPreview } from "@/components/content/markdown-preview";
 import { getPublishedContentAssetBySlug } from "@/server/content-queries";
+import { requireSignedInUser } from "@/server/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,7 @@ export default async function KnowledgeArticlePage({
   params,
 }: KnowledgeArticlePageProps) {
   const { slug } = await params;
+  await requireSignedInUser(`/knowledge/${slug}`);
   const note = await getPublishedContentAssetBySlug(slug);
 
   return (

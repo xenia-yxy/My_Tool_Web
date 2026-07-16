@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="1180" viewBox="0 0 1440 1180" role="img" aria-labelledby="title desc">
+  <title id="title">Xenia IP scene effect board</title>
+  <desc id="desc">Six scene effect sketches for Xenia IP across homepage, tools, prototype, knowledge, SOP service, and social cover.</desc>
+  <defs>
+    <style>
+      .bg { fill: #f7faf8; }
+      .card { fill: #ffffff; stroke: #d8e5df; stroke-width: 2; }
+      .ui { fill: #eef8f4; stroke: #8fcfb0; stroke-width: 2; }
+      .note { fill: #fff6cf; stroke: #d6b13e; stroke-width: 2; }
+      .ink { stroke: #20302c; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .thin { stroke: #63736f; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .green { stroke: #30a46c; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .blue { stroke: #2780b8; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+      .text { font-family: Arial, "Microsoft YaHei", sans-serif; fill: #20302c; }
+      .title { font-size: 30px; font-weight: 700; }
+      .subtitle { font-size: 18px; fill: #596964; }
+      .label { font-size: 20px; font-weight: 700; }
+      .small { font-size: 15px; fill: #596964; }
+    </style>
+  </defs>
+  <rect class="bg" width="1440" height="1180"/>
+  <text x="72" y="68" class="text title">Xenia IP 第三层：场景图效果图草案</text>
+  <text x="72" y="102" class="text subtitle">目标：验证 IP 能否进入真实系统场景，而不是只停留在单张角色图。</text>
+
+  <g transform="translate(72 145)">
+    <rect width="400" height="290" rx="24" class="card"/>
+    <text x="28" y="42" class="text label">1. 首页首屏</text>
+    <text x="28" y="68" class="text small">个人品牌 + 四个公开入口</text>
+    <rect x="32" y="92" width="210" height="140" rx="18" class="ui"/>
+    <path d="M54 120h96M54 145h130M54 170h78" class="thin"/>
+    <rect x="54" y="195" width="52" height="20" rx="10" fill="#30a46c"/>
+    <rect x="258" y="116" width="102" height="34" rx="12" class="note"/>
+    <rect x="258" y="162" width="102" height="34" rx="12" class="ui"/>
+    <rect x="258" y="208" width="102" height="34" rx="12" fill="#ffffff" stroke="#2780b8" stroke-width="2"/>
+    <g transform="translate(296 72) scale(.58)">
+      <circle cx="66" cy="55" r="28" class="ink"/>
+      <path d="M66 84v82M66 104l-46 38M66 104l47 38M66 166l-34 74M66 166l34 74" class="ink"/>
+      <rect x="102" y="118" width="65" height="43" rx="8" class="ui"/>
+    </g>
+  </g>
+
+  <g transform="translate(520 145)">
+    <rect width="400" height="290" rx="24" class="card"/>
+    <text x="28" y="42" class="text label">2. 工具台总览</text>
+    <text x="28" y="68" class="text small">规划 -> 创作 -> 生成 -> 发布</text>
+    <rect x="30" y="96" width="250" height="150" rx="18" class="ui"/>
+    <circle cx="66" cy="140" r="16" fill="#30a46c"/>
+    <circle cx="126" cy="140" r="16" fill="#30a46c"/>
+    <circle cx="186" cy="140" r="16" fill="#ffffff" stroke="#30a46c" stroke-width="3"/>
+    <circle cx="246" cy="140" r="16" fill="#ffffff" stroke="#30a46c" stroke-width="3"/>
+    <path d="M82 140h28M142 140h28M202 140h28" class="green"/>
+    <rect x="56" y="184" width="60" height="38" rx="10" class="note"/>
+    <rect x="128" y="184" width="60" height="38" rx="10" class="card"/>
+    <rect x="200" y="184" width="60" height="38" rx="10" class="card"/>
+    <g transform="translate(288 92) scale(.55)">
+      <circle cx="66" cy="55" r="28" class="ink"/>
+      <path d="M66 84v82M66 104l-46 38M66 104l64-20M66 166l-34 74M66 166l34 74" class="ink"/>
+    </g>
+  </g>
+
+  <g transform="translate(968 145)">
+    <rect width="400" height="290" rx="24" class="card"/>
+    <text x="28" y="42" class="text label">3. IP 原型工坊</text>
+    <text x="28" y="68" class="text small">草稿图 + 风格图 + 提示词确认</text>
+    <rect x="32" y="98" width="90" height="100" rx="14" class="note"/>
+    <path d="M54 147c18-26 48-25 52 10M64 118h34" class="thin"/>
+    <rect x="140" y="98" width="90" height="100" rx="14" class="ui"/>
+    <path d="M158 122h54M158 148h40M158 174h48" class="green"/>
+    <rect x="248" y="98" width="110" height="100" rx="14" class="card"/>
+    <path d="M268 124h66M268 148h44M268 172h76" class="thin"/>
+    <g transform="translate(128 186) scale(.42)">
+      <circle cx="66" cy="55" r="28" class="ink"/>
+      <path d="M66 84v82M66 104l-46 38M66 104l47 38M66 166l-34 74M66 166l34 74" class="ink"/>
+      <rect x="102" y="118" width="65" height="43" rx="8" class="ui"/>
+    </g>
+  </g>
+
+  <g transform="translate(72 485)">
+    <rect width="400" height="290" rx="24" class="card"/>
+    <text x="28" y="42" class="text label">4. 知识库封面</text>
+    <text x="28" y="68" class="text small">文章、笔记、知识卡片沉淀</text>
+    <rect x="150" y="94" width="200" height="128" rx="18" class="card"/>
+    <path d="M176 126h136M176 154h88M176 182h118" class="thin"/>
+    <rect x="110" y="132" width="84" height="62" rx="12" class="note"/>
+    <rect x="72" y="192" width="84" height="62" rx="12" class="ui"/>
+    <g transform="translate(54 84) scale(.5)">
+      <circle cx="66" cy="55" r="28" class="ink"/>
+      <path d="M66 84v82M66 104l-46 38M66 104l47 38M66 166l-34 74M66 166l34 74" class="ink"/>
+    </g>
+  </g>
+
+  <g transform="translate(520 485)">
+    <rect width="400" height="290" rx="24" class="card"/>
+    <text x="28" y="42" class="text label">5. SOP 服务页</text>
+    <text x="28" y="68" class="text small">把混乱流程整理成可执行方案</text>
+    <path d="M52 166c44-58 86 54 128 0s84 50 128 0" class="thin"/>
+    <rect x="52" y="220" width="70" height="36" rx="10" class="note"/>
+    <rect x="158" y="220" width="70" height="36" rx="10" class="ui"/>
+    <rect x="264" y="220" width="70" height="36" rx="10" class="card"/>
+    <path d="M122 238h36M228 238h36" class="green"/>
+    <g transform="translate(246 76) scale(.58)">
+      <circle cx="66" cy="55" r="28" class="ink"/>
+      <path d="M66 84v82M66 104l-46 38M66 104l64-16M66 166l-34 74M66 166l34 74" class="ink"/>
+    </g>
+  </g>
+
+  <g transform="translate(968 485)">
+    <rect width="400" height="290" rx="24" class="card"/>
+    <text x="28" y="42" class="text label">6. 社媒竖版封面</text>
+    <text x="28" y="68" class="text small">强头像识别 + 标题留白</text>
+    <rect x="130" y="86" width="140" height="184" rx="22" class="ui"/>
+    <rect x="150" y="106" width="100" height="34" rx="12" fill="#ffffff"/>
+    <g transform="translate(144 128) scale(.62)">
+      <circle cx="66" cy="55" r="28" class="ink"/>
+      <path d="M66 84v82M66 104l-46 38M66 104l47 38M66 166l-34 74M66 166l34 74" class="ink"/>
+    </g>
+    <rect x="92" y="188" width="72" height="46" rx="12" class="note"/>
+    <rect x="240" y="188" width="72" height="46" rx="12" class="card"/>
+  </g>
+
+  <rect x="72" y="845" width="1296" height="245" rx="24" class="card"/>
+  <text x="108" y="895" class="text label">场景生成顺序建议</text>
+  <text x="108" y="932" class="text small">1. 先生成角色设定图，锁定脸、比例、服装、道具和主色。</text>
+  <text x="108" y="966" class="text small">2. 再生成首页和工具台场景，验证 IP 与现有系统风格是否统一。</text>
+  <text x="108" y="1000" class="text small">3. 最后生成知识库、SOP 服务和社媒封面，验证商业转化和传播场景。</text>
+  <text x="108" y="1034" class="text small">4. 每张图都禁止真实文字，避免 AI 生成错误文本；前端或设计稿中再叠加真实文案。</text>
+</svg>
+

@@ -42,7 +42,7 @@ pnpm prisma:seed
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
-默认映射到宿主机 `3001` 端口，不占用已有 `80` 端口服务。
+默认映射到宿主机 `3000` 端口，不占用已有 `80` 端口服务。
 
 ## Prisma
 

@@ -4,6 +4,9 @@
 # next.js
 /.next/
 /out/
+/admin-frontend/dist/
+/admin-frontend/.vite-logs/
+/admin-frontend/node_modules/
 
 # production
 /build
@@ -17,6 +20,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+.next-dev-session*.log
 
 # env files
 .env
@@ -35,3 +39,12 @@ next-env.d.ts
 
 # local feature worktrees
 /.worktrees/
+/.workbuddy/
+
+# private deployment notes and credentials
+/.deploy-private/
+/deploy-artifacts/
+
+# runtime generated uploads
+/.runtime/
+/output/

@@ -1,15 +1,15 @@
 services:
   my-web:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: my-web:${IMAGE_TAG}
     container_name: my-web
     env_file:
-      - .env
+      - .env.production
     environment:
       NODE_ENV: production
       PORT: 3000
       HOSTNAME: 0.0.0.0
     ports:
-      - "3001:3000"
+      - "${WEB_PORT:-3000}:3000"
+    volumes:
+      - /opt/my-web/runtime:/app/.runtime
     restart: unless-stopped

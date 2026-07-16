@@ -1,0 +1,47 @@
+sequenceDiagram
+    participant User as 用户浏览器
+    participant Layout as tools/layout.tsx
+    participant Auth as requireSignedInUser
+    participant Page as tools/page.tsx
+    participant Dash as tools-dashboard.ts
+    participant DB as Prisma (PostgreSQL)
+    participant WF as workflow.ts
+
+    User->>Layout: GET /tools
+    Layout->>Auth: requireSignedInUser("/tools")
+    Auth-->>Layout: user { id, name, email }
+    Layout->>Page: render children (SSR)
+
+    Page->>Dash: getToolsDashboardData(user.id)
+
+    Dash->>DB: prisma.dailyPlanItem.findMany(userId, today)
+    DB-->>Dash: todayPlanItems[]
+
+    Dash->>DB: prisma.note.count(status=PRIVATE)
+    DB-->>Dash: unpublishedDraftsCount
+
+    Dash->>DB: prisma.aiImageAsset.findMany(createdAt=today, take=4)
+    DB-->>Dash: todayImages[] + count
+
+    Dash->>DB: prisma.ipPrototypeProject.count()
+    DB-->>Dash: ipProjectCount
+
+    Dash->>DB: prisma.note.findMany(status=PRIVATE, take=3, orderBy=updatedAt)
+    DB-->>Dash: recentDrafts[]
+
+    Dash->>Dash: 构建 DashboardSummary
+    Dash->>WF: inferWorkflowStage(summary)
+    WF-->>Dash: currentStage = "create"
+
+    Dash->>WF: getNextStepSuggestion(stage, summary)
+    WF-->>Dash: nextStep = { label: "去 AI 生图生成素材", href: "/tools/ai-image" }
+
+    Dash-->>Page: DashboardData { summary, recentImages, recentDrafts, currentStage, nextStep }
+
+    Page->>Page: 渲染 WorkflowProgressBar(currentStage, nextStep)
+    Page->>Page: 渲染 DashboardSummaryCards(summary)
+    Page->>Page: 渲染 DashboardRecentImages(recentImages)
+    Page->>Page: 渲染 DashboardRecentDrafts(recentDrafts)
+    Page->>Page: 渲染 DashboardQuickActions()
+
+    Page-->>User: HTML (完整仪表盘)

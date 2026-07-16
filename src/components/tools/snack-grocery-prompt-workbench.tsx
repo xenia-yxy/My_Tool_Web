@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { AdvancedParameterModal } from "@/components/tools/advanced-parameter-modal";
+import { PromptEditorDialog } from "@/components/tools/prompt-editor-dialog";
 import {
   buildSnackGroceryPublishingPack,
   getSnackGroceryPublishingPresets,
@@ -85,7 +86,7 @@ const outputTypes: Array<{ value: OutputType; label: string; hint: string }> = [
   { value: "detail_closeup", label: "细节近景", hint: "包装、材质、尺寸、使用细节" },
 ];
 
-const quickCounts = [4, 6, 9, 12, 18, 30];
+const quickCounts = [4, 5, 6];
 
 export function SnackGroceryPromptWorkbench() {
   const publishingPresets = useMemo(() => getSnackGroceryPublishingPresets(), []);
@@ -113,6 +114,8 @@ export function SnackGroceryPromptWorkbench() {
   const [batchCount, setBatchCount] = useState(6);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isPromptEditorOpen, setIsPromptEditorOpen] = useState(false);
+  const [promptDraft, setPromptDraft] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const previewUrls = useObjectUrls(imageFiles);
@@ -155,40 +158,51 @@ export function SnackGroceryPromptWorkbench() {
     setImageFiles((current) => current.filter((_, fileIndex) => fileIndex !== index));
   }
 
-  async function generateImages() {
+  function getGenerationFrames() {
+    return publishingPack.storyboard.slice(
+      0,
+      Math.min(batchCount, publishingPack.storyboard.length),
+    );
+  }
+
+  function requestImageGeneration() {
+    setPromptDraft(
+      getGenerationFrames()
+        .map((frame) => `--- 第 ${frame.index} 张 ---\n${frame.imagePrompt}`)
+        .join("\n\n"),
+    );
+    setIsPromptEditorOpen(true);
+  }
+
+  async function generateImages(editablePrompt: string) {
+    if (!editablePrompt.trim()) {
+      setError("完整提示词不能为空");
+      return;
+    }
+
     setError(null);
     setNotice(null);
     setIsGenerating(true);
 
     try {
-      const meta = buildMeta({
-        audience,
-        category,
-        itemDescription,
-        scene,
-        sellingPoint,
-      });
-      const prompt = buildPrompt({
-        audience,
-        category,
-        scene,
-        outputType,
-        itemDescription,
-        sellingPoint,
-        extra,
-        hasReference: imageFiles.length > 0,
-      });
-      const response =
-        imageFiles.length > 0
-          ? await submitMultipart(prompt, meta)
-          : await submitJson(prompt, meta);
-      const payload = (await response.json()) as { error?: string };
+      const meta = buildPublishingMeta(publishingPack);
+      const frames = getGenerationFrames();
+      const prompts = splitEditablePrompts(editablePrompt, frames.map((frame) => frame.imagePrompt));
 
-      if (!response.ok) {
-        throw new Error(payload.error || "批量生图失败");
+      for (const [index, frame] of frames.entries()) {
+        const prompt = prompts[index] || frame.imagePrompt;
+        const response =
+          imageFiles.length > 0
+            ? await submitMultipart(prompt, meta)
+            : await submitJson(prompt, meta);
+        const payload = (await response.json()) as { error?: string };
+
+        if (!response.ok) {
+          throw new Error(payload.error || "发布包图片生成失败");
+        }
       }
 
-      setNotice(`已提交并生成 ${batchCount} 张图片。结果已保存到统一图片画廊。`);
+      setNotice(`已按发布包分镜生成 ${frames.length} 张图片。结果已保存到统一图片画廊。`);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "批量生图失败");
     } finally {
@@ -196,7 +210,7 @@ export function SnackGroceryPromptWorkbench() {
     }
   }
 
-  function submitJson(prompt: string, meta: ReturnType<typeof buildMeta>) {
+  function submitJson(prompt: string, meta: ReturnType<typeof buildPublishingMeta>) {
     return fetch("/api/tools/image-generation", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -211,12 +225,13 @@ export function SnackGroceryPromptWorkbench() {
         productKeywords: meta.productKeywords,
         aspectRatio: getAspectRatio(outputType),
         quality: "low",
-        batchCount,
+        batchCount: 1,
+        finalPrompt: prompt,
       }),
     });
   }
 
-  function submitMultipart(prompt: string, meta: ReturnType<typeof buildMeta>) {
+  function submitMultipart(prompt: string, meta: ReturnType<typeof buildPublishingMeta>) {
     const formData = new FormData();
     formData.set("mode", "snack-grocery");
     formData.set("sourceTool", "snack-grocery");
@@ -228,7 +243,8 @@ export function SnackGroceryPromptWorkbench() {
     formData.set("productKeywords", meta.productKeywords.join("，"));
     formData.set("aspectRatio", getAspectRatio(outputType));
     formData.set("quality", "low");
-    formData.set("batchCount", String(batchCount));
+    formData.set("batchCount", "1");
+    formData.set("finalPrompt", prompt);
     imageFiles.forEach((file) => formData.append("image", file));
 
     return fetch("/api/tools/image-generation", {
@@ -442,14 +458,14 @@ export function SnackGroceryPromptWorkbench() {
           <div>
             <div className="flex items-center justify-between gap-3">
               <span className="text-sm font-medium text-slate-800">批量数量</span>
-              <span className="text-xs text-slate-500">最多 30 张</span>
+              <span className="text-xs text-slate-500">按分镜生成，最多 6 张</span>
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
               {quickCounts.map((count) => (
                 <Button
                   className="h-9 px-3"
                   key={count}
-                  onClick={() => setBatchCount(count)}
+                  onClick={() => setBatchCount(Math.min(count, publishingPack.storyboard.length))}
                   type="button"
                   variant={batchCount === count ? "default" : "secondary"}
                 >
@@ -468,7 +484,7 @@ export function SnackGroceryPromptWorkbench() {
           <Button
             className="h-11 w-full gap-2"
             disabled={isGenerating}
-            onClick={() => void generateImages()}
+            onClick={requestImageGeneration}
             type="button"
           >
             {isGenerating ? (
@@ -480,6 +496,14 @@ export function SnackGroceryPromptWorkbench() {
           </Button>
         </CardContent>
       </Card>
+      <PromptEditorDialog
+        description="每一段对应一张分镜图。可直接修改文本，保存后按顺序提交。"
+        onClose={() => setIsPromptEditorOpen(false)}
+        onSave={generateImages}
+        open={isPromptEditorOpen}
+        prompt={promptDraft}
+        title="确认零食百货完整分镜提示词"
+      />
 
       <section className="space-y-5">
         <Card>
@@ -577,82 +601,22 @@ export function SnackGroceryPromptWorkbench() {
   );
 }
 
-function buildPrompt(input: {
-  audience: string;
-  category: string;
-  scene: string;
-  outputType: OutputType;
-  itemDescription: string;
-  sellingPoint: string;
-  extra: string;
-  hasReference: boolean;
-}) {
-  const item = input.itemDescription.trim() || "零食百货主商品组合";
-  const referenceRule = input.hasReference
-    ? "先分析上传商品参考图，保持商品包装、品类、颜色、数量感、主要外观和真实材质，不要生成虚假品牌，不要改变商品身份。"
-    : "根据商品描述生成真实可购买的零食百货商品或组合。";
-
-  return [
-    referenceRule,
-    "",
-    `主商品/组合：${item}`,
-    `目标人群：${input.audience}`,
-    `商品品类：${input.category}`,
-    `使用场景：${input.scene}`,
-    `卖点方向：${input.sellingPoint}`,
-    buildOutputRule(input.outputType),
-    input.extra.trim() ? `补充要求：${input.extra.trim()}` : "",
-    "",
-    "强制要求：画面中不要出现任何中文、英文、数字标题、价格、账号、水印、标签、说明文字、品牌logo。不要夸张广告感，不要虚假功效，不要医疗功效暗示。图片只需要真实商品和真实场景，所有标题、tags、文案都由系统在画廊卡片里展示。",
-  ]
-    .filter(Boolean)
-    .join("\n");
-}
-
-function buildOutputRule(outputType: OutputType) {
-  const rules: Record<OutputType, string> = {
-    real_scene: "图片类型：真实使用场景。像用户手机拍摄，商品自然摆在真实桌面、厨房、工位或宿舍里。",
-    product_combo: "图片类型：商品组合图。多件商品清楚摆放，组合关系明确，不要文字。",
-    dorm_desk: "图片类型：宿舍桌面。大学宿舍桌面或床边，真实学生生活感，干净但不样板。",
-    office_drawer: "图片类型：办公室抽屉。零食饮料放在工位、抽屉或电脑旁，打工人真实囤货感。",
-    rental_kitchen: "图片类型：租房厨房。小厨房/收纳架/水槽旁，表现省空间和日常刚需。",
-    summer_outdoor: "图片类型：夏季出门。自然光、包里/桌上/手边随身带，清爽真实。",
-    clean_flatlay: "图片类型：干净平铺。白色或浅色桌面平铺，商品完整清楚，不出现真人。",
-    detail_closeup: "图片类型：细节近景。突出包装、材质、尺寸、开封状态或使用细节。",
-  };
-
-  return rules[outputType];
-}
-
-function buildMeta(input: {
-  audience: string;
-  category: string;
-  itemDescription: string;
-  scene: string;
-  sellingPoint: string;
-}) {
-  const item = input.itemDescription.trim() || input.category;
-
+function buildPublishingMeta(pack: ReturnType<typeof buildSnackGroceryPublishingPack>) {
   return {
-    title: `${input.audience}｜${item}｜${input.scene}`,
-    caption: `${input.audience}可以先测「${item}」这类${input.category}，核心卖点是${input.sellingPoint}。先看收藏和商品点击，再决定是否加大同款/相似款测试。`,
-    tags: [
-      "#好物分享",
-      "#抖音图文",
-      "#平价好物",
-      `#${input.audience}`,
-      `#${input.category}`,
-      `#${input.scene.replace(/[\/\s]/g, "")}`,
-    ],
-    productKeywords: [
-      item,
-      `${input.category}平价`,
-      input.audience,
-      input.scene,
-      "低价刚需",
-      "可囤好物",
-    ],
+    title: pack.titleOptions[0],
+    caption: `${pack.caption}\n\n置顶评论：${pack.pinnedComment}`,
+    tags: pack.tags,
+    productKeywords: pack.productKeywords,
   };
+}
+
+function splitEditablePrompts(prompt: string, fallbackPrompts: string[]) {
+  const prompts = prompt
+    .split(/---\s*第\s*\d+\s*张\s*---/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  return fallbackPrompts.map((fallback, index) => prompts[index] || fallback);
 }
 
 function getAspectRatio(outputType: OutputType) {

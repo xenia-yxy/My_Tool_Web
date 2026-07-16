@@ -9,11 +9,39 @@ datasource db {
 
 enum Role {
   ADMIN
+  USER
 }
 
 enum NoteStatus {
   PRIVATE
   PUBLISHED
+}
+
+enum DailyPlanStatus {
+  TODO
+  DOING
+  DONE
+  CANCELED
+}
+
+enum DailyPlanPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum DailyPlanQuadrant {
+  DO_NOW
+  SCHEDULE
+  DELEGATE
+  DELETE
+}
+
+enum WorkbenchSessionStatus {
+  DRAFT
+  RUNNING
+  SUCCEEDED
+  FAILED
 }
 
 model User {
@@ -24,9 +52,27 @@ model User {
   image         String?
   passwordHash  String?
   role          Role      @default(ADMIN)
+  failedLoginCount Int     @default(0)
+  lockedUntil   DateTime?
+  lastLoginAt   DateTime?
+  lastLoginIp   String?
+  disabledAt    DateTime?
+  passwordChangedAt DateTime?
   accounts      Account[]
   sessions      Session[]
   notes         Note[]
+  aiImageAssets AiImageAsset[]
+  aiImageJobs   AiImageJob[]
+  ipPrototypeProjects IpPrototypeProject[]
+  ipPrototypeGenerations IpPrototypeGeneration[]
+  aiProviderCredentials AiProviderCredential[]
+  websiteBookmarks WebsiteBookmark[]
+    dailyPlanItems DailyPlanItem[]
+    workbenchSessions WorkbenchSession[]
+    menswearMaterials MenswearMaterial[]
+    menswearModelProfiles MenswearModelProfile[]
+    menswearProjects MenswearProject[]
+    loginAudits   LoginAudit[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }
@@ -82,4 +128,307 @@ model Note {
 
   @@index([status, publishedAt])
   @@index([authorId])
+}
+
+model AiImageAsset {
+  id          String   @id @default(cuid())
+  mode        String
+  sourceTool  String?
+  status      String   @default("SUCCEEDED")
+  jobId       String?
+  title       String
+  description String?  @db.Text
+  caption     String?  @db.Text
+  tags        String[] @default([])
+  productKeywords String[] @default([])
+  prompt      String   @db.Text
+  imageUrl    String
+  downloadUrl String
+  fileName    String
+  mimeType    String   @default("image/png")
+  note        String?  @db.Text
+  errorMessage String? @db.Text
+  referenceImages String[] @default([])
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([authorId, createdAt])
+  @@index([mode, createdAt])
+  @@index([authorId, status, createdAt])
+  @@index([jobId])
+}
+
+model AiImageJob {
+  id          String   @id @default(cuid())
+  mode        String
+  sourceTool  String?
+  status      String   @default("PENDING")
+  title       String
+  prompt      String   @db.Text
+  batchCount  Int      @default(1)
+  completedCount Int   @default(0)
+  failedCount Int      @default(0)
+  errorMessage String? @db.Text
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([authorId, createdAt])
+  @@index([authorId, status, createdAt])
+  @@index([mode, createdAt])
+}
+
+model MenswearMaterial {
+  id           String   @id @default(cuid())
+  authorId     String
+  author       User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  name         String
+  category     String
+  sourceType   String
+  sourceUrl    String?
+  rightsStatus String   @default("PRIVATE")
+  imageUrl     String
+  previewUrl   String?
+  maskUrl      String?
+  tags         String[] @default([])
+  analysis     Json     @default("{}")
+  promptNotes  String?  @db.Text
+  qualityScore Int?
+  completeness Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  modelImages  MenswearModelProfileImage[]
+  projectRefs  MenswearProjectReference[]
+
+  @@index([authorId, category, updatedAt])
+}
+
+model MenswearModelProfile {
+  id                 String   @id @default(cuid())
+  authorId           String
+  author             User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  name               String
+  status             String   @default("DRAFT")
+  profile            Json     @default("{}")
+  faceLockStrength   Int      @default(90)
+  bodyLockStrength   Int      @default(85)
+  hairLockStrength   Int      @default(80)
+  consentConfirmedAt DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  images             MenswearModelProfileImage[]
+  projects           MenswearProject[]
+
+  @@index([authorId, updatedAt])
+}
+
+model MenswearProject {
+  id             String   @id @default(cuid())
+  authorId       String
+  author         User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  modelProfileId String?
+  modelProfile   MenswearModelProfile? @relation(fields: [modelProfileId], references: [id], onDelete: SetNull)
+  name           String
+  status         String   @default("DRAFT")
+  description    String?  @db.Text
+  settings       Json     @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  references     MenswearProjectReference[]
+  prompts        MenswearPromptVersion[]
+
+  @@index([authorId, updatedAt])
+}
+
+model MenswearModelProfileImage {
+  id         String   @id @default(cuid())
+  profileId  String
+  profile    MenswearModelProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  materialId String
+  material   MenswearMaterial @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  role       String
+  position   Int
+  createdAt  DateTime @default(now())
+
+  @@unique([profileId, role, position])
+  @@index([materialId])
+}
+
+model MenswearProjectReference {
+  id             String   @id @default(cuid())
+  projectId      String
+  project        MenswearProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  materialId     String
+  material       MenswearMaterial @relation(fields: [materialId], references: [id], onDelete: Restrict)
+  role           String
+  policy         String
+  fidelity       Int
+  allowedChanges String[] @default([])
+  position       Int
+  createdAt      DateTime @default(now())
+
+  @@unique([projectId, role, position])
+  @@index([materialId])
+}
+
+model MenswearPromptVersion {
+  id           String   @id @default(cuid())
+  projectId    String
+  project      MenswearProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  systemPrompt String   @db.Text
+  userPrompt   String?  @db.Text
+  finalPrompt  String   @db.Text
+  jobId        String?
+  createdAt    DateTime @default(now())
+
+  @@index([projectId, createdAt])
+}
+
+model IpPrototypeProject {
+  id          String   @id @default(cuid())
+  name        String
+  ipType      String
+  description String?  @db.Text
+  brandTone   String?  @db.Text
+  authorId    String
+  author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  generations IpPrototypeGeneration[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([authorId, updatedAt])
+  @@index([authorId, ipType])
+}
+
+model IpPrototypeGeneration {
+  id            String   @id @default(cuid())
+  projectId     String
+  project       IpPrototypeProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  authorId      String
+  author        User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  ipType        String
+  outputGoal    String
+  title         String
+  userPrompt    String   @db.Text
+  prompt        String   @db.Text
+  styleText     String?  @db.Text
+  draftImageUrl String?
+  styleImageUrl String?
+  imageUrl      String
+  downloadUrl   String
+  fileName      String
+  mimeType      String   @default("image/png")
+  note          String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([authorId, createdAt])
+  @@index([projectId, createdAt])
+  @@index([ipType, outputGoal])
+}
+
+model AiProviderCredential {
+  id              String   @id @default(cuid())
+  provider        String
+  displayName     String
+  baseUrl         String?
+  model           String
+  encryptedApiKey String   @db.Text
+  apiKeyPreview   String
+  capabilities    String[] @default([])
+  enabled         Boolean  @default(true)
+  lastUsedAt      DateTime?
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId, enabled])
+  @@index([provider, model])
+}
+
+model WebsiteBookmark {
+  id          String   @id @default(cuid())
+  title       String
+  url         String
+  category    String
+  subcategory String
+  summary     String   @db.Text
+  tags        String[] @default([])
+  note        String?  @db.Text
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId, updatedAt])
+  @@index([category, subcategory])
+}
+
+model DailyPlanItem {
+  id          String          @id @default(cuid())
+  planDate    DateTime        @db.Date
+  weekStartDate DateTime      @db.Date
+  title       String
+  note        String?         @db.Text
+  status      DailyPlanStatus @default(TODO)
+  priority    DailyPlanPriority @default(MEDIUM)
+  quadrant    DailyPlanQuadrant @default(SCHEDULE)
+  plannedTime String?
+  dueDate     DateTime?       @db.Date
+  estimateMinutes Int?
+  completedAt DateTime?
+  reviewNote  String?         @db.Text
+  source      String          @default("MANUAL")
+  sortOrder   Int             @default(0)
+  authorId    String
+  author      User            @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([authorId, planDate, sortOrder])
+  @@index([authorId, weekStartDate, quadrant])
+  @@index([authorId, status])
+}
+
+model WorkbenchSession {
+  id             String                 @id @default(cuid())
+  authorId       String
+  author         User                   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  toolId         String
+  title          String
+  status         WorkbenchSessionStatus @default(DRAFT)
+  prompt         String                 @default("") @db.Text
+  inputSnapshot  Json
+  outputSnapshot Json
+  imageAssetIds  String[]               @default([])
+  externalJobId  String?
+  errorMessage   String?                @db.Text
+  completedAt    DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  @@index([authorId, toolId, updatedAt])
+  @@index([authorId, status, updatedAt])
+}
+
+model LoginAudit {
+  id          String   @id @default(cuid())
+  identifier String
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  outcome     String
+  reason      String?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@index([identifier, createdAt])
+  @@index([userId, createdAt])
+  @@index([outcome, createdAt])
 }
