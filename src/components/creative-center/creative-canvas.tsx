@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, ImagePlus, Link2, Minus, MousePointer2, Plus, Sparkles, Trash2, Upload } from "lucide-react";
+import { FileText, ImagePlus, Link2, Minus, Plus, Send, Sparkles, Trash2, Upload } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { buildSkillPrompt, getSystemCreativeSkills, type SystemCreativeSkill } from "@/lib/creative-skills";
@@ -17,6 +17,10 @@ export function CreativeCanvasWorkspace({ sessionId: initialSessionId }: { sessi
   const [skillChoices, setSkillChoices] = useState<SkillChoice[]>([]);
   const [drag, setDrag] = useState<DragState>(null);
   const [connectingFrom, setConnectingFrom] = useState<string | null>(null);
+  const [agentMessage, setAgentMessage] = useState("");
+  const [agentPlan, setAgentPlan] = useState<{ summary: string; executorKeys: string[] } | null>(null);
+  const [planning, setPlanning] = useState(false);
+  const [agentError, setAgentError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -95,6 +99,34 @@ export function CreativeCanvasWorkspace({ sessionId: initialSessionId }: { sessi
     setDrag({ kind: "pan", start: { x: event.clientX, y: event.clientY }, viewport: state.viewport });
   }
 
+  async function requestAgentPlan() {
+    if (!sessionId || !agentMessage.trim()) return;
+    setPlanning(true);
+    setAgentError(null);
+    try {
+      const response = await fetch(`/api/tools/creative-canvases/${sessionId}/agent-plan`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ message: agentMessage }) });
+      const payload = await response.json() as { plan?: { summary: string; executorKeys: string[] }; error?: string };
+      if (!response.ok || !payload.plan) throw new Error(payload.error || "生成计划失败");
+      setAgentPlan(payload.plan);
+    } catch (caughtError) { setAgentError(caughtError instanceof Error ? caughtError.message : "生成计划失败");
+    } finally { setPlanning(false); }
+  }
+
+  function applyAgentPlan() {
+    if (!agentPlan) return;
+    let previousClientId: string | null = null;
+    agentPlan.executorKeys.forEach((executorKey, index) => {
+      const skill = skillChoices.find((item) => item.executorKey === executorKey);
+      if (!skill) return;
+      const clientId = `skill-${crypto.randomUUID()}`;
+      dispatch({ type: "add", node: { clientId, kind: "SKILL", position: nextPosition(state.nodes.length + index), skillVersionId: skill.versionId, snapshot: { name: skill.name, description: skill.description, executorKey: skill.executorKey, prompt: buildSkillPrompt(skill, {}), values: {}, status: "DRAFT" } } });
+      if (previousClientId) dispatch({ type: "connect", sourceClientId: previousClientId, targetClientId: clientId, role: "继续创作" });
+      previousClientId = clientId;
+    });
+    setAgentPlan(null);
+    setAgentMessage("");
+  }
+
   function movePointer(event: PointerEvent<HTMLDivElement>) {
     if (!drag || !canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
@@ -116,6 +148,7 @@ export function CreativeCanvasWorkspace({ sessionId: initialSessionId }: { sessi
       </div>
       <CanvasInspector node={selected} onDelete={() => { if (selected) { dispatch({ type: "remove", clientId: selected.clientId }); setSelectedId(null); } }} onSnapshot={(snapshot) => selected && dispatch({ type: "snapshot", clientId: selected.clientId, snapshot })} />
     </div>
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center p-4"><div className="pointer-events-auto w-full max-w-3xl rounded-lg border border-slate-200 bg-white p-3 shadow-lg"><div className="flex gap-2"><textarea className="min-h-11 flex-1 resize-none rounded-md border border-slate-200 px-3 py-2 text-sm leading-5 outline-none focus:border-blue-400" onChange={(event) => setAgentMessage(event.target.value)} placeholder="描述你想完成的创作，Agent 会先生成可编辑的 Skill 流程" value={agentMessage} /><button aria-label="生成画布计划" className="grid h-11 w-11 place-items-center rounded-md bg-blue-600 text-white disabled:opacity-50" disabled={!agentMessage.trim() || planning} onClick={() => void requestAgentPlan()} title="生成画布计划" type="button"><Send className="h-4 w-4" /></button></div>{agentError ? <p className="mt-2 text-sm text-red-700">{agentError}</p> : null}{agentPlan ? <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-md bg-blue-50 p-3 text-sm text-blue-950"><span>{agentPlan.summary}</span><div className="flex gap-2"><Button className="h-8 px-3 text-xs" onClick={() => setAgentPlan(null)} type="button" variant="secondary">取消</Button><Button className="h-8 px-3 text-xs" onClick={applyAgentPlan} type="button">应用到画布</Button></div></div> : null}</div></div>
   </main>;
 }
 

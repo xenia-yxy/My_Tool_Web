@@ -5,6 +5,7 @@ import {
   reduceCanvasState,
 } from "../src/components/creative-center/use-creative-canvas-session";
 import { serializeCreativeCanvas } from "../src/server/creative-canvas";
+import { buildCreativeCanvasPlan } from "../src/server/creative-canvas-agent";
 
 test("connecting an asset to a Skill records a labelled role edge", () => {
   const initial = createCanvasState();
@@ -51,4 +52,11 @@ test("canvas serialization exposes role edges using client card identifiers", ()
   });
 
   assert.deepEqual(canvas.edges, [{ sourceClientId: "asset-1", targetClientId: "skill-1", role: "主体图" }]);
+});
+
+test("Agent drafts a cover workflow without starting a generation", () => {
+  const plan = buildCreativeCanvasPlan("用这件衬衫做秋季小红书封面");
+
+  assert.equal(plan.requiresConfirmation, true);
+  assert.deepEqual(plan.executorKeys, ["menswear-multi-outfit", "platform-cover-design"]);
 });
