@@ -311,10 +311,10 @@ export function IpDerivativeFactoryWorkbench() {
                   onChange={setBaseIpImages}
                 />
                 <ImageReferenceUploader
-                  emptyText="上传动作、服装、表情或场景参考"
+                  emptyText={mode === "outfit" ? "上传服装、穿搭或配饰参考" : "上传动作、服装、表情或场景参考"}
                   files={referenceImages}
-                  helper="选传，最多 6 张；只参考指定元素"
-                  label="辅助参考图"
+                  helper={mode === "outfit" ? "选传，最多 6 张；只迁移服装和配饰，不改变主 IP 画风" : "选传，最多 6 张；只参考指定元素"}
+                  label={mode === "outfit" ? "服装/穿搭参考图" : "辅助参考图"}
                   maxFiles={6}
                   onChange={setReferenceImages}
                 />
@@ -336,7 +336,7 @@ export function IpDerivativeFactoryWorkbench() {
                 <textarea className={`${textareaClass} min-h-28`} onChange={(event) => setUserInstruction(event.target.value)} placeholder="例如：参考跳舞动作，生成完整跳舞姿势；或换成雨衣并添加透明雨伞。" required value={userInstruction} />
               </Field>
               <Field label="参考图用途">
-                <input className={inputClass} onChange={(event) => setReferenceFocus(event.target.value)} placeholder="例如：只参考身体动作和重心，不改变角色" value={referenceFocus} />
+                <input className={inputClass} onChange={(event) => setReferenceFocus(event.target.value)} placeholder={mode === "outfit" ? "例如：只参考外套、裤装、鞋履和项链，不改变 IP 的线条与画风" : "例如：只参考身体动作和重心，不改变角色"} value={referenceFocus} />
               </Field>
 
               {mode === "meme" ? (

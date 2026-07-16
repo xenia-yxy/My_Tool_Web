@@ -29,7 +29,7 @@ export type IpDerivativePromptInput = {
 const modePresets: IpDerivativeModePreset[] = [
   { id: "meme", label: "表情包", hint: "把同一个 IP 扩展为可传播的情绪表达" },
   { id: "pose", label: "动作姿势", hint: "参考动作图，保持角色身份后完成姿势迁移" },
-  { id: "outfit", label: "换装装饰", hint: "替换服装、配件或材质，不重设计角色" },
+  { id: "outfit", label: "换装装饰", hint: "参考穿搭替换服装与配件，保留 IP 原画风" },
   { id: "scene", label: "场景海报", hint: "让 IP 进入指定场景，生成可发布主视觉" },
 ];
 
@@ -153,6 +153,9 @@ export function buildIpDerivativePrompt(input: IpDerivativePromptInput) {
       ? `必须保留：${input.preserveRules.trim()}。`
       : "必须保留：脸部特征、轮廓比例、主色、标志性元素和原有视觉风格。",
     "身份一致性要求：不要把角色替换成另一个人物或物种；不要改变核心脸型、眼睛、发型、体型比例、标志性图案与配色关系。",
+    input.mode === "outfit"
+      ? "换装规则：主 IP 图决定角色的原始画风、线条、上色方式、脸部与比例。服装/穿搭参考图只迁移服装版型、颜色、材质层次、搭配关系和指定配饰；不得迁移真人五官、摄影风格、背景、光影风格或参考图本身的画风。"
+      : "",
     input.userInstruction.trim()
       ? `本次修改说明：${input.userInstruction.trim()}。`
       : `本次修改说明：完成一张符合${mode.label}用途的清晰成品。`,
