@@ -72,6 +72,8 @@ model User {
     menswearMaterials MenswearMaterial[]
     menswearModelProfiles MenswearModelProfile[]
     menswearProjects MenswearProject[]
+    creativeSkills CreativeSkill[]
+    creativeCanvasSessions CreativeCanvasSession[]
     loginAudits   LoginAudit[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -415,6 +417,93 @@ model WorkbenchSession {
 
   @@index([authorId, toolId, updatedAt])
   @@index([authorId, status, updatedAt])
+}
+
+model CreativeSkill {
+  id        String   @id @default(cuid())
+  authorId  String?
+  author    User?    @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  ownerType String
+  name      String
+  category  String
+  enabled   Boolean  @default(true)
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  versions  CreativeSkillVersion[]
+
+  @@index([authorId, updatedAt])
+  @@index([ownerType, enabled])
+}
+
+model CreativeSkillVersion {
+  id          String   @id @default(cuid())
+  skillId     String
+  skill       CreativeSkill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  version     Int
+  config      Json
+  createdAt   DateTime @default(now())
+  canvasNodes CreativeCanvasNode[]
+
+  @@unique([skillId, version])
+}
+
+model CreativeCanvasSession {
+  id        String   @id @default(cuid())
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  title     String
+  status    String   @default("DRAFT")
+  viewport  Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  nodes     CreativeCanvasNode[]
+  edges     CreativeCanvasEdge[]
+  runs      CreativeCanvasRun[]
+
+  @@index([authorId, updatedAt])
+}
+
+model CreativeCanvasNode {
+  id             String   @id @default(cuid())
+  sessionId      String
+  session        CreativeCanvasSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  clientId       String
+  kind           String
+  position       Json
+  snapshot       Json
+  skillVersionId String?
+  skillVersion   CreativeSkillVersion? @relation(fields: [skillVersionId], references: [id], onDelete: SetNull)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([sessionId, clientId])
+}
+
+model CreativeCanvasEdge {
+  id           String   @id @default(cuid())
+  sessionId    String
+  session      CreativeCanvasSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sourceNodeId String
+  targetNodeId String
+  role         String
+  createdAt    DateTime @default(now())
+
+  @@unique([sessionId, sourceNodeId, targetNodeId, role])
+}
+
+model CreativeCanvasRun {
+  id           String   @id @default(cuid())
+  sessionId    String
+  session      CreativeCanvasSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  nodeId       String?
+  kind         String
+  status       String
+  input        Json
+  output       Json
+  errorMessage String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 model LoginAudit {
