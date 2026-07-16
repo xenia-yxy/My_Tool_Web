@@ -9,6 +9,7 @@ export const workbenchTools = [
   { id: "creative-skills", label: "Skill 管理", href: "/tools/creative-center/skills", supportsPrompt: false },
   { id: "series-video-analyzer", label: "系列视频分析", href: "/tools/series-video-analyzer", supportsPrompt: true },
   { id: "hotspots", label: "热点查询", href: "/tools/hotspots", supportsPrompt: true },
+  { id: "menswear-scene-image", label: "男装场景图生成", href: "/tools/menswear/scene-image", supportsPrompt: true },
   { id: "menswear", label: "男装视觉工作台", href: "/tools/menswear", supportsPrompt: true },
   { id: "menswear-style-reference", label: "男装风格参考生图", href: "/tools/menswear/style-reference", supportsPrompt: true },
   { id: "menswear-multi-outfit", label: "男装一衣多搭生图", href: "/tools/menswear/multi-outfit", supportsPrompt: true },
