@@ -1,3 +1,4 @@
+import { AiPracticeAssistant } from "@/components/assistant/ai-practice-assistant";
 import { AmbientField } from "@/components/home/ambient-field";
 import { HeroSection } from "@/components/home/hero-section";
 import { SiteHeader } from "@/components/home/site-header";
@@ -10,7 +11,7 @@ export default function HomePage() {
         <SiteHeader />
         <HeroSection />
       </div>
+      <AiPracticeAssistant />
     </main>
   );
 }
-

@@ -25,8 +25,8 @@ body {
   min-height: 100%;
   margin: 0;
   background:
-    radial-gradient(circle at top left, rgba(219, 234, 254, 0.72), transparent 34rem),
-    linear-gradient(180deg, #ffffff 0%, var(--background) 46%, #eef9f5 100%);
+    radial-gradient(circle at 50% -10%, rgba(219, 234, 254, 0.78), transparent 34rem),
+    linear-gradient(180deg, #ffffff 0%, var(--background) 52%, #f1f5f9 100%);
   color: var(--foreground);
   font-family:
     Arial,
@@ -61,8 +61,8 @@ textarea {
   background:
     radial-gradient(
       30rem circle at var(--pointer-x) var(--pointer-y),
-      rgba(14, 165, 233, 0.22),
-      rgba(99, 102, 241, 0.08) 38%,
+      rgba(37, 99, 235, 0.16),
+      rgba(148, 163, 184, 0.08) 38%,
       transparent 70%
     );
 }
