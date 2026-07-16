@@ -129,6 +129,12 @@ export const navGroups: NavGroup[] = [
         icon: Shirt,
       },
       {
+        id: "products",
+        label: "选品中心",
+        href: "/tools/products",
+        icon: PackageCheck,
+      },
+      {
         id: "womenswear",
         label: "女装视觉工作台",
         href: "/tools/womenswear",
