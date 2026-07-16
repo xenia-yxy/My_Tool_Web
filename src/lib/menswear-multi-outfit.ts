@@ -29,6 +29,7 @@ export function buildMenswearMultiOutfitPrompt(input: {
   subjectImageCount: number;
   displayMode: MenswearMultiOutfitDisplayMode;
   modelFaceMode?: MenswearMultiOutfitModelFaceMode;
+  modelFaceReferenceSource?: string;
   modelGender?: MenswearMultiOutfitModelGender;
   outfitCount: number;
   preserveInstructions?: string;
@@ -54,6 +55,9 @@ export function buildMenswearMultiOutfitPrompt(input: {
   const modelFace = modelFaceInstructions[
     input.displayMode === "flatlay" ? "no_model" : input.modelFaceMode || "hidden_face"
   ];
+  const modelFaceReference = input.modelFaceReferenceSource?.trim()
+    ? `脸部身份参考：使用${input.modelFaceReferenceSource.trim()}锁定人物五官与身份；不得改变主商品、搭配、身材、姿势、背景或画面风格。`
+    : "脸部身份参考：未提供脸部参考图，按模特性别与风格生成自然真实模特。";
   const cameraDistance = cameraDistanceInstructions[
     input.cameraDistance || (input.displayMode === "flatlay" ? "product_grid" : "three_quarter")
   ];
@@ -77,6 +81,7 @@ export function buildMenswearMultiOutfitPrompt(input: {
     `人物远近与主体占比：${cameraDistance}`,
     `必须保留：${preserve}。同一件主商品必须出现在每一套搭配里，不得改款、换色、替换图案或改变材质。`,
     `画面风格：${style}。`,
+    modelFaceReference,
     display,
     "搭配要求：每套搭配的裤装、鞋子、外套、包或配饰可以变化，但必须服务于同一主商品；搭配之间要有明确差异，整体仍然真实可穿。",
     "版式要求：横向排列，间距均匀，主商品识别度高，背景干净，适合男装电商图文和社媒封面。",

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Loader2, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { ImageReferenceUploader } from "@/components/tools/image-reference-uploader";
+import { ModelFaceReferenceSelector, type ModelFaceReferenceSource } from "@/components/tools/menswear/model-face-reference-selector";
 import { PromptEditorDialog } from "@/components/tools/prompt-editor-dialog";
 import { PromptPreviewPanel } from "@/components/tools/prompt-preview-panel";
 import { useWorkbenchSession } from "@/components/tools/workbench-session-client";
@@ -53,6 +54,9 @@ const cameraDistanceOptions: Array<[MenswearStyleReferenceCameraDistance, string
 export function StyleReferenceGenerator() {
   const [mainImages, setMainImages] = useState<File[]>([]);
   const [styleImages, setStyleImages] = useState<File[]>([]);
+  const [modelFaceFiles, setModelFaceFiles] = useState<File[]>([]);
+  const [modelFaceSource, setModelFaceSource] = useState<ModelFaceReferenceSource>("system");
+  const [modelProfileId, setModelProfileId] = useState("");
   const [preservePreset, setPreservePreset] = useState(preservePresets[0]);
   const [customPreserve, setCustomPreserve] = useState("");
   const [stylePreset, setStylePreset] = useState(stylePresets[0]);
@@ -78,10 +82,11 @@ export function StyleReferenceGenerator() {
         aspectRatio,
         cameraDistance,
         mainImageCount: mainImages.length,
+        modelFaceReferenceSource: modelFaceFiles.length > 0 ? modelFaceSourceLabel(modelFaceSource) : undefined,
         preserveInstructions,
         styleInstructions,
       }),
-    [aspectRatio, cameraDistance, mainImages.length, preserveInstructions, styleInstructions],
+    [aspectRatio, cameraDistance, mainImages.length, modelFaceFiles.length, modelFaceSource, preserveInstructions, styleInstructions],
   );
   const canSubmit = mainImages.length > 0 && styleImages.length === 1 && !isGenerating;
 
@@ -166,6 +171,8 @@ export function StyleReferenceGenerator() {
           batchCount,
           mainImageCount: mainImages.length,
           styleImageCount: styleImages.length,
+          modelFaceReferenceSource: modelFaceFiles.length > 0 ? modelFaceSourceLabel(modelFaceSource) : undefined,
+          modelProfileId: modelProfileId || null,
         },
         outputSnapshot: {},
         imageAssetIds: [],
@@ -220,6 +227,7 @@ export function StyleReferenceGenerator() {
     formData.set("workbenchSessionId", workbenchSessionId);
     mainImages.forEach((file) => formData.append("image", file));
     styleImages.forEach((file) => formData.append("image", file));
+    modelFaceFiles.forEach((file) => formData.append("image", file));
 
     return fetch("/api/tools/image-generation", { method: "POST", body: formData });
   }
@@ -264,6 +272,15 @@ export function StyleReferenceGenerator() {
                   onChange={setStyleImages}
                 />
               </div>
+
+              <ModelFaceReferenceSelector
+                files={modelFaceFiles}
+                onChange={setModelFaceFiles}
+                onProfileChange={setModelProfileId}
+                onSourceChange={setModelFaceSource}
+                profileId={modelProfileId}
+                source={modelFaceSource}
+              />
 
               <div className="grid gap-3 lg:grid-cols-2">
                 <SelectField label="保留内容" onChange={setPreservePreset} options={preservePresets} value={preservePreset} />
@@ -396,4 +413,13 @@ function isCameraDistance(value: unknown): value is MenswearStyleReferenceCamera
 
 function cameraDistanceLabel(value: MenswearStyleReferenceCameraDistance) {
   return cameraDistanceOptions.find(([option]) => option === value)?.[1] || "保持参考图远近";
+}
+
+function modelFaceSourceLabel(source: ModelFaceReferenceSource) {
+  return {
+    material: "素材库模特脸部",
+    profile: "模特档案脸部",
+    system: "系统生成模特",
+    upload: "上传脸部参考图",
+  }[source];
 }

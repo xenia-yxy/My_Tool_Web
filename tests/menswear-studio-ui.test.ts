@@ -194,6 +194,39 @@ test("model library supports direct face and body uploads and allows a system mo
   assert.match(materials, /保存选品/);
 });
 
+test("all apparel generation entry points expose a reusable face and model selector", () => {
+  const selector = readFileSync(
+    "src/components/tools/menswear/model-face-reference-selector.tsx",
+    "utf8",
+  );
+  const outfitWorkbench = readFileSync(
+    "src/components/tools/outfit-prompt-workbench.tsx",
+    "utf8",
+  );
+  const multiOutfit = readFileSync(
+    "src/components/tools/menswear/multi-outfit-generator.tsx",
+    "utf8",
+  );
+  const styleReference = readFileSync(
+    "src/components/tools/menswear/style-reference-generator.tsx",
+    "utf8",
+  );
+  const uploader = readFileSync(
+    "src/components/tools/image-reference-uploader.tsx",
+    "utf8",
+  );
+
+  assert.match(selector, /系统生成/);
+  assert.match(selector, /模特档案/);
+  assert.match(selector, /素材库脸部/);
+  assert.match(selector, /上传脸部参考图/);
+  assert.match(uploader, /materialCategories/);
+  assert.match(uploader, /categoryFilter/);
+  assert.match(outfitWorkbench, /ModelFaceReferenceSelector/);
+  assert.match(multiOutfit, /ModelFaceReferenceSelector/);
+  assert.match(styleReference, /ModelFaceReferenceSelector/);
+});
+
 test("material library lets a user crop an uploaded image before storing it as a reusable material", () => {
   const materials = readFileSync(
     "src/components/tools/menswear/material-library.tsx",

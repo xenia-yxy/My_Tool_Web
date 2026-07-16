@@ -26,10 +26,12 @@ const categoryLabels: Record<string, string> = {
 };
 
 export function MaterialPickerDialog({
+  categoryFilter,
   materials,
   onSelect,
   selectedId,
 }: {
+  categoryFilter?: string[];
   materials: MenswearMaterial[];
   onSelect: (material: MenswearMaterial) => void;
   selectedId?: string;
@@ -38,18 +40,24 @@ export function MaterialPickerDialog({
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const scopedMaterials = useMemo(
+    () => categoryFilter?.length
+      ? materials.filter((item) => categoryFilter.includes(item.category))
+      : materials,
+    [categoryFilter, materials],
+  );
   const categories = useMemo(
-    () => Array.from(new Set(materials.map((item) => item.category))).sort(),
-    [materials],
+    () => Array.from(new Set(scopedMaterials.map((item) => item.category))).sort(),
+    [scopedMaterials],
   );
   const visibleMaterials = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    return materials.filter((material) => {
+    return scopedMaterials.filter((material) => {
       const matchesCategory = !category || material.category === category;
       const haystack = `${material.name} ${material.tags.join(" ")}`.toLowerCase();
       return matchesCategory && (!normalizedQuery || haystack.includes(normalizedQuery));
     });
-  }, [category, materials, query]);
+  }, [category, query, scopedMaterials]);
 
   function choose(material: MenswearMaterial) {
     onSelect(material);

@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Loader2, Sparkles, Upload, X } from "lucide-react";
-import Image from "next/image";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Loader2, Sparkles } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +13,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { AdvancedParameterModal } from "@/components/tools/advanced-parameter-modal";
+import { ImageReferenceUploader } from "@/components/tools/image-reference-uploader";
+import { ModelFaceReferenceSelector, type ModelFaceReferenceSource } from "@/components/tools/menswear/model-face-reference-selector";
 import { PromptEditorDialog } from "@/components/tools/prompt-editor-dialog";
 import type { OutfitGender } from "@/lib/outfit-prompt-workbench";
 
@@ -129,7 +130,7 @@ const builtInScenes = [
   "小区楼下/公园步道，真实普通环境，不商业大片",
 ];
 
-const quickCounts = [4, 6, 9, 12, 18, 30];
+const quickCounts = [1, 2, 4, 6, 9, 12];
 
 export function OutfitPromptWorkbench({
   fixedGender,
@@ -140,6 +141,9 @@ export function OutfitPromptWorkbench({
   const imageMode = isWomen ? "womenswear" : "menswear";
   const [clothingFiles, setClothingFiles] = useState<File[]>([]);
   const [sceneFiles, setSceneFiles] = useState<File[]>([]);
+  const [modelFaceFiles, setModelFaceFiles] = useState<File[]>([]);
+  const [modelFaceSource, setModelFaceSource] = useState<ModelFaceReferenceSource>("system");
+  const [modelProfileId, setModelProfileId] = useState("");
   const [itemDescription, setItemDescription] = useState("");
   const [category, setCategory] = useState("上衣/套装自动判断");
   const [audience, setAudience] = useState(isWomen ? womenAudiences[0] : menAudiences[0]);
@@ -150,7 +154,7 @@ export function OutfitPromptWorkbench({
   const [sceneSource, setSceneSource] = useState(sceneSources[0]);
   const [builtInScene, setBuiltInScene] = useState(builtInScenes[0]);
   const [outputType, setOutputType] = useState<OutputType>("real_outfit");
-  const [batchCount, setBatchCount] = useState(6);
+  const [batchCount, setBatchCount] = useState(1);
   const [extra, setExtra] = useState("");
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -158,20 +162,6 @@ export function OutfitPromptWorkbench({
   const [promptDraft, setPromptDraft] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const clothingPreviewUrls = useObjectUrls(clothingFiles);
-  const scenePreviewUrls = useObjectUrls(sceneFiles);
-
-  function handleFiles(files: FileList | null, kind: "clothing" | "scene") {
-    if (!files?.length) return;
-    const setter = kind === "clothing" ? setClothingFiles : setSceneFiles;
-    setter((current) => [...current, ...Array.from(files)].slice(0, 8));
-  }
-
-  function removeFile(index: number, kind: "clothing" | "scene") {
-    const setter = kind === "clothing" ? setClothingFiles : setSceneFiles;
-    setter((current) => current.filter((_, fileIndex) => fileIndex !== index));
-  }
-
   function changeGender(nextGender: OutfitGender) {
     setGender(nextGender);
     const nextIsWomen = nextGender === "women";
@@ -193,6 +183,8 @@ export function OutfitPromptWorkbench({
       outputType,
       hasClothingReference: clothingFiles.length > 0,
       hasSceneReference: sceneFiles.length > 0,
+      modelFaceSource,
+      hasModelFaceReference: modelFaceFiles.length > 0,
       extra,
     });
   }
@@ -221,7 +213,7 @@ export function OutfitPromptWorkbench({
         outputType,
       });
       const response =
-        clothingFiles.length > 0 || sceneFiles.length > 0
+        clothingFiles.length > 0 || sceneFiles.length > 0 || modelFaceFiles.length > 0
           ? await submitMultipart(prompt, meta)
           : await submitJson(prompt, meta);
       const payload = (await response.json()) as { error?: string };
@@ -273,7 +265,11 @@ export function OutfitPromptWorkbench({
     formData.set("quality", "low");
     formData.set("batchCount", String(batchCount));
     formData.set("finalPrompt", prompt);
-    [...clothingFiles, ...sceneFiles].forEach((file) => formData.append("image", file));
+    formData.set("modelFaceSource", modelFaceSource);
+    formData.set("modelProfileId", modelProfileId);
+    clothingFiles.forEach((file) => formData.append("image", file));
+    sceneFiles.forEach((file) => formData.append("image", file));
+    modelFaceFiles.forEach((file) => formData.append("image", file));
 
     return fetch("/api/tools/image-generation", {
       method: "POST",
@@ -300,26 +296,32 @@ export function OutfitPromptWorkbench({
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
-          <ReferenceUpload
-            description="上传衣服、裤子、鞋包或整套参考。生成时保持主商品款式、颜色、材质。"
-            label="服装参考图"
-            onFiles={(files) => handleFiles(files, "clothing")}
-          />
-          <PreviewGrid
+          <ImageReferenceUploader
+            emptyText="上传服装参考图"
             files={clothingFiles}
-            onRemove={(index) => removeFile(index, "clothing")}
-            urls={clothingPreviewUrls}
+            helper="支持本地上传或从素材库选择；主商品会保持款式、颜色和材质。"
+            label="服装参考图"
+            materialCategories={["top", "inner", "bottom", "shoes", "bag", "accessory", "outfit"]}
+            onChange={setClothingFiles}
           />
 
-          <ReferenceUpload
-            description="可选。上传你想复刻的花墙、镜子、走廊、街角等场景图。"
-            label="场景参考图"
-            onFiles={(files) => handleFiles(files, "scene")}
-          />
-          <PreviewGrid
+          <ImageReferenceUploader
+            emptyText="上传场景参考图"
             files={sceneFiles}
-            onRemove={(index) => removeFile(index, "scene")}
-            urls={scenePreviewUrls}
+            helper="可选。支持本地上传或从素材库选择花墙、镜子、走廊等场景。"
+            label="场景参考图"
+            materialCategories={["background", "composition", "lighting", "mood"]}
+            onChange={setSceneFiles}
+          />
+
+          <ModelFaceReferenceSelector
+            files={modelFaceFiles}
+            label={isWomen ? "女模特脸部" : "模特脸部"}
+            onChange={setModelFaceFiles}
+            onProfileChange={setModelProfileId}
+            onSourceChange={setModelFaceSource}
+            profileId={modelProfileId}
+            source={modelFaceSource}
           />
 
           {!fixedGender ? (
@@ -547,6 +549,8 @@ function buildImagePrompt(input: {
   outputType: OutputType;
   hasClothingReference: boolean;
   hasSceneReference: boolean;
+  hasModelFaceReference: boolean;
+  modelFaceSource: ModelFaceReferenceSource;
   extra: string;
 }) {
   const genderLabel = input.gender === "women" ? "年轻女性" : "年轻男性";
@@ -556,6 +560,9 @@ function buildImagePrompt(input: {
     : "根据商品描述生成真实可购买的服装主商品，保持款式清楚、结构真实、材质可信。";
   const sceneRule = buildSceneRule(input);
   const imageTypeRule = buildImageTypeRule(input.outputType);
+  const modelFaceRule = input.hasModelFaceReference
+    ? `人物身份：使用${modelFaceSourceLabel(input.modelFaceSource)}作为脸部身份参考，保持五官、发型和年龄感一致；只锁定人物身份，不改变服装、身材、姿势、场景、构图或画面风格。`
+    : "人物身份：不使用脸部参考图，按已选目标人群和身材比例生成自然真实模特。";
 
   return [
     referenceRule,
@@ -566,6 +573,7 @@ function buildImagePrompt(input: {
     `身材比例：${input.bodyProfile}`,
     `风格方向：${input.style}`,
     `人物要求：${genderLabel}，普通人气质，真实身材比例，姿态自然。`,
+    modelFaceRule,
     "",
     sceneRule,
     imageTypeRule,
@@ -697,82 +705,11 @@ function SelectField({
   );
 }
 
-function ReferenceUpload({
-  description,
-  label,
-  onFiles,
-}: {
-  description: string;
-  label: string;
-  onFiles: (files: FileList | null) => void;
-}) {
-  return (
-    <label className="block">
-      <span className="text-sm font-medium text-slate-800">{label}</span>
-      <div className="mt-2 flex min-h-24 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center transition-colors hover:border-blue-300 hover:bg-blue-50">
-        <Upload aria-hidden="true" className="h-5 w-5 text-slate-500" />
-        <span className="mt-2 text-sm text-slate-700">{description}</span>
-        <span className="mt-1 text-xs text-slate-500">可多图，最多保留 8 张</span>
-        <input
-          accept="image/png,image/jpeg,image/webp"
-          className="sr-only"
-          multiple
-          onChange={(event) => onFiles(event.target.files)}
-          type="file"
-        />
-      </div>
-    </label>
-  );
-}
-
-function PreviewGrid({
-  files,
-  onRemove,
-  urls,
-}: {
-  files: File[];
-  onRemove: (index: number) => void;
-  urls: string[];
-}) {
-  if (urls.length === 0) return null;
-
-  return (
-    <div className="grid grid-cols-4 gap-2">
-      {urls.map((url, index) => (
-        <div
-          className="group relative aspect-square overflow-hidden rounded-md border border-slate-200 bg-slate-100"
-          key={`${files[index]?.name}-${index}`}
-        >
-          <Image
-            alt={`参考图 ${index + 1}`}
-            className="object-cover"
-            fill
-            sizes="80px"
-            src={url}
-            unoptimized
-          />
-          <button
-            aria-label="删除参考图"
-            className="absolute right-1 top-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-950/70 text-white opacity-0 transition-opacity group-hover:opacity-100"
-            onClick={() => onRemove(index)}
-            type="button"
-          >
-            <X aria-hidden="true" className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function useObjectUrls(files: File[]) {
-  const urls = useMemo(() => files.map((file) => URL.createObjectURL(file)), [files]);
-
-  useEffect(() => {
-    return () => {
-      urls.forEach((url) => URL.revokeObjectURL(url));
-    };
-  }, [urls]);
-
-  return urls;
+function modelFaceSourceLabel(source: ModelFaceReferenceSource) {
+  return {
+    material: "素材库模特脸部",
+    profile: "模特档案脸部",
+    system: "系统生成模特",
+    upload: "上传脸部参考图",
+  }[source];
 }

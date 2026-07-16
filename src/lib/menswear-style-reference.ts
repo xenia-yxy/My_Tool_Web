@@ -10,6 +10,7 @@ export function buildMenswearStyleReferencePrompt(input: {
   aspectRatio?: MenswearStyleReferenceAspectRatio;
   cameraDistance?: MenswearStyleReferenceCameraDistance;
   mainImageCount: number;
+  modelFaceReferenceSource?: string;
   preserveInstructions?: string;
   styleInstructions?: string;
 }) {
@@ -21,14 +22,18 @@ export function buildMenswearStyleReferencePrompt(input: {
     "提取风格参考图的光线方向、镜头距离、背景氛围、色彩倾向和真实拍摄质感";
   const aspectRatio = input.aspectRatio || "portrait";
   const cameraDistance = cameraDistanceInstructions[input.cameraDistance || "match_reference"];
+  const modelFaceReference = input.modelFaceReferenceSource?.trim()
+    ? `脸部身份参考：使用${input.modelFaceReferenceSource.trim()}锁定人物五官与身份；不得覆盖主商品、风格参考、姿势、身材、背景或画面风格。`
+    : "脸部身份参考：未提供脸部参考图，按商品和风格参考生成自然真实模特。";
 
   return [
     "你是专业男装电商视觉与真实服装摄影生成师。",
-    `图片顺序：前 ${input.mainImageCount} 张为服装主图，最后一张为风格参考图。`,
+    `图片顺序：前 ${input.mainImageCount} 张为服装主图，随后一张为风格参考图${input.modelFaceReferenceSource?.trim() ? "，最后一张为脸部身份参考图" : ""}。`,
     `输出比例：${aspectRatio}。`,
     `人物远近与主体占比：${cameraDistance}`,
     `必须保留：${preserve}。`,
     `风格参考：${style}。`,
+    modelFaceReference,
     "风格参考图只影响光线、镜头、背景氛围和色彩倾向，不得覆盖主图商品的真实细节。",
     "保持风格参考图的构图比例、镜头距离、主体占比和留白关系；如果参考图是全身或中远景，不要生成胸口以上大近景；如果参考图主体较小，也要保留相近留白。",
     "不要照搬风格参考图中的服装、人物、姿势、商品款式、品牌元素或具体场景物件。",

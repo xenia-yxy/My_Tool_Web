@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Loader2, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { ImageReferenceUploader } from "@/components/tools/image-reference-uploader";
+import { ModelFaceReferenceSelector, type ModelFaceReferenceSource } from "@/components/tools/menswear/model-face-reference-selector";
 import { PromptEditorDialog } from "@/components/tools/prompt-editor-dialog";
 import { PromptPreviewPanel } from "@/components/tools/prompt-preview-panel";
 import { useWorkbenchSession } from "@/components/tools/workbench-session-client";
@@ -78,6 +79,9 @@ const modelFaceOptions: Array<[MenswearMultiOutfitModelFaceMode, string]> = [
 
 export function MenswearMultiOutfitGenerator() {
   const [subjectImages, setSubjectImages] = useState<File[]>([]);
+  const [modelFaceFiles, setModelFaceFiles] = useState<File[]>([]);
+  const [modelFaceSource, setModelFaceSource] = useState<ModelFaceReferenceSource>("system");
+  const [modelProfileId, setModelProfileId] = useState("");
   const [displayMode, setDisplayMode] = useState<MenswearMultiOutfitDisplayMode>("model");
   const [modelGender, setModelGender] = useState<MenswearMultiOutfitModelGender>("male");
   const [modelFaceMode, setModelFaceMode] = useState<MenswearMultiOutfitModelFaceMode>("hidden_face");
@@ -112,6 +116,7 @@ export function MenswearMultiOutfitGenerator() {
         cameraDistance,
         displayMode,
         modelFaceMode,
+        modelFaceReferenceSource: modelFaceFiles.length > 0 ? modelFaceSourceLabel(modelFaceSource) : undefined,
         modelGender,
         outfitCount,
         preserveInstructions,
@@ -127,6 +132,8 @@ export function MenswearMultiOutfitGenerator() {
       cameraDistance,
       displayMode,
       modelFaceMode,
+      modelFaceFiles.length,
+      modelFaceSource,
       modelGender,
       outfitCount,
       preserveInstructions,
@@ -218,6 +225,8 @@ export function MenswearMultiOutfitGenerator() {
           displayMode,
           modelGender,
           modelFaceMode,
+          modelFaceReferenceSource: modelFaceFiles.length > 0 ? modelFaceSourceLabel(modelFaceSource) : undefined,
+          modelProfileId: modelProfileId || null,
           textMode,
           targetAudience,
           usageScene,
@@ -285,6 +294,7 @@ export function MenswearMultiOutfitGenerator() {
     formData.set("finalPrompt", finalPrompt);
     formData.set("workbenchSessionId", workbenchSessionId);
     subjectImages.forEach((file) => formData.append("image", file));
+    modelFaceFiles.forEach((file) => formData.append("image", file));
 
     return fetch("/api/tools/image-generation", { method: "POST", body: formData });
   }
@@ -354,6 +364,15 @@ export function MenswearMultiOutfitGenerator() {
                 maxFiles={6}
                 onChange={setSubjectImages}
               />
+
+              {displayMode === "model" ? <ModelFaceReferenceSelector
+                files={modelFaceFiles}
+                onChange={setModelFaceFiles}
+                onProfileChange={setModelProfileId}
+                onSourceChange={setModelFaceSource}
+                profileId={modelProfileId}
+                source={modelFaceSource}
+              /> : null}
 
               <div className="grid gap-3 md:grid-cols-2">
                 <Field label="目标客群">
@@ -594,6 +613,15 @@ function modelGenderLabel(value: MenswearMultiOutfitModelGender) {
 
 function modelFaceLabel(value: MenswearMultiOutfitModelFaceMode) {
   return modelFaceOptions.find(([option]) => option === value)?.[1] || "不露脸 / 无头";
+}
+
+function modelFaceSourceLabel(source: ModelFaceReferenceSource) {
+  return {
+    material: "素材库模特脸部",
+    profile: "模特档案脸部",
+    system: "系统生成模特",
+    upload: "上传脸部参考图",
+  }[source];
 }
 
 function seasonLabel(value: MenswearMultiOutfitSeason) {
