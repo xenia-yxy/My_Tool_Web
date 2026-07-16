@@ -167,7 +167,59 @@ export function buildStrictMenswearPrompt(input: {
     input.mainProductCategory?.trim()
       ? `主商品品类：${input.mainProductCategory.trim()}。`
       : "",
-    `场景模式：${sceneModeLabels[input.sceneMode || "try_on"]}。`,
+    `输出比例：${input.aspectRatio}。`,
+    `人物远近：${cameraDistanceInstructions[input.cameraDistance || "three_quarter"]}`,
+    input.stylePreset?.trim() ? `画面风格：${input.stylePreset.trim()}。` : "",
+    input.systemControls?.filter(Boolean).length
+      ? `系统补全设置：${input.systemControls.filter(Boolean).join("；")}。`
+      : "",
+    "锁定商品规则：必须保持商品的颜色、版型、图案、Logo、材质、领口、袖型、口袋、纽扣、拉链和配饰数量；不得新增、删除或替换商品细节；不得补全不可见商品细节。",
+    "画面规则：只能按参考策略改变人物、姿势、背景、构图、光线或氛围；未提供参考素材的部分只能按系统补全设置生成真实、协调的基础元素；不得虚构未上传商品的具体品牌、Logo、版型或材质；不要生成文字、水印、价格、账号、品牌宣传语或无关商品。",
+    input.customInstructions?.trim()
+      ? `用户补充要求：${input.customInstructions.trim()}`
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+export function buildSceneImagePrompt(input: {
+  aspectRatio: "square" | "portrait" | "landscape";
+  cameraDistance?: MenswearCameraDistance;
+  customInstructions?: string;
+  description: string;
+  mainProductCategory?: string;
+  modelName?: string | null;
+  references: Array<{
+    fidelity: number;
+    materialName: string;
+    policy: MenswearReferencePolicy;
+    role: MenswearReferenceRole;
+  }>;
+  sceneAspectRatio?: string;
+  sceneInstruction?: string;
+  sceneMode?: MenswearSceneMode;
+  stylePreset?: string;
+  systemControls?: string[];
+}) {
+  const sceneMode = input.sceneMode || "try_on";
+  const referenceLines = input.references.map((reference) =>
+    `${roleLabels[reference.role]}：${reference.materialName}；使用方式：${policyLabels[reference.policy]}。`,
+  );
+
+  return [
+    "你是男装场景图生成助手。",
+    `场景类型：${sceneModeLabels[sceneMode]}。`,
+    "创作目标：",
+    input.description.trim(),
+    "",
+    "输入素材：",
+    ...referenceLines,
+    "",
+    input.mainProductCategory?.trim()
+      ? `需要呈现的商品品类：${input.mainProductCategory.trim()}。`
+      : "",
+    input.modelName?.trim() ? `可用模特档案：${input.modelName.trim()}。` : "",
     `输出比例：${input.sceneAspectRatio?.trim() || input.aspectRatio}。`,
     `人物远近：${cameraDistanceInstructions[input.cameraDistance || "three_quarter"]}`,
     input.stylePreset?.trim() ? `画面风格：${input.stylePreset.trim()}。` : "",
@@ -178,8 +230,8 @@ export function buildStrictMenswearPrompt(input: {
       ? `优先执行的场景补充要求：${input.sceneInstruction.trim()}。`
       : "",
     "",
-    sceneModeRules[input.sceneMode || "try_on"],
-    "画面规则：只能按参考策略改变人物、姿势、背景、构图、光线或氛围；未提供参考素材的部分只能按系统补全设置生成真实、协调的基础元素；不得虚构未上传商品的具体品牌、Logo、版型或材质；不要生成文字、水印、价格、账号、品牌宣传语或无关商品。",
+    sceneModeRules[sceneMode],
+    "画面必须真实自然，人物、商品、空间关系和镜头透视保持合理；没有提供的元素只按系统补全设置生成，不要臆造品牌、Logo、价格、水印、账号、文字或无关商品。",
     input.customInstructions?.trim()
       ? `用户补充要求：${input.customInstructions.trim()}`
       : "",

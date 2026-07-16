@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   buildMenswearGenerationProvenance,
+  buildSceneImagePrompt,
   buildStrictMenswearPrompt,
   normalizeMenswearGenerationInput,
   type MenswearReferencePolicy,
@@ -38,6 +39,7 @@ type GenerateBody = {
   finalPrompt?: unknown;
   quality?: unknown;
   sceneMode?: unknown;
+  workflow?: unknown;
 };
 
 export async function POST(
@@ -59,6 +61,7 @@ export async function POST(
     }
 
     const settings = isRecord(project.settings) ? project.settings : {};
+    const isSceneImage = body.workflow === "scene-image" || settings.workflow === "scene-image";
     const generation = normalizeMenswearGenerationInput({
       aspectRatio: body.aspectRatio ?? settings.aspectRatio,
       batchCount: body.batchCount ?? settings.batchCount,
@@ -75,7 +78,7 @@ export async function POST(
         role: reference.role,
       })),
     });
-    const systemPrompt = buildStrictMenswearPrompt({
+    const promptInput = {
       aspectRatio: generation.aspectRatio,
       cameraDistance: generation.cameraDistance,
       customInstructions: generation.customInstructions,
@@ -93,7 +96,10 @@ export async function POST(
       sceneMode: generation.sceneMode,
       stylePreset: stringSetting(settings.customStyle) || stringSetting(settings.stylePreset),
       systemControls: resolveSystemControls(settings),
-    });
+    };
+    const systemPrompt = isSceneImage
+      ? buildSceneImagePrompt(promptInput)
+      : buildStrictMenswearPrompt(promptInput);
     const finalPrompt = typeof body.finalPrompt === "string" && body.finalPrompt.trim()
       ? body.finalPrompt.trim()
       : systemPrompt;
@@ -105,10 +111,11 @@ export async function POST(
     const quality = normalizeImageQuality(
       typeof body.quality === "string" ? body.quality : "low",
     );
+    const sourceTool = isSceneImage ? "menswear-scene-image" : "menswear-studio";
     const job = await createAiImageJob(session.user.id, {
       batchCount,
       mode: "menswear",
-      sourceTool: "menswear-studio",
+      sourceTool,
       title: project.name,
       prompt: finalPrompt,
     });
@@ -133,7 +140,7 @@ export async function POST(
           images: files,
           prompt:
             batchCount > 1
-              ? `${finalPrompt}\n\n批量序号：${index + 1}/${batchCount}。仅允许在非锁定元素上调整构图、光线或自然姿态。`
+              ? `${finalPrompt}\n\n批量序号：${index + 1}/${batchCount}。${isSceneImage ? "保持场景类型和用户指定的保留关系，调整构图或细节时不要偏离参考图。" : "仅允许在非锁定元素上调整构图、光线或自然姿态。"}`
               : finalPrompt,
           quality,
           size: normalizeImageSize(generation.aspectRatio),
@@ -158,7 +165,7 @@ export async function POST(
           productKeywords: copyBundle.productKeywords,
           prompt: finalPrompt,
           referenceImages: imageReferences.map((material) => material.imageUrl),
-          sourceTool: "menswear-studio",
+          sourceTool,
           status: "SUCCEEDED",
           tags: copyBundle.tags,
           title: copyBundle.title,
@@ -244,5 +251,5 @@ function resolveSystemControls(settings: Record<string, unknown>) {
 }
 
 function toPublicErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "严格保真生图失败";
+  return error instanceof Error ? error.message : "男装图片生成失败";
 }

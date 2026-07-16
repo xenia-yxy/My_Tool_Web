@@ -4,7 +4,8 @@ import Link from "next/link";
 import { ImagePlus, Images, Shirt, UserRound } from "lucide-react";
 
 const actions = [
-  { href: "/tools/menswear/generate", icon: ImagePlus, label: "严格保真生图", description: "为服装、模特、姿势和背景分别设置参考与锁定策略。" },
+  { href: "/tools/menswear/generate", icon: ImagePlus, label: "严格保真生图", description: "锁定服装、模特与关键参考素材，稳定复现商品真实细节。" },
+  { href: "/tools/menswear/scene-image", icon: ImagePlus, label: "场景图生成", description: "使用场景图完成人物换装、商品替换或纯背景视觉创作。" },
   { href: "/tools/menswear/style-reference", icon: ImagePlus, label: "风格参考生图", description: "上传多张主图与一张风格参考图，保留商品真实细节后生成。" },
   { href: "/tools/menswear/multi-outfit", icon: Shirt, label: "一衣多搭生图", description: "上传单个或多个主商品，生成上身模特或无模特平铺的多套搭配图。" },
   { href: "/tools/menswear/materials", icon: Images, label: "公开素材库", description: "分类管理服装、姿势、背景和脸部参考素材。" },

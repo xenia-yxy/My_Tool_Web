@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   buildMenswearGenerationProvenance,
+  buildSceneImagePrompt,
   buildStrictMenswearPrompt,
   normalizeMenswearGenerationInput,
 } from "../src/lib/menswear-studio";
@@ -91,6 +92,7 @@ test("strict prompt names every reference role and bans product invention", () =
   assert.match(prompt, /人物远近：全身或接近全身/);
   assert.match(prompt, /不得补全不可见商品细节/);
   assert.match(prompt, /自然走路，不要文字/);
+  assert.doesNotMatch(prompt, /场景模式/);
 });
 
 test("strict prompt keeps missing materials realistic through selected style and system controls", () => {
@@ -117,7 +119,7 @@ test("strict prompt keeps missing materials realistic through selected style and
   assert.match(prompt, /不得虚构未上传商品的具体品牌、Logo、版型或材质/);
 });
 
-test("scene modes add mode-specific constraints and allow a pure background without product references", () => {
+test("scene image prompt adds mode-specific constraints and allows a pure background without product references", () => {
   const input = normalizeMenswearGenerationInput({
     description: "夏季男装拍摄背景",
     sceneMode: "background_only",
@@ -126,7 +128,7 @@ test("scene modes add mode-specific constraints and allow a pure background with
 
   assert.equal(input.sceneMode, "background_only");
 
-  const prompt = buildStrictMenswearPrompt({
+  const prompt = buildSceneImagePrompt({
     aspectRatio: "landscape",
     description: "干净的城市天台背景",
     mainProductCategory: "男装拍摄背景",
@@ -136,9 +138,9 @@ test("scene modes add mode-specific constraints and allow a pure background with
     sceneMode: "background_only",
   });
 
-  assert.match(prompt, /场景模式：纯背景生成/);
+  assert.match(prompt, /场景类型：纯背景生成/);
   assert.match(prompt, /输出比例：16:9/);
-  assert.match(prompt, /主商品品类：男装拍摄背景/);
+  assert.match(prompt, /需要呈现的商品品类：男装拍摄背景/);
   assert.match(prompt, /不得出现人物、服装、鞋包、商品或手部/);
   assert.match(prompt, /优先执行的场景补充要求：保留午后自然光/);
 });

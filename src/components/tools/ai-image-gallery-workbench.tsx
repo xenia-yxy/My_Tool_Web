@@ -722,7 +722,7 @@ function DetailBlock({ children, title }: { children: string; title: string }) {
 }
 
 function getMenswearProvenance(asset: AiImageAsset): MenswearProvenance | null {
-  if (asset.sourceTool === "menswear-studio" && asset.description) {
+  if ((asset.sourceTool === "menswear-studio" || asset.sourceTool === "menswear-scene-image") && asset.description) {
     try {
       const value = JSON.parse(asset.description) as unknown;
       if (!isRecord(value) || typeof value.projectId !== "string" || !Array.isArray(value.references)) {
@@ -792,6 +792,9 @@ function getReferenceImageLabel(sourceTool: string | null, index: number, total:
   }
   if (sourceTool === "menswear-studio") {
     return "男装控制参考图";
+  }
+  if (sourceTool === "menswear-scene-image") {
+    return `场景图参考 ${index + 1}`;
   }
   if (sourceTool === "ip-prototype") {
     return index === 0 ? "草稿/主体参考图" : "风格参考图";

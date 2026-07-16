@@ -31,7 +31,9 @@ test("gallery detail renders menswear provenance only for menswear-studio assets
   );
 
   assert.match(gallery, /sourceTool === "menswear-studio"/);
+  assert.match(gallery, /sourceTool === "menswear-scene-image"/);
   assert.match(gallery, /锁定商品参考/);
+  assert.match(gallery, /场景图参考/);
 });
 
 test("strict fidelity generator restores and updates the linked menswear project", () => {
@@ -208,9 +210,25 @@ test("material library lets a user crop an uploaded image before storing it as a
   assert.match(cropDialog, /框选需要保存的区域/);
 });
 
-test("menswear generator provides screenshot-style scene modes and persistent scene image uploads", () => {
+test("scene image creation is a separate workflow instead of strict fidelity configuration", () => {
   const generator = readFileSync(
     "src/components/tools/menswear/strict-fidelity-generator.tsx",
+    "utf8",
+  );
+  const workspace = readFileSync(
+    "src/components/tools/menswear/menswear-workspace.tsx",
+    "utf8",
+  );
+
+  assert.doesNotMatch(generator, /SceneReferenceUploader/);
+  assert.doesNotMatch(generator, /sceneMode/);
+  assert.match(workspace, /\/tools\/menswear\/scene-image/);
+  assert.match(workspace, /场景图生成/);
+});
+
+test("standalone scene image workflow owns scene modes and persistent scene image uploads", () => {
+  const generator = readFileSync(
+    "src/components/tools/menswear/scene-image-generator.tsx",
     "utf8",
   );
   const uploader = readFileSync(
@@ -226,8 +244,21 @@ test("menswear generator provides screenshot-style scene modes and persistent sc
   assert.match(generator, /SceneReferenceUploader/);
   assert.match(generator, /sceneMode !== "background_only"/);
   assert.match(generator, /const activeReferences = sceneMode === "background_only"/);
+  assert.match(generator, /workflow: "scene-image"/);
   assert.match(uploader, /maxFiles = 6/);
   assert.match(uploader, /\/api\/tools\/menswear\/materials\/upload/);
+});
+
+test("scene image generation uses a dedicated prompt and gallery source", () => {
+  const route = readFileSync(
+    "src/app/api/tools/menswear/projects/[id]/generate/route.ts",
+    "utf8",
+  );
+  const prompts = readFileSync("src/lib/menswear-studio.ts", "utf8");
+
+  assert.match(route, /buildSceneImagePrompt/);
+  assert.match(route, /menswear-scene-image/);
+  assert.match(prompts, /你是男装场景图生成助手/);
 });
 
 test("material library supports AI product recognition, editing, and private CRUD", () => {
