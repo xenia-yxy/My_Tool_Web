@@ -22,6 +22,7 @@ export function CreativeCanvasWorkspace({ sessionId: initialSessionId }: { sessi
   const [agentMessage, setAgentMessage] = useState("");
   const [agentPlan, setAgentPlan] = useState<{ summary: string; executorKeys: string[] } | null>(null);
   const [planning, setPlanning] = useState(false);
+  const [generatingNodeId, setGeneratingNodeId] = useState<string | null>(null);
   const [agentError, setAgentError] = useState<string | null>(null);
   const [showSkillPicker, setShowSkillPicker] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -159,6 +160,49 @@ export function CreativeCanvasWorkspace({ sessionId: initialSessionId }: { sessi
     else dispatch({ type: "viewport", viewport: { ...state.viewport, x: drag.viewport.x + event.clientX - drag.start.x, y: drag.viewport.y + event.clientY - drag.start.y } });
   }
 
+  async function generateFromSkill(node: CanvasNode) {
+    const prompt = String(node.snapshot.prompt ?? "").trim();
+    if (!prompt) {
+      setAgentError("请先补充该 Skill 的提示词");
+      return;
+    }
+    setGeneratingNodeId(node.clientId);
+    setAgentError(null);
+    try {
+      const references = state.edges
+        .filter((edge) => edge.targetClientId === node.clientId)
+        .map((edge) => state.nodes.find((item) => item.clientId === edge.sourceClientId))
+        .filter((item): item is CanvasNode => item?.kind === "ASSET" && typeof item.snapshot.imageUrl === "string");
+      const request = references.length ? new FormData() : null;
+      if (request) {
+        for (const reference of references.slice(0, 4)) {
+          const response = await fetch(String(reference.snapshot.imageUrl));
+          if (!response.ok) throw new Error("读取画布参考图失败，请重新上传该素材");
+          const blob = await response.blob();
+          request.append("image", new File([blob], `${reference.clientId}.png`, { type: blob.type || "image/png" }));
+        }
+        request.set("mode", "custom");
+        request.set("finalPrompt", prompt);
+        request.set("purpose", String(node.snapshot.name ?? "画布生成"));
+        request.set("sourceTool", "creative-canvas");
+        request.set("batchCount", "1");
+      }
+      const response = await fetch("/api/tools/image-generation", request ? { method: "POST", body: request } : { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mode: "custom", finalPrompt: prompt, purpose: String(node.snapshot.name ?? "画布生成"), sourceTool: "creative-canvas", batchCount: 1 }) });
+      const payload = await response.json() as { error?: string; results?: Array<{ imageUrl: string; asset?: { id: string; title?: string } }> };
+      if (!response.ok || !payload.results?.length) throw new Error(payload.error || "画布生图失败");
+      payload.results.forEach((result, index) => {
+        const clientId = `result-${crypto.randomUUID()}`;
+        dispatch({ type: "add", node: { clientId, kind: "ASSET", position: { x: node.position.x + 360 + index * 28, y: node.position.y + index * 28 }, snapshot: { materialId: result.asset?.id ?? clientId, name: result.asset?.title ?? "生成结果", imageUrl: result.imageUrl, category: "生成结果", accentColor: "#16a34a", source: "GENERATED" } } });
+        dispatch({ type: "connect", sourceClientId: node.clientId, targetClientId: clientId, role: "生成结果" });
+        setSelectedId(clientId);
+      });
+    } catch (caughtError) {
+      setAgentError(caughtError instanceof Error ? caughtError.message : "画布生图失败");
+    } finally {
+      setGeneratingNodeId(null);
+    }
+  }
+
   function stopPointer(event: PointerEvent<HTMLDivElement>) {
     if (event.currentTarget.hasPointerCapture?.(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     setDrag(null);
@@ -184,7 +228,7 @@ export function CreativeCanvasWorkspace({ sessionId: initialSessionId }: { sessi
         {state.nodes.length === 0 ? <CanvasEmptyState onChoose={addTemplate} /> : null}
         {error ? <div className="absolute left-4 top-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div> : null}
       </div>
-      <CanvasInspector node={selected} onDelete={() => { if (selected) { dispatch({ type: "remove", clientId: selected.clientId }); setSelectedId(null); } }} onOpenSkill={(executorKey) => { const route = skillDestinationRoutes[executorKey]; if (route) window.location.assign(route); }} onSnapshot={(snapshot) => selected && dispatch({ type: "snapshot", clientId: selected.clientId, snapshot })} />
+      <CanvasInspector generating={selected?.clientId === generatingNodeId} node={selected} onDelete={() => { if (selected) { dispatch({ type: "remove", clientId: selected.clientId }); setSelectedId(null); } }} onGenerate={() => selected && void generateFromSkill(selected)} onOpenSkill={(executorKey) => { const route = skillDestinationRoutes[executorKey]; if (route) window.location.assign(route); }} onSnapshot={(snapshot) => selected && dispatch({ type: "snapshot", clientId: selected.clientId, snapshot })} />
     </div>
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center p-4"><div className="pointer-events-auto w-full max-w-3xl rounded-lg border border-slate-200 bg-white p-3 shadow-lg"><div className="flex gap-2"><textarea className="min-h-11 flex-1 resize-none rounded-md border border-slate-200 px-3 py-2 text-sm leading-5 outline-none focus:border-blue-400" onChange={(event) => setAgentMessage(event.target.value)} placeholder="例如：我上传一件衬衫，帮我做秋季一衣多搭和小红书封面" value={agentMessage} /><button aria-label="让 Agent 推荐流程" className="grid h-11 w-11 place-items-center rounded-md bg-blue-600 text-white disabled:opacity-50" disabled={!agentMessage.trim() || planning} onClick={() => void requestAgentPlan()} title="让 Agent 推荐流程" type="button"><Send className="h-4 w-4" /></button></div>{agentError ? <p className="mt-2 text-sm text-red-700">{agentError}</p> : null}{agentPlan ? <div className="mt-3 grid gap-3 rounded-md bg-blue-50 p-3 text-sm text-blue-950"><p>{agentPlan.summary}</p><div className="flex flex-wrap gap-1.5">{agentPlan.executorKeys.map((executorKey) => <span className="rounded bg-white px-2 py-1 text-xs text-slate-700" key={executorKey}>{skillChoices.find((skill) => skill.executorKey === executorKey)?.name ?? executorKey}</span>)}</div><div className="flex justify-end gap-2"><Button className="h-8 px-3 text-xs" onClick={() => setAgentPlan(null)} type="button" variant="secondary">取消</Button><Button className="h-8 px-3 text-xs" onClick={applyAgentPlan} type="button">应用推荐流程</Button></div></div> : null}</div></div>
   </main>;
@@ -209,12 +253,12 @@ function CanvasCard({ node, selected, connecting, onPointerDown, onConnect }: { 
   return <div className={`absolute w-72 cursor-grab rounded-xl border-2 p-3 shadow-[0_12px_32px_rgba(15,23,42,0.12)] ${tone} ${selected ? "ring-2 ring-violet-300" : ""}`} onPointerDown={onPointerDown} style={{ borderColor: accent, boxShadow: `0 12px 32px ${accent}2b`, left: node.position.x, top: node.position.y }}><div className="flex items-center justify-between gap-2"><span className="truncate text-sm font-semibold text-slate-900">{title}</span><button aria-label="连接此节点" className="grid h-7 w-7 place-items-center rounded-full bg-white/80 text-slate-500 hover:text-violet-700" onClick={(event) => { event.stopPropagation(); onConnect(); }} type="button"><Link2 className="h-3.5 w-3.5" /></button></div>{imageUrl ? <img alt={title} className="mt-3 aspect-[4/3] w-full rounded-lg object-cover" src={imageUrl} /> : <p className="mt-3 line-clamp-3 rounded-lg bg-white/70 p-3 text-sm leading-5 text-slate-600">{description}</p>}<div className="mt-3 flex items-center justify-between text-xs text-slate-500"><span>{node.kind === "SKILL" ? "AI 能力" : node.kind === "ASSET" ? "参考素材" : "创作备注"}</span><span>{connecting ? "选择下一个节点" : "可拖动"}</span></div></div>;
 }
 
-function CanvasInspector({ node, onSnapshot, onDelete, onOpenSkill }: { node: CanvasNode | null; onSnapshot: (snapshot: Record<string, unknown>) => void; onDelete: () => void; onOpenSkill: (executorKey: string) => void }) {
+function CanvasInspector({ node, onSnapshot, onDelete, onOpenSkill, onGenerate, generating }: { node: CanvasNode | null; onSnapshot: (snapshot: Record<string, unknown>) => void; onDelete: () => void; onOpenSkill: (executorKey: string) => void; onGenerate: () => void; generating: boolean }) {
   if (!node) return <aside className="hidden border-l border-slate-200 bg-white p-5 lg:block"><h2 className="text-base font-semibold text-slate-950">当前步骤说明</h2><ol className="mt-5 grid gap-4 text-sm leading-6 text-slate-600"><li><span className="font-semibold text-slate-900">1. 选目标</span><br />从画布中间的模板开始，或在左侧添加 Skill。</li><li><span className="font-semibold text-slate-900">2. 补素材和要求</span><br />上传主体图、参考图，或点击需求卡写清楚目的。</li><li><span className="font-semibold text-slate-900">3. 检查提示词</span><br />点击 Skill 卡，在这里确认必填素材和完整提示词。</li><li><span className="font-semibold text-slate-900">4. 打开功能生成</span><br />从 Skill 卡打开对应工作台继续生成，画布会保留你的流程。</li></ol></aside>;
   const prompt = String(node.snapshot.prompt ?? "");
   const inputLabels = readSkillInputs(node.snapshot.inputs);
   const executorKey = typeof node.snapshot.executorKey === "string" ? node.snapshot.executorKey : "";
-  return <aside className="hidden overflow-y-auto border-l border-slate-200 bg-white p-4 lg:block"><div className="flex items-center justify-between gap-2"><h2 className="text-base font-semibold">{String(node.snapshot.name ?? node.snapshot.text ?? "卡片")}</h2><button aria-label="删除卡片" className={iconButtonClass} onClick={onDelete} title="删除卡片" type="button"><Trash2 className="h-4 w-4 text-red-600" /></button></div>{node.kind === "TEXT" ? <><p className="mt-3 text-sm leading-6 text-slate-500">这一步告诉 Agent 和 Skill 你希望获得什么结果。</p><textarea className="mt-4 min-h-32 w-full rounded-md border border-slate-200 p-3 text-sm leading-6 outline-none focus:border-blue-400" onChange={(event) => onSnapshot({ ...node.snapshot, text: event.target.value })} value={String(node.snapshot.text ?? "")} /></> : null}{node.kind === "SKILL" ? <><p className="mt-3 text-sm leading-6 text-slate-500">{String(node.snapshot.description ?? "")}</p><section className="mt-5"><h3 className="text-sm font-medium text-slate-800">需要补充</h3>{inputLabels.length ? <ul className="mt-2 grid gap-2">{inputLabels.map((input) => <li className="rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-700" key={input.label}>{input.label}{input.required ? <span className="ml-1 text-red-600">必填</span> : <span className="ml-1 text-slate-400">可选</span>}</li>)}</ul> : <p className="mt-2 text-sm text-slate-500">此 Skill 暂无额外输入。</p>}</section><label className="mt-5 grid gap-2 text-sm font-medium text-slate-700">完整提示词<textarea className="min-h-56 rounded-md border border-slate-200 p-3 text-sm font-normal leading-6 outline-none focus:border-blue-400" onChange={(event) => onSnapshot({ ...node.snapshot, prompt: event.target.value })} value={prompt} /></label><Button className="mt-4 w-full gap-2" onClick={() => onOpenSkill(executorKey)} type="button"><ImagePlus aria-hidden="true" className="h-4 w-4" />打开对应功能</Button></> : null}{node.kind === "ASSET" ? <p className="mt-3 text-sm leading-6 text-slate-500">素材可连接到 Skill，作为主体图、参考图或风格参考。</p> : null}{node.kind === "ASSET" && typeof node.snapshot.imageUrl === "string" ? <img alt={String(node.snapshot.name ?? "素材预览")} className="mt-4 max-h-72 w-full rounded-md border border-slate-200 object-contain" src={node.snapshot.imageUrl} /> : null}</aside>;
+  return <aside className="hidden overflow-y-auto border-l border-slate-200 bg-white p-4 lg:block"><div className="flex items-center justify-between gap-2"><h2 className="text-base font-semibold">{String(node.snapshot.name ?? node.snapshot.text ?? "卡片")}</h2><button aria-label="删除卡片" className={iconButtonClass} onClick={onDelete} title="删除卡片" type="button"><Trash2 className="h-4 w-4 text-red-600" /></button></div>{node.kind === "TEXT" ? <textarea className="mt-4 min-h-32 w-full rounded-md border border-slate-200 p-3 text-sm leading-6 outline-none focus:border-blue-400" onChange={(event) => onSnapshot({ ...node.snapshot, text: event.target.value })} value={String(node.snapshot.text ?? "")} /> : null}{node.kind === "SKILL" ? <><section className="mt-5"><h3 className="text-sm font-medium text-slate-800">需要补充</h3>{inputLabels.length ? <ul className="mt-2 grid gap-2">{inputLabels.map((input) => <li className="rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-700" key={input.label}>{input.label}{input.required ? <span className="ml-1 text-red-600">必填</span> : null}</li>)}</ul> : null}</section><label className="mt-5 grid gap-2 text-sm font-medium text-slate-700">完整提示词<textarea className="min-h-56 rounded-md border border-slate-200 p-3 text-sm font-normal leading-6 outline-none focus:border-blue-400" onChange={(event) => onSnapshot({ ...node.snapshot, prompt: event.target.value })} value={prompt} /></label><Button className="mt-4 w-full gap-2" disabled={generating} onClick={onGenerate} type="button"><ImagePlus aria-hidden="true" className="h-4 w-4" />{generating ? "正在生成" : "在画布内生成"}</Button><button className="mt-3 w-full text-sm text-slate-500 hover:text-slate-900" onClick={() => onOpenSkill(executorKey)} type="button">打开完整工作台</button></> : null}{node.kind === "ASSET" ? <label className="mt-4 grid gap-2 text-sm font-medium text-slate-700">素材名称<input className="h-10 rounded-md border border-slate-200 px-3 text-sm font-normal" onChange={(event) => onSnapshot({ ...node.snapshot, name: event.target.value })} value={String(node.snapshot.name ?? "")} /></label> : null}{node.kind === "ASSET" && typeof node.snapshot.imageUrl === "string" ? <img alt={String(node.snapshot.name ?? "素材预览")} className="mt-4 max-h-72 w-full rounded-md border border-slate-200 object-contain" src={node.snapshot.imageUrl} /> : null}</aside>;
 }
 
 function nextPosition(index: number) { return { x: 120 + (index % 4) * 280, y: 120 + Math.floor(index / 4) * 210 }; }
