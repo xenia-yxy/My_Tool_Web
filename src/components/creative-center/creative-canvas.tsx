@@ -1,12 +1,12 @@
 "use client";
 
 import { ChevronDown, FileText, ImagePlus, Link2, Minus, Plus, Send, Sparkles, Trash2, Upload, WandSparkles } from "lucide-react";
-import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type PointerEvent, type WheelEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { getSystemCreativeSkills, type SystemCreativeSkill } from "@/lib/creative-skills";
 import { useCreativeCanvasSession, type CanvasNode, type CanvasPosition } from "@/components/creative-center/use-creative-canvas-session";
 import { buildCanvasTemplateNodes, createSkillSnapshot, creativeCanvasTemplates, type CreativeCanvasTemplate } from "@/lib/creative-canvas-templates";
-import { getCanvasFlowStage } from "@/lib/creative-canvas-flow";
+import { getCanvasFlowStage, getCanvasNodeAccentColor } from "@/lib/creative-canvas-flow";
 
 type SkillChoice = SystemCreativeSkill & { versionId: string };
 type DragState = { kind: "node"; clientId: string; offset: CanvasPosition } | { kind: "pan"; start: CanvasPosition; viewport: CanvasPosition } | null;
@@ -100,14 +100,19 @@ export function CreativeCanvasWorkspace({ sessionId: initialSessionId }: { sessi
     const response = await fetch("/api/tools/menswear/materials/upload", { method: "POST", body: formData });
     const payload = await response.json() as { material?: { id: string; name: string; imageUrl: string; category: string }; error?: string };
     if (!response.ok || !payload.material) throw new Error(payload.error || "上传素材失败");
+    const material = payload.material;
     const clientId = `asset-${crypto.randomUUID()}`;
-    dispatch({ type: "add", node: { clientId, kind: "ASSET", position: nextPosition(state.nodes.length), snapshot: { materialId: payload.material.id, name: payload.material.name, imageUrl: payload.material.imageUrl, category: payload.material.category } } });
+    dispatch({ type: "add", node: { clientId, kind: "ASSET", position: nextPosition(state.nodes.length), snapshot: { materialId: material.id, name: material.name, imageUrl: material.imageUrl, category: material.category } } });
     setSelectedId(clientId);
+    void extractImageAccentColor(material.imageUrl).then((accentColor) => {
+      if (accentColor) dispatch({ type: "snapshot", clientId, snapshot: { materialId: material.id, name: material.name, imageUrl: material.imageUrl, category: material.category, accentColor } });
+    });
   }
 
   function startPointer(event: PointerEvent<HTMLDivElement>, node?: CanvasNode) {
     const rect = canvasRef.current?.getBoundingClientRect();
     if (!rect) return;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
     if (node) {
       event.stopPropagation();
       setSelectedId(node.clientId);
@@ -154,12 +159,23 @@ export function CreativeCanvasWorkspace({ sessionId: initialSessionId }: { sessi
     else dispatch({ type: "viewport", viewport: { ...state.viewport, x: drag.viewport.x + event.clientX - drag.start.x, y: drag.viewport.y + event.clientY - drag.start.y } });
   }
 
+  function stopPointer(event: PointerEvent<HTMLDivElement>) {
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    setDrag(null);
+  }
+
+  function zoomCanvas(event: WheelEvent<HTMLDivElement>) {
+    event.preventDefault();
+    const nextZoom = Math.min(1.8, Math.max(0.35, state.viewport.zoom + (event.deltaY < 0 ? 0.08 : -0.08)));
+    dispatch({ type: "viewport", viewport: { ...state.viewport, zoom: nextZoom } });
+  }
+
   if (creating || isLoading) return <div className="grid min-h-[70dvh] place-items-center text-sm text-slate-500">正在打开创作画布...</div>;
 
   return <main className="fixed inset-0 z-40 bg-[#f4f7fb] text-slate-950"><div className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4"><div className="flex min-w-0 items-center gap-3"><Sparkles aria-hidden="true" className="h-5 w-5 text-blue-600" /><input aria-label="画布项目名称" className="min-w-0 bg-transparent text-lg font-semibold outline-none" onChange={(event) => dispatch({ type: "title", title: event.target.value })} value={state.title} /><span className="text-xs text-slate-500">{isSaving ? "保存中" : "已保存"}</span></div><div className="flex items-center gap-1"><button aria-label="缩小画布" className={iconButtonClass} onClick={() => dispatch({ type: "viewport", viewport: { ...state.viewport, zoom: Math.max(0.4, state.viewport.zoom - 0.1) } })} title="缩小画布" type="button"><Minus className="h-4 w-4" /></button><button aria-label="放大画布" className={iconButtonClass} onClick={() => dispatch({ type: "viewport", viewport: { ...state.viewport, zoom: Math.min(1.6, state.viewport.zoom + 0.1) } })} title="放大画布" type="button"><Plus className="h-4 w-4" /></button></div></div>
     <div className="grid h-[calc(100dvh-4rem)] grid-cols-[minmax(164px,220px)_minmax(0,1fr)] lg:grid-cols-[220px_minmax(0,1fr)_320px]">
       <aside className="overflow-y-auto border-r border-slate-200 bg-white p-3"><div className="grid gap-2"><p className="px-1 text-xs font-medium text-slate-500">开始创作</p><button className={actionButtonClass} onClick={() => fileInput.current?.click()} type="button"><Upload className="h-4 w-4" />上传素材</button><button className={actionButtonClass} onClick={addText} type="button"><FileText className="h-4 w-4" />写下需求</button></div><div className="my-4 h-px bg-slate-200" /><div className="grid gap-2"><p className="px-1 text-xs font-medium text-slate-500">选择功能</p><button aria-expanded={showSkillPicker} className={actionButtonClass} onClick={() => setShowSkillPicker((current) => !current)} type="button"><Sparkles className="h-4 w-4" />添加 Skill<ChevronDown className={`ml-auto h-4 w-4 transition ${showSkillPicker ? "rotate-180" : ""}`} /></button>{showSkillPicker ? <div className="grid gap-1 rounded-md bg-slate-50 p-1">{skillChoices.map((skill) => <button className="rounded-md px-2 py-2 text-left text-sm text-slate-700 hover:bg-white hover:text-blue-700" key={skill.id} onClick={() => addSkill(skill)} type="button"><span className="block font-medium">{skill.name}</span><span className="mt-0.5 block text-xs leading-4 text-slate-500">{skill.description}</span></button>)}</div> : null}</div><p className="mt-5 px-1 text-xs leading-5 text-slate-500">先选一个目标，再补充素材和要求。卡片可继续拖动和连接。</p><input accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void uploadAsset(file); event.target.value = ""; }} ref={fileInput} type="file" /></aside>
-      <div className="relative min-w-0 overflow-hidden bg-[#f5f6f8] bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] bg-[size:20px_20px]" onPointerDown={(event) => startPointer(event)} onPointerMove={movePointer} onPointerUp={() => setDrag(null)} ref={canvasRef}>
+      <div className="relative min-w-0 overflow-hidden bg-[#f5f6f8] bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] bg-[size:20px_20px]" onPointerCancel={stopPointer} onPointerDown={(event) => startPointer(event)} onPointerMove={movePointer} onPointerUp={stopPointer} onWheel={zoomCanvas} ref={canvasRef}>
         <CanvasFlowRail onAddMaterial={() => fileInput.current?.click()} onAddSkill={() => setShowSkillPicker(true)} stage={flowStage} />
         <div className="absolute inset-0 origin-top-left" style={{ transform: `translate(${state.viewport.x}px, ${state.viewport.y}px) scale(${state.viewport.zoom})` }}>
           <svg className="pointer-events-none absolute left-0 top-0 h-[2600px] w-[3400px] overflow-visible">{edgeLines.map((edge) => edge ? <g key={`${edge.sourceClientId}-${edge.targetClientId}-${edge.role}`}><line stroke="#60a5fa" strokeWidth="2" x1={edge.x1} x2={edge.x2} y1={edge.y1} y2={edge.y2} /><text fill="#2563eb" fontSize="12" x={(edge.x1 + edge.x2) / 2} y={(edge.y1 + edge.y2) / 2 - 6}>{edge.role}</text></g> : null)}</svg>
@@ -181,15 +197,16 @@ function CanvasFlowRail({ stage, onAddMaterial, onAddSkill }: { stage: "MATERIAL
 }
 
 function CanvasEmptyState({ onChoose }: { onChoose: (template: CreativeCanvasTemplate) => void }) {
-  return <section className="absolute inset-0 grid place-items-center p-6"><div className="w-full max-w-2xl rounded-xl border border-slate-200 bg-white/95 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.12)]"><div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-violet-100 text-violet-700"><WandSparkles className="h-5 w-5" /></span><div><p className="text-sm font-semibold text-slate-950">新建创作画布</p><p className="text-xs text-slate-500">选一个起点，画布会生成可继续编辑的节点。</p></div></div><div className="mt-5 grid gap-3 sm:grid-cols-2">{creativeCanvasTemplates.map((template) => <button className="group rounded-xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-50" key={template.id} onClick={() => onChoose(template)} type="button"><span className="text-sm font-semibold text-slate-900">{template.title}</span><span className="mt-1 block text-sm leading-5 text-slate-600">{template.description}</span><span className="mt-3 block text-xs font-medium text-violet-700">创建流程</span></button>)}</div></div></section>;
+  return <section className="pointer-events-none absolute inset-0 grid place-items-center p-6"><div className="pointer-events-auto w-full max-w-2xl rounded-xl border border-slate-200 bg-white/95 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.12)]"><div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-xl bg-violet-100 text-violet-700"><WandSparkles className="h-5 w-5" /></span><div><p className="text-sm font-semibold text-slate-950">新建创作画布</p><p className="text-xs text-slate-500">选一个起点，画布会生成可继续编辑的节点。</p></div></div><div className="mt-5 grid gap-3 sm:grid-cols-2">{creativeCanvasTemplates.map((template) => <button className="group rounded-xl border border-slate-200 bg-slate-50 p-4 text-left transition hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-50" key={template.id} onClick={() => onChoose(template)} type="button"><span className="text-sm font-semibold text-slate-900">{template.title}</span><span className="mt-1 block text-sm leading-5 text-slate-600">{template.description}</span><span className="mt-3 block text-xs font-medium text-violet-700">创建流程</span></button>)}</div></div></section>;
 }
 
 function CanvasCard({ node, selected, connecting, onPointerDown, onConnect }: { node: CanvasNode; selected: boolean; connecting: boolean; onPointerDown: (event: PointerEvent<HTMLDivElement>) => void; onConnect: () => void }) {
   const imageUrl = typeof node.snapshot.imageUrl === "string" ? node.snapshot.imageUrl : null;
   const title = String(node.snapshot.name ?? node.snapshot.text ?? "创作卡片");
   const description = node.kind === "TEXT" ? String(node.snapshot.text ?? "") : String(node.snapshot.description ?? node.snapshot.prompt ?? "等待设置参数");
-  const tone = node.kind === "SKILL" ? "border-violet-200 bg-violet-50/90" : node.kind === "TEXT" ? "border-amber-200 bg-amber-50/90" : "border-slate-200 bg-white";
-  return <div className={`absolute w-72 cursor-grab rounded-xl border p-3 shadow-[0_12px_32px_rgba(15,23,42,0.12)] ${tone} ${selected ? "ring-2 ring-violet-300" : ""}`} onPointerDown={onPointerDown} style={{ left: node.position.x, top: node.position.y }}><div className="flex items-center justify-between gap-2"><span className="truncate text-sm font-semibold text-slate-900">{title}</span><button aria-label="连接此节点" className="grid h-7 w-7 place-items-center rounded-full bg-white/80 text-slate-500 hover:text-violet-700" onClick={(event) => { event.stopPropagation(); onConnect(); }} type="button"><Link2 className="h-3.5 w-3.5" /></button></div>{imageUrl ? <img alt={title} className="mt-3 aspect-[4/3] w-full rounded-lg object-cover" src={imageUrl} /> : <p className="mt-3 line-clamp-3 rounded-lg bg-white/70 p-3 text-sm leading-5 text-slate-600">{description}</p>}<div className="mt-3 flex items-center justify-between text-xs text-slate-500"><span>{node.kind === "SKILL" ? "AI 能力" : node.kind === "ASSET" ? "参考素材" : "创作备注"}</span><span>{connecting ? "选择下一个节点" : "可拖动"}</span></div></div>;
+  const accent = getCanvasNodeAccentColor(node.snapshot, node.kind);
+  const tone = node.kind === "SKILL" ? "bg-violet-50/90" : node.kind === "TEXT" ? "bg-amber-50/90" : "bg-white";
+  return <div className={`absolute w-72 cursor-grab rounded-xl border-2 p-3 shadow-[0_12px_32px_rgba(15,23,42,0.12)] ${tone} ${selected ? "ring-2 ring-violet-300" : ""}`} onPointerDown={onPointerDown} style={{ borderColor: accent, boxShadow: `0 12px 32px ${accent}2b`, left: node.position.x, top: node.position.y }}><div className="flex items-center justify-between gap-2"><span className="truncate text-sm font-semibold text-slate-900">{title}</span><button aria-label="连接此节点" className="grid h-7 w-7 place-items-center rounded-full bg-white/80 text-slate-500 hover:text-violet-700" onClick={(event) => { event.stopPropagation(); onConnect(); }} type="button"><Link2 className="h-3.5 w-3.5" /></button></div>{imageUrl ? <img alt={title} className="mt-3 aspect-[4/3] w-full rounded-lg object-cover" src={imageUrl} /> : <p className="mt-3 line-clamp-3 rounded-lg bg-white/70 p-3 text-sm leading-5 text-slate-600">{description}</p>}<div className="mt-3 flex items-center justify-between text-xs text-slate-500"><span>{node.kind === "SKILL" ? "AI 能力" : node.kind === "ASSET" ? "参考素材" : "创作备注"}</span><span>{connecting ? "选择下一个节点" : "可拖动"}</span></div></div>;
 }
 
 function CanvasInspector({ node, onSnapshot, onDelete, onOpenSkill }: { node: CanvasNode | null; onSnapshot: (snapshot: Record<string, unknown>) => void; onDelete: () => void; onOpenSkill: (executorKey: string) => void }) {
@@ -220,5 +237,26 @@ function readSkillInputs(value: unknown) {
     if (!item || typeof item !== "object" || Array.isArray(item)) return [];
     const input = item as Record<string, unknown>;
     return typeof input.label === "string" ? [{ label: input.label, required: input.required === true }] : [];
+  });
+}
+
+async function extractImageAccentColor(imageUrl: string) {
+  return new Promise<string | null>((resolve) => {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 1;
+      canvas.height = 1;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (!context) return resolve(null);
+      context.drawImage(image, 0, 0, 1, 1);
+      try {
+        const [red, green, blue] = context.getImageData(0, 0, 1, 1).data;
+        resolve(`#${[red, green, blue].map((value) => value.toString(16).padStart(2, "0")).join("")}`);
+      } catch { resolve(null); }
+    };
+    image.onerror = () => resolve(null);
+    image.src = imageUrl;
   });
 }
