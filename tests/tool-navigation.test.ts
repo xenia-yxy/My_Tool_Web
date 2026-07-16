@@ -8,20 +8,22 @@ import {
 import { resolveFashionPromptsRedirectTarget } from "../src/lib/fashion-prompts-routing";
 import nextConfig from "../next.config";
 
-test("ecommerce sidebar exposes menswear and womenswear as separate tools", () => {
+test("ecommerce sidebar exposes independent product, menswear, and womenswear tools", () => {
   const ecommerce = navGroups.find((group) => group.id === "ecommerce");
 
   assert.ok(ecommerce);
   assert.deepEqual(
     ecommerce.items.map((item) => item.id),
-    ["menswear", "womenswear", "snack-grocery", "social-commerce", "digital-product-pack"],
+    ["menswear", "products", "womenswear", "snack-grocery", "social-commerce", "digital-product-pack"],
   );
 });
 
 test("menswear and womenswear routes activate their own sidebar entries", () => {
+  assert.equal(getActiveNavId("/tools/products"), "products");
   assert.equal(getActiveNavId("/tools/menswear"), "menswear");
   assert.equal(getActiveNavId("/tools/womenswear"), "womenswear");
   assert.equal(getActiveGroupId("/tools/menswear"), "ecommerce");
+  assert.equal(getActiveGroupId("/tools/products"), "ecommerce");
   assert.equal(getActiveGroupId("/tools/womenswear"), "ecommerce");
 });
 
