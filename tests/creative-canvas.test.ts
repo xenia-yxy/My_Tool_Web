@@ -6,6 +6,7 @@ import {
 } from "../src/components/creative-center/use-creative-canvas-session";
 import { serializeCreativeCanvas } from "../src/server/creative-canvas";
 import { buildCreativeCanvasPlan } from "../src/server/creative-canvas-agent";
+import { buildCanvasTemplateNodes, creativeCanvasTemplates } from "../src/lib/creative-canvas-templates";
 
 test("connecting an asset to a Skill records a labelled role edge", () => {
   const initial = createCanvasState();
@@ -59,4 +60,21 @@ test("Agent drafts a cover workflow without starting a generation", () => {
 
   assert.equal(plan.requiresConfirmation, true);
   assert.deepEqual(plan.executorKeys, ["menswear-multi-outfit", "platform-cover-design"]);
+});
+
+test("quick start template creates a linked requirement and first Skill step", () => {
+  const template = creativeCanvasTemplates.find((item) => item.id === "menswear-multi-outfit");
+
+  assert.ok(template);
+  const result = buildCanvasTemplateNodes(template!, {
+    textClientId: "text-template",
+    skillClientId: "skill-template",
+    skillVersionId: "version-1",
+  });
+
+  assert.equal(result.nodes[0]?.kind, "TEXT");
+  assert.equal(result.nodes[0]?.snapshot.text, "我想基于服装主体图，生成适合秋季场景的一衣多搭方案。");
+  assert.equal(result.nodes[1]?.kind, "SKILL");
+  assert.equal(result.nodes[1]?.snapshot.executorKey, "menswear-multi-outfit");
+  assert.deepEqual(result.edges, [{ sourceClientId: "text-template", targetClientId: "skill-template", role: "创作需求" }]);
 });
