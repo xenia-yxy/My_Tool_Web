@@ -4,6 +4,8 @@ import Image from "next/image";
 import { useEffect, useId, useMemo, useState, type ChangeEvent } from "react";
 import { Upload, X } from "lucide-react";
 import { ImagePreviewDialog } from "@/components/tools/image-preview-dialog";
+import { MaterialPickerDialog } from "@/components/tools/menswear/material-picker-dialog";
+import type { MenswearMaterial } from "@/components/tools/menswear/types";
 
 type ImageReferenceUploaderProps = {
   files: File[];
@@ -24,6 +26,7 @@ export function ImageReferenceUploader({
 }: ImageReferenceUploaderProps) {
   const inputId = useId();
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [materials, setMaterials] = useState<MenswearMaterial[]>([]);
   const previewUrls = useMemo(
     () => files.map((file) => URL.createObjectURL(file)),
     [files],
@@ -35,6 +38,15 @@ export function ImageReferenceUploader({
     };
   }, [previewUrls]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/api/tools/menswear/materials", { signal: controller.signal })
+      .then(async (response) => response.ok ? response.json() as Promise<{ materials?: MenswearMaterial[] }> : { materials: [] })
+      .then((payload) => setMaterials(payload.materials ?? []))
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
+
   function appendFiles(event: ChangeEvent<HTMLInputElement>) {
     const selectedFiles = event.target.files;
     if (!selectedFiles?.length) return;
@@ -45,6 +57,19 @@ export function ImageReferenceUploader({
 
   function removeFile(index: number) {
     onChange(files.filter((_, fileIndex) => fileIndex !== index));
+  }
+
+  async function appendMaterial(material: MenswearMaterial) {
+    if (files.length >= maxFiles) return;
+    try {
+      const response = await fetch(material.imageUrl);
+      if (!response.ok) return;
+      const blob = await response.blob();
+      const extension = blob.type.includes("jpeg") ? "jpg" : blob.type.includes("webp") ? "webp" : "png";
+      onChange([...files, new File([blob], `${material.name}.${extension}`, { type: blob.type || "image/png" })].slice(0, maxFiles));
+    } catch {
+      // Keep local upload available when a material file is no longer reachable.
+    }
   }
 
   return (
@@ -120,6 +145,7 @@ export function ImageReferenceUploader({
             清空全部
           </button>
         ) : null}
+        <MaterialPickerDialog materials={materials} onSelect={(material) => void appendMaterial(material)} />
       </div>
       <ImagePreviewDialog imageUrl={previewUrl} onClose={() => setPreviewUrl(null)} />
     </div>

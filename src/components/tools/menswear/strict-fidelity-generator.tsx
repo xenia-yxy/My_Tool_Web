@@ -126,7 +126,7 @@ export function StrictFidelityGenerator() {
   const [customSystemControls, setCustomSystemControls] = useState<Partial<SystemControls>>({});
   const [aspectRatio, setAspectRatio] = useState<"square" | "portrait" | "landscape">("portrait");
   const [cameraDistance, setCameraDistance] = useState<MenswearCameraDistance>("three_quarter");
-  const [batchCount, setBatchCount] = useState(4);
+  const [batchCount, setBatchCount] = useState(1);
   const [quality, setQuality] = useState<"low" | "medium" | "high">("medium");
   const [customInstructions, setCustomInstructions] = useState("");
   const [promptDraft, setPromptDraft] = useState("");

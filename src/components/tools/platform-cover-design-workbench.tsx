@@ -46,7 +46,7 @@ export function PlatformCoverDesignWorkbench() {
   const [editInstructions, setEditInstructions] = useState("");
   const [textMode, setTextMode] = useState<PlatformCoverTextMode>("no_text");
   const [quality, setQuality] = useState("medium");
-  const [batchCount, setBatchCount] = useState(2);
+  const [batchCount, setBatchCount] = useState(1);
   const [coverImages, setCoverImages] = useState<File[]>([]);
   const [styleReferences, setStyleReferences] = useState<File[]>([]);
   const [promptDraft, setPromptDraft] = useState("");

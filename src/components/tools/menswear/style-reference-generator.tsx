@@ -60,7 +60,7 @@ export function StyleReferenceGenerator() {
   const [aspectRatio, setAspectRatio] = useState<MenswearStyleReferenceAspectRatio>("portrait");
   const [cameraDistance, setCameraDistance] = useState<MenswearStyleReferenceCameraDistance>("match_reference");
   const [quality, setQuality] = useState("medium");
-  const [batchCount, setBatchCount] = useState(2);
+  const [batchCount, setBatchCount] = useState(1);
   const [promptDraft, setPromptDraft] = useState("");
   const [isPromptOpen, setPromptOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
