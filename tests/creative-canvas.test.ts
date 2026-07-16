@@ -7,6 +7,7 @@ import {
 import { serializeCreativeCanvas } from "../src/server/creative-canvas";
 import { buildCreativeCanvasPlan } from "../src/server/creative-canvas-agent";
 import { buildCanvasTemplateNodes, creativeCanvasTemplates } from "../src/lib/creative-canvas-templates";
+import { getCanvasFlowStage } from "../src/lib/creative-canvas-flow";
 
 test("connecting an asset to a Skill records a labelled role edge", () => {
   const initial = createCanvasState();
@@ -77,4 +78,10 @@ test("quick start template creates a linked requirement and first Skill step", (
   assert.equal(result.nodes[1]?.kind, "SKILL");
   assert.equal(result.nodes[1]?.snapshot.executorKey, "menswear-multi-outfit");
   assert.deepEqual(result.edges, [{ sourceClientId: "text-template", targetClientId: "skill-template", role: "创作需求" }]);
+});
+
+test("canvas flow guides creators from material to Skill and refinement", () => {
+  assert.equal(getCanvasFlowStage([]), "MATERIAL");
+  assert.equal(getCanvasFlowStage([{ kind: "ASSET" }]), "SKILL");
+  assert.equal(getCanvasFlowStage([{ kind: "ASSET" }, { kind: "SKILL" }]), "REFINE");
 });
