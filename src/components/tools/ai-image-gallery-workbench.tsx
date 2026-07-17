@@ -210,27 +210,34 @@ export function AiImageGalleryWorkbench() {
 
     setIsDeleting(true);
     setError(null);
+    const deletedIds = new Set<string>();
     try {
-      const response = await fetch("/api/tools/image-assets", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids }),
-      });
-      const payload = (await readJsonResponse<{ error?: string; ids?: string[] }>(
-        response,
-      )) as { error?: string; ids?: string[] };
+      for (const chunk of chunkIds(ids, 60)) {
+        const response = await fetch("/api/tools/image-assets", {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ids: chunk }),
+        });
+        const payload = (await readJsonResponse<{ error?: string; ids?: string[] }>(
+          response,
+        )) as { error?: string; ids?: string[] };
 
-      if (!response.ok) {
-        throw new Error(payload.error || "删除失败");
+        if (!response.ok) {
+          throw new Error(payload.error || "删除失败");
+        }
+        (payload.ids ?? chunk).forEach((id) => deletedIds.add(id));
       }
 
-      const deletedIds = new Set(payload.ids ?? ids);
       setAssets((current) => current.filter((asset) => !deletedIds.has(asset.id)));
       setSelectedIds((current) => new Set([...current].filter((id) => !deletedIds.has(id))));
       if (detailAsset && deletedIds.has(detailAsset.id)) {
         setDetailAsset(null);
       }
     } catch (caughtError) {
+      if (deletedIds.size > 0) {
+        setAssets((current) => current.filter((asset) => !deletedIds.has(asset.id)));
+        setSelectedIds((current) => new Set([...current].filter((id) => !deletedIds.has(id))));
+      }
       setError(caughtError instanceof Error ? caughtError.message : "删除失败");
     } finally {
       setIsDeleting(false);
@@ -360,7 +367,17 @@ export function AiImageGalleryWorkbench() {
               variant="danger"
             >
               <Trash2 aria-hidden="true" className="h-4 w-4" />
-              删除选中
+              一键删除已选
+            </Button>
+            <Button
+              className="h-9 gap-2 px-3"
+              disabled={assets.length === 0 || isDeleting}
+              onClick={() => void deleteAssets(assets.map((asset) => asset.id))}
+              type="button"
+              variant="danger"
+            >
+              <Trash2 aria-hidden="true" className="h-4 w-4" />
+              清空当前筛选
             </Button>
           </div>
         </CardContent>
@@ -898,4 +915,12 @@ function buildCopy(asset: AiImageAsset) {
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+function chunkIds(ids: string[], size: number) {
+  const chunks: string[][] = [];
+  for (let index = 0; index < ids.length; index += size) {
+    chunks.push(ids.slice(index, index + size));
+  }
+  return chunks;
 }

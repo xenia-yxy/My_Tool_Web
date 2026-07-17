@@ -56,6 +56,17 @@ test("AiImageAsset migrations include reference image persistence", () => {
   assert.match(migrationSql, /"referenceLabels"/);
 });
 
+test("gallery exposes one-click deletion for selected and filtered generated images", () => {
+  const gallery = readFileSync(
+    "src/components/tools/ai-image-gallery-workbench.tsx",
+    "utf8",
+  );
+
+  assert.match(gallery, /一键删除已选/);
+  assert.match(gallery, /清空当前筛选/);
+  assert.match(gallery, /deleteAssets\(assets\.map\(\(asset\) => asset\.id\)\)/);
+});
+
 test("normalizeAiImageAssetCreateInput rejects unsupported modes", () => {
   assert.throws(
     () =>

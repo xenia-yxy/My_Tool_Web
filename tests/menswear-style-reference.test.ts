@@ -111,6 +111,7 @@ test("multi-outfit split mode locks each output to its matching flatlay look", (
     outfitCount: 6,
     textMode: "no_text",
     hasLayoutReference: true,
+    hasStyleReference: true,
     outputFormat: "split",
   });
   const component = readFileSync("src/components/tools/menswear/multi-outfit-generator.tsx", "utf8");
@@ -133,6 +134,7 @@ test("multi-outfit prompt offers independent background and pose controls for sp
     outfitCount: 3,
     textMode: "no_text",
     hasLayoutReference: true,
+    hasStyleReference: true,
     outputFormat: "split",
     backgroundMode: "inherit",
     compositionMode: "custom",
@@ -177,6 +179,26 @@ test("menswear separates outfit-board generation from flatlay split generation",
   assert.match(generator, /variant\?: "board" \| "split"/);
   assert.match(sessions, /menswear-flatlay-outfit-split/);
   assert.match(workflow, /menswear-flatlay-outfit-split/);
+});
+
+test("flatlay split generation uses one flatlay source and an optional visual reference instead of duplicate product uploads", () => {
+  const generator = readFileSync("src/components/tools/menswear/multi-outfit-generator.tsx", "utf8");
+  const prompt = buildMenswearMultiOutfitPrompt({
+    subjectImageCount: 0,
+    flatlayImageCount: 1,
+    hasLayoutReference: true,
+    hasStyleReference: true,
+    outputFormat: "split",
+    displayMode: "model",
+    outfitCount: 4,
+    textMode: "no_text",
+  });
+
+  assert.match(generator, /平铺多搭图/);
+  assert.match(generator, /人物穿搭参考图/);
+  assert.match(generator, /!isSplit \? <ImageReferenceUploader/);
+  assert.match(prompt, /第 1 张为平铺多搭图/);
+  assert.match(prompt, /人物穿搭参考图只控制构图、背景、动作、镜头和视觉风格/);
 });
 
 test("ai image prompt editor opens with the current form prompt instead of a stale session prompt", () => {

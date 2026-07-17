@@ -34,11 +34,13 @@ export function buildMenswearMultiOutfitPrompt(input: {
   backgroundMode?: MenswearMultiOutfitBackgroundMode;
   cameraDistance?: MenswearMultiOutfitCameraDistance;
   compositionMode?: MenswearMultiOutfitCompositionMode;
+  flatlayImageCount?: number;
   subjectImageCount: number;
   displayMode: MenswearMultiOutfitDisplayMode;
   modelFaceMode?: MenswearMultiOutfitModelFaceMode;
   modelFaceReferenceSource?: string;
   hasLayoutReference?: boolean;
+  hasStyleReference?: boolean;
   outputFormat?: MenswearMultiOutfitOutputFormat;
   modelGender?: MenswearMultiOutfitModelGender;
   maskMode?: MenswearMultiOutfitMaskMode;
@@ -78,18 +80,31 @@ export function buildMenswearMultiOutfitPrompt(input: {
     input.displayMode === "model"
       ? `上身模特展示：${modelGender}${modelFace}每套搭配都自然穿着主商品，人体比例真实。`
       : "无模特平铺展示：所有服装与鞋包配饰平铺或悬挂展示，像商品搭配陈列图，不出现真人模特、不出现人体。";
-  const layoutRule = input.hasLayoutReference && input.compositionMode === "custom"
+  const isFlatlaySplit = input.outputFormat === "split" && (input.flatlayImageCount || 0) > 0;
+  const layoutRule = isFlatlaySplit
+    ? "第 1 张为平铺多搭图，必须按其中从左到右、从上到下的套装顺序识别每套组合；平铺图只锁定服装组合、颜色、版型和搭配关系，不控制最终人物图的构图、背景、动作或画面风格。"
+    : input.hasLayoutReference && input.compositionMode === "custom"
     ? "构图：平铺参考图只锁定每套组合顺序与搭配关系；构图、镜头、人物位置和视觉风格按用户说明生成，不复制其主商品、文字、品牌或人物。"
     : input.hasLayoutReference
     ? "最后一张为平铺多搭参考图。必须按其中从左到右、从上到下的套装顺序识别搭配；参考图只锁定每套的组合关系、版式、色彩风格和视觉节奏，不复制其主商品、文字、品牌或人物。"
     : "没有平铺多搭参考图，按本次参数设计搭配顺序与版式。";
+  const styleReferenceRule = isFlatlaySplit && input.hasStyleReference
+    ? "人物穿搭参考图只控制构图、背景、动作、镜头和视觉风格；不得复制其中的服装、品牌、文字或人物身份。"
+    : isFlatlaySplit
+      ? "未提供人物穿搭参考图，按用户的构图、背景与动作设置生成真实人物穿搭图。"
+      : "";
+  const compositionRule = input.compositionMode === "inherit" && input.hasStyleReference
+    ? "构图：保持人物穿搭参考图的镜头角度、人物位置、占比、裁切范围和留白关系。"
+    : input.compositionMode === "custom"
+      ? "构图：人物位置、镜头和留白按用户说明变化。"
+      : "构图：根据穿搭展示需要生成自然清晰的单人构图。";
   const outputRule = input.outputFormat === "split"
     ? `拆分输出规则：本次必须生成 ${input.outfitCount} 张独立人物穿搭图；第 N 张只呈现参考图第 N 套搭配，使用同一主商品，不得生成拼图、合集或重复其他套装。`
     : "合集输出规则：在一张完整展示图中按顺序呈现所有搭配。";
-  const backgroundRule = input.backgroundMode === "inherit" && input.hasLayoutReference
+  const backgroundRule = input.backgroundMode === "inherit" && input.hasStyleReference
     ? "背景：保持参考图的背景空间、光线和环境关系。"
     : `背景：${input.backgroundInstruction?.trim() || "按服装风格生成真实自然的背景，环境和光线不得抢夺主体。"}`;
-  const poseRule = input.poseMode === "inherit" && input.hasLayoutReference
+  const poseRule = input.poseMode === "inherit" && input.hasStyleReference
     ? "动作：保持参考图中对应搭配的人物动作和身体方向。"
     : input.poseMode === "random"
       ? "动作：不设定固定动作，按真实穿搭展示生成自然随机动作。"
@@ -101,7 +116,9 @@ export function buildMenswearMultiOutfitPrompt(input: {
 
   return [
     "你是专业男装一衣多搭视觉生成师。",
-    `图片顺序：前 ${input.subjectImageCount} 张为服装主体参考图。`,
+    isFlatlaySplit
+      ? `图片顺序：第 1 张为平铺多搭图${input.hasStyleReference ? "，随后一张为人物穿搭参考图" : ""}${input.modelFaceReferenceSource ? "，最后一张为脸部身份参考图" : ""}。`
+      : `图片顺序：前 ${input.subjectImageCount} 张为服装主体参考图。`,
     input.outputFormat === "split"
       ? `输出目标：按平铺多搭顺序生成 ${input.outfitCount} 张单张人物穿搭图，每张只展示一套不同男装搭配。`
       : `输出目标：生成一张一衣多搭展示图，展示 ${input.outfitCount} 套不同男装搭配。`,
@@ -113,10 +130,11 @@ export function buildMenswearMultiOutfitPrompt(input: {
     `必须保留：${preserve}。同一件主商品必须出现在每一套搭配里，不得改款、换色、替换图案或改变材质。`,
     `画面风格：${style}。`,
     layoutRule,
+    styleReferenceRule,
     outputRule,
     modelFaceReference,
     display,
-    ...(input.outputFormat === "split" ? [`口罩：${maskModeInstruction(input.maskMode)}。`, backgroundRule, poseRule] : []),
+    ...(input.outputFormat === "split" ? [`口罩：${maskModeInstruction(input.maskMode)}。`, compositionRule, backgroundRule, poseRule] : []),
     "搭配要求：每套搭配的裤装、鞋子、外套、包或配饰可以变化，但必须服务于同一主商品；搭配之间要有明确差异，整体仍然真实可穿。",
     "版式要求：横向排列，间距均匀，主商品识别度高，背景干净，适合男装电商图文和社媒封面。",
     "真实感要求：服装结构可信，面料纹理自然，阴影和透视合理，不要生成畸形人体、错误袖口、错乱领口或重复肢体。",

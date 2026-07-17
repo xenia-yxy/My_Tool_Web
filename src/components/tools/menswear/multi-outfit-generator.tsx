@@ -86,6 +86,7 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
   const outputFormat = variant;
   const [subjectImages, setSubjectImages] = useState<File[]>([]);
   const [layoutReferenceImages, setLayoutReferenceImages] = useState<File[]>([]);
+  const [styleReferenceImages, setStyleReferenceImages] = useState<File[]>([]);
   const [isAnalyzingLayout, setIsAnalyzingLayout] = useState(false);
   const [layoutAnalysis, setLayoutAnalysis] = useState<string | null>(null);
   const [modelFaceFiles, setModelFaceFiles] = useState<File[]>([]);
@@ -94,7 +95,7 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
   const [displayMode, setDisplayMode] = useState<MenswearMultiOutfitDisplayMode>("model");
   const [backgroundMode, setBackgroundMode] = useState<MenswearMultiOutfitBackgroundMode>("custom");
   const [backgroundInstruction, setBackgroundInstruction] = useState("");
-  const [compositionMode, setCompositionMode] = useState<MenswearMultiOutfitCompositionMode>("inherit");
+  const [compositionMode, setCompositionMode] = useState<MenswearMultiOutfitCompositionMode>(isSplit ? "custom" : "inherit");
   const [modelGender, setModelGender] = useState<MenswearMultiOutfitModelGender>("male");
   const [modelFaceMode, setModelFaceMode] = useState<MenswearMultiOutfitModelFaceMode>("hidden_face");
   const [maskMode, setMaskMode] = useState<MenswearMultiOutfitMaskMode>("no_mask");
@@ -133,9 +134,11 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
         cameraDistance,
         compositionMode,
         displayMode,
+        flatlayImageCount: isSplit ? layoutReferenceImages.length : 0,
         modelFaceMode,
         modelFaceReferenceSource: modelFaceFiles.length > 0 ? modelFaceSourceLabel(modelFaceSource) : undefined,
         hasLayoutReference: layoutReferenceImages.length > 0,
+        hasStyleReference: styleReferenceImages.length > 0,
         outputFormat,
         modelGender,
         maskMode,
@@ -145,7 +148,7 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
         poseMode,
         season,
         styleInstructions,
-        subjectImageCount: subjectImages.length,
+        subjectImageCount: isSplit ? 0 : subjectImages.length,
         targetAudience,
         textMode,
         usageScene,
@@ -161,6 +164,7 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
       modelFaceFiles.length,
       modelFaceSource,
       layoutReferenceImages.length,
+      styleReferenceImages.length,
       outputFormat,
       modelGender,
       maskMode,
@@ -176,7 +180,7 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
       usageScene,
     ],
   );
-  const canSubmit = subjectImages.length > 0 && !isGenerating && (!isSplit || layoutReferenceImages.length > 0);
+  const canSubmit = !isGenerating && (isSplit ? layoutReferenceImages.length > 0 : subjectImages.length > 0);
 
   useEffect(() => {
     if (!session) return;
@@ -233,8 +237,12 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
 
   function openPrompt(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (subjectImages.length === 0) {
+    if (!isSplit && subjectImages.length === 0) {
       setError("请先上传至少一张服装主体参考图");
+      return;
+    }
+    if (isSplit && layoutReferenceImages.length === 0) {
+      setError("请先上传平铺多搭图");
       return;
     }
     setError(null);
@@ -284,7 +292,9 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
           outfitCount,
           quality,
           batchCount: outputFormat === "split" ? outfitCount : batchCount,
-          subjectImageCount: subjectImages.length,
+          subjectImageCount: isSplit ? 0 : subjectImages.length,
+          flatlayImageCount: isSplit ? layoutReferenceImages.length : 0,
+          styleReferenceImageCount: styleReferenceImages.length,
           outputFormat,
           hasLayoutReference: layoutReferenceImages.length > 0,
           layoutAnalysis,
@@ -343,13 +353,19 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
     formData.set("splitOutfitMode", outputFormat === "split" ? "true" : "false");
     formData.set("finalPrompt", finalPrompt);
     formData.set("workbenchSessionId", workbenchSessionId);
-    subjectImages.forEach((file) => {
-      formData.append("image", file);
-      formData.append("referenceLabel", "锁定主体商品图");
-    });
+    if (!isSplit) {
+      subjectImages.forEach((file) => {
+        formData.append("image", file);
+        formData.append("referenceLabel", "锁定主体商品图");
+      });
+    }
     layoutReferenceImages.forEach((file) => {
       formData.append("image", file);
-      formData.append("referenceLabel", "平铺多搭参考图");
+      formData.append("referenceLabel", isSplit ? "平铺多搭图" : "平铺多搭参考图");
+    });
+    styleReferenceImages.forEach((file) => {
+      formData.append("image", file);
+      formData.append("referenceLabel", "人物穿搭参考图");
     });
     modelFaceFiles.forEach((file) => {
       formData.append("image", file);
@@ -447,22 +463,31 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
           </CardHeader>
           <CardContent>
             <form className="grid gap-5" onSubmit={openPrompt}>
-              <ImageReferenceUploader
+              {!isSplit ? <ImageReferenceUploader
                 emptyText="上传服装主体参考图"
                 files={subjectImages}
-                helper={isSplit ? "可上传 1-6 张；每套拆分结果都必须保留主体商品。" : "可上传 1-6 张；主商品会出现在每一套搭配里"}
+                helper="可上传 1-6 张；主商品会出现在每一套搭配里"
                 label="服装主体参考图"
                 maxFiles={6}
                 onChange={setSubjectImages}
-              />
+              /> : null}
               {isSplit ? <ImageReferenceUploader
-                emptyText="上传平铺多搭参考图"
+                emptyText="上传平铺多搭图"
                 files={layoutReferenceImages}
                 helper="必填。系统按从左到右、从上到下识别每套组合，逐套输出单张人物穿搭。"
-                label="平铺多搭参考图"
+                label="平铺多搭图"
                 materialCategories={["outfit", "composition", "mood"]}
                 maxFiles={1}
                 onChange={setLayoutReferenceImages}
+              /> : null}
+              {isSplit ? <ImageReferenceUploader
+                emptyText="上传人物穿搭参考图（可选）"
+                files={styleReferenceImages}
+                helper="只借鉴最终人物图的构图、背景、动作、镜头和视觉风格，不复制参考图里的服装。"
+                label="人物穿搭参考图"
+                materialCategories={["outfit", "pose", "background", "composition", "lighting", "mood"]}
+                maxFiles={1}
+                onChange={setStyleReferenceImages}
               /> : null}
               {isSplit && layoutReferenceImages.length ? (
                 <div className="flex flex-wrap items-center gap-3 rounded-lg border border-sky-200 bg-sky-50 p-3">
@@ -473,15 +498,15 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
                   <p className="text-xs leading-5 text-sky-900">{layoutAnalysis || "识别后会自动回填套数；可按实际平铺搭配手动修正。"}</p>
                 </div>
               ) : null}
-              {isSplit && layoutReferenceImages.length ? (
+              {isSplit ? (
                 <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 md:grid-cols-3">
                   <div className="md:col-span-3">
-                    <p className="text-sm font-semibold text-slate-900">平铺参考控制</p>
-                    <p className="mt-1 text-xs leading-5 text-slate-500">搭配顺序始终按平铺图读取；构图、背景与动作可分别保持或改写。</p>
+                    <p className="text-sm font-semibold text-slate-900">人物穿搭参考控制</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">平铺图始终锁定每套服装组合和顺序；以下设置只控制人物穿搭参考图的画面效果。</p>
                   </div>
-                  <SelectField label="构图控制" onChange={(value) => setCompositionMode(value as MenswearMultiOutfitCompositionMode)} options={[["inherit", "保持参考版式"], ["custom", "按说明变化"]]} value={compositionMode} />
-                  <SelectField label="背景控制" onChange={(value) => setBackgroundMode(value as MenswearMultiOutfitBackgroundMode)} options={[["inherit", "保持参考背景"], ["custom", "自定义背景"]]} value={backgroundMode} />
-                  <SelectField label="动作控制" onChange={(value) => setPoseMode(value as MenswearMultiOutfitPoseMode)} options={[["inherit", "保持参考动作"], ["custom", "自定义动作"], ["random", "随机自然动作"]]} value={poseMode} />
+                  <SelectField label="构图控制" onChange={(value) => setCompositionMode(value as MenswearMultiOutfitCompositionMode)} options={styleReferenceImages.length ? [["inherit", "保持参考构图"], ["custom", "按说明变化"]] : [["custom", "按说明生成"]]} value={compositionMode} />
+                  <SelectField label="背景控制" onChange={(value) => setBackgroundMode(value as MenswearMultiOutfitBackgroundMode)} options={styleReferenceImages.length ? [["inherit", "保持参考背景"], ["custom", "自定义背景"]] : [["custom", "自定义背景"]]} value={backgroundMode} />
+                  <SelectField label="动作控制" onChange={(value) => setPoseMode(value as MenswearMultiOutfitPoseMode)} options={styleReferenceImages.length ? [["inherit", "保持参考动作"], ["custom", "自定义动作"], ["random", "随机自然动作"]] : [["custom", "自定义动作"], ["random", "随机自然动作"]]} value={poseMode} />
                 </div>
               ) : null}
 
@@ -620,7 +645,8 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
 
         <PromptPreviewPanel
           meta={[
-            { label: "主体参考", value: `${subjectImages.length} 张` },
+            { label: isSplit ? "平铺多搭图" : "主体参考", value: `${isSplit ? layoutReferenceImages.length : subjectImages.length} 张` },
+            ...(isSplit ? [{ label: "人物穿搭参考", value: styleReferenceImages.length ? "已提供" : "自定义生成" }] : []),
             { label: "展示方式", value: displayModeLabel(displayMode) },
             { label: "模特性别", value: modelGenderLabel(displayMode === "flatlay" ? "none" : modelGender) },
             { label: "脸部", value: modelFaceLabel(displayMode === "flatlay" ? "no_model" : modelFaceMode) },
