@@ -121,7 +121,7 @@ const defaultSystemControls: SystemControls = {
   mood: "清爽自然",
 };
 
-export function SceneImageGenerator() {
+export function SceneImageGenerator({ gender = "men" }: { gender?: "men" | "women" }) {
   const searchParams = useSearchParams();
   const projectId = searchParams.get("projectId");
   const [materials, setMaterials] = useState<MenswearMaterial[]>([]);
@@ -177,11 +177,11 @@ export function SceneImageGenerator() {
   const promptSystemControls = (Object.keys(systemControls) as Array<keyof SystemControls>)
     .map((key) => systemControls[key] === "自定义" ? customSystemControls[key] : systemControls[key])
     .filter((value): value is string => Boolean(value?.trim()));
-  const promptPreview = useMemo(() => buildSceneImagePrompt({
+  const promptPreview = useMemo(() => adaptPromptGender(buildSceneImagePrompt({
     aspectRatio,
     cameraDistance,
     customInstructions,
-    description: description || "请根据锁定的商品素材生成真实男装穿搭图",
+    description: description || `请根据锁定的商品素材生成真实${gender === "women" ? "女装" : "男装"}穿搭图`,
     mainProductCategory,
     modelName,
     references: projectReferences.map((reference) => ({
@@ -195,7 +195,7 @@ export function SceneImageGenerator() {
     sceneMode,
     stylePreset: promptStyle,
     systemControls: promptSystemControls,
-  }), [aspectRatio, cameraDistance, customInstructions, description, mainProductCategory, materials, modelName, projectReferences, promptStyle, promptSystemControls, sceneAspectRatio, sceneInstruction, sceneMode]);
+  }), gender), [aspectRatio, cameraDistance, customInstructions, description, gender, mainProductCategory, materials, modelName, projectReferences, promptStyle, promptSystemControls, sceneAspectRatio, sceneInstruction, sceneMode]);
 
   const loadDependencies = useCallback(async () => {
     setIsLoading(true);
@@ -859,4 +859,8 @@ function normalizeSystemControls(value: unknown): Partial<SystemControls> {
     if (typeof source[key] === "string") result[key] = source[key];
     return result;
   }, {});
+}
+
+function adaptPromptGender(prompt: string, gender: "men" | "women") {
+  return gender === "women" ? prompt.replaceAll("男装", "女装").replaceAll("男模特", "女模特") : prompt;
 }

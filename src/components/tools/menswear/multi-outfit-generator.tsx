@@ -81,8 +81,10 @@ const modelFaceOptions: Array<[MenswearMultiOutfitModelFaceMode, string]> = [
   ["no_model", "无模特"],
 ];
 
-export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: "board" | "split" }) {
+export function MenswearMultiOutfitGenerator({ gender = "men", variant = "board" }: { gender?: "men" | "women"; variant?: "board" | "split" }) {
   const isSplit = variant === "split";
+  const isWomen = gender === "women";
+  const genderLabel = isWomen ? "女装" : "男装";
   const outputFormat = variant;
   const [subjectImages, setSubjectImages] = useState<File[]>([]);
   const [layoutReferenceImages, setLayoutReferenceImages] = useState<File[]>([]);
@@ -96,7 +98,7 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
   const [backgroundMode, setBackgroundMode] = useState<MenswearMultiOutfitBackgroundMode>("custom");
   const [backgroundInstruction, setBackgroundInstruction] = useState("");
   const [compositionMode, setCompositionMode] = useState<MenswearMultiOutfitCompositionMode>(isSplit ? "custom" : "inherit");
-  const [modelGender, setModelGender] = useState<MenswearMultiOutfitModelGender>("male");
+  const [modelGender, setModelGender] = useState<MenswearMultiOutfitModelGender>(isWomen ? "female" : "male");
   const [modelFaceMode, setModelFaceMode] = useState<MenswearMultiOutfitModelFaceMode>("hidden_face");
   const [maskMode, setMaskMode] = useState<MenswearMultiOutfitMaskMode>("no_mask");
   const [poseMode, setPoseMode] = useState<MenswearMultiOutfitPoseMode>("random");
@@ -121,7 +123,7 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
   const [notice, setNotice] = useState<string | null>(null);
   const [resultImages, setResultImages] = useState<string[]>([]);
   const restoredSessionId = useRef<string | null>(null);
-  const { create, session } = useWorkbenchSession(isSplit ? "menswear-flatlay-outfit-split" : "menswear-multi-outfit");
+  const { create, session } = useWorkbenchSession(isWomen ? (isSplit ? "womenswear-flatlay-outfit-split" : "womenswear-multi-outfit") : (isSplit ? "menswear-flatlay-outfit-split" : "menswear-multi-outfit"));
 
   const preserveInstructions = preservePreset === "自定义" ? customPreserve : preservePreset;
   const styleInstructions = stylePreset === "自定义" ? customStyle : stylePreset;
@@ -140,6 +142,7 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
         hasLayoutReference: layoutReferenceImages.length > 0,
         hasStyleReference: styleReferenceImages.length > 0,
         outputFormat,
+        gender,
         modelGender,
         maskMode,
         outfitCount,
@@ -160,6 +163,7 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
       cameraDistance,
       compositionMode,
       displayMode,
+      gender,
       modelFaceMode,
       modelFaceFiles.length,
       modelFaceSource,
@@ -178,6 +182,7 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
       targetAudience,
       textMode,
       usageScene,
+      isSplit,
     ],
   );
   const canSubmit = !isGenerating && (isSplit ? layoutReferenceImages.length > 0 : subjectImages.length > 0);
@@ -264,7 +269,7 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
 
     try {
       const activeSession = await create({
-        title: isSplit ? "男装平铺多搭拆分生图" : "男装一衣多搭合集生图",
+        title: isSplit ? `${genderLabel}平铺多搭拆分生图` : `${genderLabel}一衣多搭合集生图`,
         status: "RUNNING",
         prompt: finalPrompt,
         inputSnapshot: {
@@ -308,7 +313,7 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
 
       const response = await submitGeneration(activeSession.id, finalPrompt);
       const payload = (await response.json().catch(() => ({}))) as GenerationPayload;
-      if (!response.ok) throw new Error(payload.error || (isSplit ? "男装平铺多搭拆分生图失败" : "男装一衣多搭生图失败"));
+      if (!response.ok) throw new Error(payload.error || (isSplit ? `${genderLabel}平铺多搭拆分生图失败` : `${genderLabel}一衣多搭生图失败`));
 
       const imageUrls = payload.results?.flatMap((item) => (item.imageUrl ? [item.imageUrl] : [])) || [];
       const summary = isSplit
@@ -329,7 +334,7 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
         errorMessage: null,
       });
     } catch (caughtError) {
-      const message = caughtError instanceof Error ? caughtError.message : (isSplit ? "男装平铺多搭拆分生图失败" : "男装一衣多搭生图失败");
+      const message = caughtError instanceof Error ? caughtError.message : (isSplit ? `${genderLabel}平铺多搭拆分生图失败` : `${genderLabel}一衣多搭生图失败`);
       setError(message);
       if (activeSessionId) await patchSession(activeSessionId, { status: "FAILED", errorMessage: message });
     } finally {
@@ -339,14 +344,14 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
 
   function submitGeneration(workbenchSessionId: string, finalPrompt: string) {
     const formData = new FormData();
-    formData.set("mode", "menswear");
-    formData.set("sourceTool", isSplit ? "menswear-flatlay-outfit-split" : "menswear-multi-outfit");
-    formData.set("description", isSplit ? "男装平铺多搭拆分生成" : "男装一衣多搭合集生成");
-    formData.set("purpose", isSplit ? "男装平铺多搭拆分生图" : "男装一衣多搭合集生图");
+    formData.set("mode", isWomen ? "womenswear" : "menswear");
+    formData.set("sourceTool", isWomen ? (isSplit ? "womenswear-flatlay-outfit-split" : "womenswear-multi-outfit") : (isSplit ? "menswear-flatlay-outfit-split" : "menswear-multi-outfit"));
+    formData.set("description", isSplit ? `${genderLabel}平铺多搭拆分生成` : `${genderLabel}一衣多搭合集生成`);
+    formData.set("purpose", isSplit ? `${genderLabel}平铺多搭拆分生图` : `${genderLabel}一衣多搭合集生图`);
     formData.set("style", styleInstructions);
-    formData.set("caption", isSplit ? `${outfitCount} 套平铺搭配按顺序拆分为单张人物穿搭，模特：${modelGenderLabel(modelGender)}，脸部：${modelFaceLabel(modelFaceMode)}，季节：${seasonLabel(season)}` : `${outfitCount} 套男装一衣多搭合集，展示方式：${displayModeLabel(displayMode)}，模特：${modelGenderLabel(displayMode === "flatlay" ? "none" : modelGender)}，脸部：${modelFaceLabel(displayMode === "flatlay" ? "no_model" : modelFaceMode)}，季节：${seasonLabel(season)}`);
-    formData.set("tags", "#男装 #一衣多搭 #AI生图");
-    formData.set("productKeywords", isSplit ? "男装 平铺多搭 单张穿搭" : "男装 一衣多搭 搭配合集");
+    formData.set("caption", isSplit ? `${outfitCount} 套平铺搭配按顺序拆分为单张人物穿搭，模特：${modelGenderLabel(modelGender)}，脸部：${modelFaceLabel(modelFaceMode)}，季节：${seasonLabel(season)}` : `${outfitCount} 套${genderLabel}一衣多搭合集，展示方式：${displayModeLabel(displayMode)}，模特：${modelGenderLabel(displayMode === "flatlay" ? "none" : modelGender)}，脸部：${modelFaceLabel(displayMode === "flatlay" ? "no_model" : modelFaceMode)}，季节：${seasonLabel(season)}`);
+    formData.set("tags", isWomen ? "#女装 #女生穿搭 #一衣多搭 #AI生图" : "#男装 #一衣多搭 #AI生图");
+    formData.set("productKeywords", isSplit ? `${genderLabel} 平铺多搭 单张穿搭` : `${genderLabel} 一衣多搭 搭配合集`);
     formData.set("aspectRatio", aspectRatio);
     formData.set("quality", quality);
     formData.set("batchCount", String(outputFormat === "split" ? outfitCount : batchCount));
@@ -411,7 +416,7 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
   function updateDisplayMode(value: MenswearMultiOutfitDisplayMode) {
     if (isSplit && value === "flatlay") {
       setDisplayMode("model");
-      setModelGender((current) => current === "none" ? "male" : current);
+      setModelGender((current) => current === "none" ? (isWomen ? "female" : "male") : current);
       setModelFaceMode((current) => current === "no_model" ? "hidden_face" : current);
       return;
     }
@@ -421,7 +426,7 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
       setModelFaceMode("no_model");
       setCameraDistance("product_grid");
     } else {
-      if (modelGender === "none") setModelGender("male");
+      if (modelGender === "none") setModelGender(isWomen ? "female" : "male");
       if (modelFaceMode === "no_model") setModelFaceMode("hidden_face");
       if (cameraDistance === "product_grid") setCameraDistance("three_quarter");
     }
@@ -444,7 +449,7 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
       updateDisplayMode("flatlay");
     } else if (displayMode === "flatlay") {
       setDisplayMode("model");
-      if (modelGender === "none") setModelGender("male");
+      if (modelGender === "none") setModelGender(isWomen ? "female" : "male");
       if (cameraDistance === "product_grid") setCameraDistance("three_quarter");
     }
   }
@@ -685,7 +690,7 @@ export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: 
         onSave={generate}
         open={isPromptOpen}
         prompt={promptDraft}
-        title={isSplit ? "确认平铺多搭拆分提示词" : "确认男装一衣多搭合集提示词"}
+        title={isSplit ? "确认平铺多搭拆分提示词" : `确认${genderLabel}一衣多搭合集提示词`}
       />
     </>
   );

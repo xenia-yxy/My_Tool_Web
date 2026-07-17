@@ -88,6 +88,14 @@ export function resolveImageWorkbenchToolId(sourceTool: string | null | undefine
       return "platform-cover-design";
     case "womenswear":
       return "womenswear";
+    case "womenswear-style-reference":
+      return "womenswear-style-reference";
+    case "womenswear-multi-outfit":
+      return "womenswear-multi-outfit";
+    case "womenswear-flatlay-outfit-split":
+      return "womenswear-flatlay-outfit-split";
+    case "womenswear-single-outfit":
+      return "womenswear-single-outfit";
     case "outfit":
       return "outfit-image";
     case "snack-grocery":

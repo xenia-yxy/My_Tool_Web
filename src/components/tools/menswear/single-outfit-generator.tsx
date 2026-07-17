@@ -29,13 +29,15 @@ const aspectRatioOptions: Array<[MenswearSingleOutfitAspectRatio, string]> = [["
 const cameraDistanceOptions: Array<[MenswearSingleOutfitCameraDistance, string]> = [["full_body", "全身"], ["three_quarter", "七分身"], ["half_body", "半身"]];
 const personScaleOptions: Array<[MenswearSingleOutfitPersonScale, string]> = [["small", "人物小 / 环境多"], ["balanced", "均衡（55%-70%）"], ["dominant", "人物突出（70%-80%）"], ["close", "近景（80%-90%）"]];
 
-export function MenswearSingleOutfitGenerator() {
+export function MenswearSingleOutfitGenerator({ gender = "men" }: { gender?: "men" | "women" }) {
+  const isWomen = gender === "women";
+  const genderLabel = isWomen ? "女装" : "男装";
   const [productImages, setProductImages] = useState<File[]>([]);
   const [compositionImages, setCompositionImages] = useState<File[]>([]);
   const [compositionFidelity, setCompositionFidelity] = useState<MenswearSingleOutfitCompositionFidelity>("locked");
   const [backgroundMode, setBackgroundMode] = useState<MenswearSingleOutfitBackgroundMode>("custom");
   const [modelFaceFiles, setModelFaceFiles] = useState<File[]>([]);
-  const [modelGender, setModelGender] = useState<MenswearSingleOutfitModelGender>("male");
+  const [modelGender, setModelGender] = useState<MenswearSingleOutfitModelGender>(isWomen ? "female" : "male");
   const [maskMode, setMaskMode] = useState<MenswearSingleOutfitMaskMode>("no_mask");
   const [faceMode, setFaceMode] = useState<MenswearSingleOutfitFaceMode>("show_face");
   const [aspectRatio, setAspectRatio] = useState<MenswearSingleOutfitAspectRatio>("portrait");
@@ -52,7 +54,7 @@ export function MenswearSingleOutfitGenerator() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [resultImages, setResultImages] = useState<string[]>([]);
-  const { create } = useWorkbenchSession("menswear-single-outfit");
+  const { create } = useWorkbenchSession(isWomen ? "womenswear-single-outfit" : "menswear-single-outfit");
 
   const prompt = useMemo(() => buildMenswearSingleOutfitPrompt({
     aspectRatio,
@@ -69,7 +71,8 @@ export function MenswearSingleOutfitGenerator() {
     poseInstruction,
     poseMode,
     productImageCount: productImages.length,
-  }), [aspectRatio, backgroundInstruction, backgroundMode, cameraDistance, compositionFidelity, compositionImages.length, faceMode, maskMode, modelFaceFiles.length, modelGender, personScale, poseInstruction, poseMode, productImages.length]);
+    gender,
+  }), [aspectRatio, backgroundInstruction, backgroundMode, cameraDistance, compositionFidelity, compositionImages.length, faceMode, gender, maskMode, modelFaceFiles.length, modelGender, personScale, poseInstruction, poseMode, productImages.length]);
 
   function openPrompt(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -96,7 +99,7 @@ export function MenswearSingleOutfitGenerator() {
     setNotice(null);
     try {
       const session = await create({
-        title: "男装单品穿搭生图",
+        title: `${genderLabel}单品穿搭生图`,
         status: "RUNNING",
         prompt: finalPrompt,
         inputSnapshot: { aspectRatio, backgroundInstruction, backgroundMode, batchCount, cameraDistance, compositionFidelity, compositionImageCount: compositionImages.length, faceMode, hasFaceReference: modelFaceFiles.length > 0, maskMode, modelGender, personScale, poseInstruction, poseMode, productImageCount: productImages.length, quality },
@@ -104,12 +107,12 @@ export function MenswearSingleOutfitGenerator() {
       });
       const response = await submitGeneration(session.id, finalPrompt);
       const payload = (await response.json().catch(() => ({}))) as GenerationPayload;
-      if (!response.ok) throw new Error(payload.error || "男装单品穿搭生图失败");
+      if (!response.ok) throw new Error(payload.error || `${genderLabel}单品穿搭生图失败`);
       const imageUrls = payload.results?.flatMap((item) => item.imageUrl ? [item.imageUrl] : []) || [];
       setResultImages(imageUrls);
       setNotice(`已生成 ${imageUrls.length || batchCount} 张单品穿搭图，每张为独立的一套完整搭配。`);
     } catch (caughtError) {
-      setError(caughtError instanceof Error ? caughtError.message : "男装单品穿搭生图失败");
+      setError(caughtError instanceof Error ? caughtError.message : `${genderLabel}单品穿搭生图失败`);
     } finally {
       setIsGenerating(false);
     }
@@ -117,13 +120,13 @@ export function MenswearSingleOutfitGenerator() {
 
   function submitGeneration(workbenchSessionId: string, finalPrompt: string) {
     const formData = new FormData();
-    formData.set("mode", "menswear");
-    formData.set("sourceTool", "menswear-single-outfit");
-    formData.set("description", "男装单品上身穿搭生成");
-    formData.set("purpose", "男装单品穿搭生图");
-    formData.set("caption", "单品锁定，一张图一套完整男装穿搭。");
-    formData.set("tags", "#男装 #单品穿搭 #AI生图");
-    formData.set("productKeywords", "男装 单品 穿搭 上身图");
+    formData.set("mode", isWomen ? "womenswear" : "menswear");
+    formData.set("sourceTool", isWomen ? "womenswear-single-outfit" : "menswear-single-outfit");
+    formData.set("description", `${genderLabel}单品上身穿搭生成`);
+    formData.set("purpose", `${genderLabel}单品穿搭生图`);
+    formData.set("caption", `单品锁定，一张图一套完整${genderLabel}穿搭。`);
+    formData.set("tags", isWomen ? "#女装 #女生穿搭 #AI生图" : "#男装 #单品穿搭 #AI生图");
+    formData.set("productKeywords", `${genderLabel} 单品 穿搭 上身图`);
     formData.set("aspectRatio", aspectRatio);
     formData.set("quality", quality);
     formData.set("batchCount", String(batchCount));
@@ -172,7 +175,7 @@ export function MenswearSingleOutfitGenerator() {
       <PromptPreviewPanel meta={[{ label: "锁定单品", value: `${productImages.length} 张` }, { label: "构图参考", value: compositionImages.length ? "已提供" : "系统生成" }, { label: "人物占比", value: personScaleOptions.find(([value]) => value === personScale)?.[1] || "均衡" }, { label: "露脸", value: faceMode === "show_face" ? "完整露脸" : "无头 / 不露脸" }, { label: "口罩", value: maskMode === "wear_mask" ? "戴口罩" : maskMode === "no_mask" ? "不戴口罩" : "自动判断" }, { label: "数量", value: `${batchCount} 张` }]} prompt={prompt} />
     </div>
     {resultImages.length ? <section className="mt-5 border-t border-slate-200 pt-5"><div className="flex items-center justify-between gap-3"><div><h2 className="text-base font-semibold text-slate-950">本次生成结果</h2><p className="mt-1 text-sm text-slate-500">每张图片是一套独立穿搭，可继续在画廊查看完整提示词和参考图。</p></div><Button asChild variant="secondary"><Link href="/tools/image-gallery">打开图片画廊</Link></Button></div><div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{resultImages.map((url, index) => <a className="block overflow-hidden rounded-md border border-slate-200 bg-white" href={url} key={`${url}-${index}`} rel="noreferrer" target="_blank"><img alt={`单品穿搭结果 ${index + 1}`} className="aspect-[3/4] w-full object-cover" src={url} /></a>)}</div></section> : null}
-    <PromptEditorDialog description="请确认或修改完整提示词，保存后提交单品穿搭生图任务。" onClose={() => setPromptOpen(false)} onSave={generate} open={isPromptOpen} prompt={promptDraft} title="确认男装单品穿搭提示词" />
+    <PromptEditorDialog description="请确认或修改完整提示词，保存后提交单品穿搭生图任务。" onClose={() => setPromptOpen(false)} onSave={generate} open={isPromptOpen} prompt={promptDraft} title={`确认${genderLabel}单品穿搭提示词`} />
   </>;
 }
 

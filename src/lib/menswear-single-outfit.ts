@@ -23,12 +23,14 @@ export function buildMenswearSingleOutfitPrompt(input: {
   poseInstruction?: string;
   poseMode?: MenswearSingleOutfitPoseMode;
   productImageCount: number;
+  gender?: "men" | "women";
 }) {
+  const genderLabel = input.gender === "women" ? "女装" : "男装";
   const compositionRule = input.hasCompositionReference
     ? input.compositionFidelity === "adjustable"
       ? "构图参考图以人物姿势、镜头距离、构图与氛围为主，可按用户明确说明轻微调整人物位置或背景；绝不复制其中的服装、人物身份、品牌、文字或商品细节。"
       : "构图参考图为硬约束：必须复刻构图参考图的人物位置、姿势、镜头角度、人物占比、裁切范围、留白和背景空间关系；仅将参考图中的服装替换为锁定单品，绝不复制其中的服装、人物身份、品牌、文字或商品细节。"
-    : "没有构图参考图，根据动作和背景要求生成自然真实的男装上身图。";
+    : `没有构图参考图，根据动作和背景要求生成自然真实的${genderLabel}上身图。`;
   const faceRule = input.hasFaceReference
     ? "最后一张为脸部身份参考图，只锁定五官、发型和年龄感，不改变服装、身材、动作、背景或画面风格。"
     : "没有脸部身份参考图，按模特要求生成自然真实人物。";
@@ -42,7 +44,7 @@ export function buildMenswearSingleOutfitPrompt(input: {
       : `动作：${input.poseInstruction?.trim() || "生成自然、合理且能展示服装的站姿或行走动作。"}`;
 
   return [
-    "你是专业男装单品穿搭视觉生成师。",
+    `你是专业${genderLabel}单品穿搭视觉生成师。`,
     `图片顺序：前 ${input.productImageCount} 张为锁定服装单品参考图${input.hasCompositionReference ? "，随后一张为构图参考图" : ""}${input.hasFaceReference ? "，最后一张为脸部身份参考图" : ""}。`,
     "核心任务：基于上传的单件或多件衣服、裤子、内搭、鞋包或配饰，完成一套真实协调的上身穿搭。",
     "商品锁定：必须保持每个上传单品的颜色、版型、材质、图案、Logo、领口、袖型、口袋、纽扣、拉链和配饰数量；不得改款、换色、删除或补全不可见商品细节。",

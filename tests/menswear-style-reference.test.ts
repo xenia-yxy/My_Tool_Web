@@ -102,6 +102,22 @@ test("builds a menswear one-piece multi outfit prompt for model and flatlay layo
   assert.match(flatlayPrompt, /不要出现文字/);
 });
 
+test("womenswear exposes the same image workflows with dedicated female defaults", () => {
+  const workspace = readFileSync("src/components/tools/womenswear/womenswear-workspace.tsx", "utf8");
+  const singleOutfitPage = readFileSync("src/app/tools/womenswear/single-outfit/page.tsx", "utf8");
+  const multiOutfitPage = readFileSync("src/app/tools/womenswear/multi-outfit/page.tsx", "utf8");
+  const singleOutfit = readFileSync("src/components/tools/menswear/single-outfit-generator.tsx", "utf8");
+  const multiOutfit = readFileSync("src/components/tools/menswear/multi-outfit-generator.tsx", "utf8");
+
+  assert.match(workspace, /女装严格保真生图/);
+  assert.match(workspace, /女装一衣多搭合集/);
+  assert.match(workspace, /女装平铺多搭拆分生图/);
+  assert.match(singleOutfitPage, /gender="women"/);
+  assert.match(multiOutfitPage, /gender="women"/);
+  assert.match(singleOutfit, /gender\?: "men" \| "women"/);
+  assert.match(multiOutfit, /gender\?: "men" \| "women"/);
+});
+
 test("multi-outfit split mode locks each output to its matching flatlay look", () => {
   const prompt = buildMenswearMultiOutfitPrompt({
     subjectImageCount: 1,

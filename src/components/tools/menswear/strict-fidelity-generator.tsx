@@ -110,7 +110,7 @@ const defaultSystemControls: SystemControls = {
   mood: "清爽自然",
 };
 
-export function StrictFidelityGenerator() {
+export function StrictFidelityGenerator({ gender = "men" }: { gender?: "men" | "women" }) {
   const searchParams = useSearchParams();
   const projectId = searchParams.get("projectId");
   const [materials, setMaterials] = useState<MenswearMaterial[]>([]);
@@ -145,11 +145,11 @@ export function StrictFidelityGenerator() {
   const promptSystemControls = (Object.keys(systemControls) as Array<keyof SystemControls>)
     .map((key) => systemControls[key] === "自定义" ? customSystemControls[key] : systemControls[key])
     .filter((value): value is string => Boolean(value?.trim()));
-  const promptPreview = useMemo(() => buildStrictMenswearPrompt({
+  const promptPreview = useMemo(() => adaptPromptGender(buildStrictMenswearPrompt({
     aspectRatio,
     cameraDistance,
     customInstructions,
-    description: description || "请根据锁定的商品素材生成真实男装穿搭图",
+    description: description || `请根据锁定的商品素材生成真实${gender === "women" ? "女装" : "男装"}穿搭图`,
     modelName,
     references: projectReferences.map((reference) => ({
       fidelity: reference.fidelity,
@@ -159,7 +159,7 @@ export function StrictFidelityGenerator() {
     })),
     stylePreset: promptStyle,
     systemControls: promptSystemControls,
-  }), [aspectRatio, cameraDistance, customInstructions, description, materials, modelName, projectReferences, promptStyle, promptSystemControls]);
+  }), gender), [aspectRatio, cameraDistance, customInstructions, description, gender, materials, modelName, projectReferences, promptStyle, promptSystemControls]);
 
   const loadDependencies = useCallback(async () => {
     setIsLoading(true);
@@ -684,4 +684,8 @@ function normalizeSystemControls(value: unknown): Partial<SystemControls> {
     if (typeof source[key] === "string") result[key] = source[key];
     return result;
   }, {});
+}
+
+function adaptPromptGender(prompt: string, gender: "men" | "women") {
+  return gender === "women" ? prompt.replaceAll("男装", "女装").replaceAll("男模特", "女模特") : prompt;
 }

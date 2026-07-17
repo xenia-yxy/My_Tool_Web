@@ -53,7 +53,9 @@ export function buildMenswearMultiOutfitPrompt(input: {
   targetAudience?: string;
   textMode: MenswearMultiOutfitTextMode;
   usageScene?: string;
+  gender?: "men" | "women";
 }) {
+  const genderLabel = input.gender === "women" ? "女装" : "男装";
   const preserve =
     input.preserveInstructions?.trim() ||
     "保留主商品的颜色、版型、材质、图案、领口、袖型、纽扣、印花、口袋和整体比例";
@@ -115,13 +117,13 @@ export function buildMenswearMultiOutfitPrompt(input: {
       : "不要出现文字、标题、价格、标签、logo、水印、按钮或说明。";
 
   return [
-    "你是专业男装一衣多搭视觉生成师。",
+    `你是专业${genderLabel}一衣多搭视觉生成师。`,
     isFlatlaySplit
       ? `图片顺序：第 1 张为平铺多搭图${input.hasStyleReference ? "，随后一张为人物穿搭参考图" : ""}${input.modelFaceReferenceSource ? "，最后一张为脸部身份参考图" : ""}。`
       : `图片顺序：前 ${input.subjectImageCount} 张为服装主体参考图。`,
     input.outputFormat === "split"
-      ? `输出目标：按平铺多搭顺序生成 ${input.outfitCount} 张单张人物穿搭图，每张只展示一套不同男装搭配。`
-      : `输出目标：生成一张一衣多搭展示图，展示 ${input.outfitCount} 套不同男装搭配。`,
+      ? `输出目标：按平铺多搭顺序生成 ${input.outfitCount} 张单张人物穿搭图，每张只展示一套不同${genderLabel}搭配。`
+      : `输出目标：生成一张一衣多搭展示图，展示 ${input.outfitCount} 套不同${genderLabel}搭配。`,
     `目标客群：${targetAudience}。`,
     `使用场景：${usageScene}。`,
     `输出比例：${aspectRatio}。`,
@@ -136,7 +138,7 @@ export function buildMenswearMultiOutfitPrompt(input: {
     display,
     ...(input.outputFormat === "split" ? [`口罩：${maskModeInstruction(input.maskMode)}。`, compositionRule, backgroundRule, poseRule] : []),
     "搭配要求：每套搭配的裤装、鞋子、外套、包或配饰可以变化，但必须服务于同一主商品；搭配之间要有明确差异，整体仍然真实可穿。",
-    "版式要求：横向排列，间距均匀，主商品识别度高，背景干净，适合男装电商图文和社媒封面。",
+    `版式要求：横向排列，间距均匀，主商品识别度高，背景干净，适合${genderLabel}电商图文和社媒封面。`,
     "真实感要求：服装结构可信，面料纹理自然，阴影和透视合理，不要生成畸形人体、错误袖口、错乱领口或重复肢体。",
     textRule,
   ].join("\n");

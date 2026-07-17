@@ -51,7 +51,9 @@ const cameraDistanceOptions: Array<[MenswearStyleReferenceCameraDistance, string
   ["close_detail", "近景细节"],
 ];
 
-export function StyleReferenceGenerator() {
+export function StyleReferenceGenerator({ gender = "men" }: { gender?: "men" | "women" }) {
+  const isWomen = gender === "women";
+  const genderLabel = isWomen ? "女装" : "男装";
   const [mainImages, setMainImages] = useState<File[]>([]);
   const [styleImages, setStyleImages] = useState<File[]>([]);
   const [modelFaceFiles, setModelFaceFiles] = useState<File[]>([]);
@@ -72,7 +74,7 @@ export function StyleReferenceGenerator() {
   const [notice, setNotice] = useState<string | null>(null);
   const [resultImages, setResultImages] = useState<string[]>([]);
   const restoredSessionId = useRef<string | null>(null);
-  const { create, session } = useWorkbenchSession("menswear-style-reference");
+  const { create, session } = useWorkbenchSession(isWomen ? "womenswear-style-reference" : "menswear-style-reference");
 
   const preserveInstructions = preservePreset === "自定义" ? customPreserve : preservePreset;
   const styleInstructions = stylePreset === "自定义" ? customStyle : stylePreset;
@@ -85,8 +87,9 @@ export function StyleReferenceGenerator() {
         modelFaceReferenceSource: modelFaceFiles.length > 0 ? modelFaceSourceLabel(modelFaceSource) : undefined,
         preserveInstructions,
         styleInstructions,
+        gender,
       }),
-    [aspectRatio, cameraDistance, mainImages.length, modelFaceFiles.length, modelFaceSource, preserveInstructions, styleInstructions],
+    [aspectRatio, cameraDistance, gender, mainImages.length, modelFaceFiles.length, modelFaceSource, preserveInstructions, styleInstructions],
   );
   const canSubmit = mainImages.length > 0 && styleImages.length === 1 && !isGenerating;
 
@@ -157,7 +160,7 @@ export function StyleReferenceGenerator() {
 
     try {
       const activeSession = await create({
-        title: "男装风格参考生图",
+        title: `${genderLabel}风格参考生图`,
         status: "RUNNING",
         prompt: finalPrompt,
         inputSnapshot: {
@@ -183,7 +186,7 @@ export function StyleReferenceGenerator() {
 
       const response = await submitGeneration(activeSession.id, finalPrompt);
       const payload = (await response.json().catch(() => ({}))) as GenerationPayload;
-      if (!response.ok) throw new Error(payload.error || "男装风格参考生图失败");
+      if (!response.ok) throw new Error(payload.error || `${genderLabel}风格参考生图失败`);
 
       const imageUrls = payload.results?.flatMap((item) => (item.imageUrl ? [item.imageUrl] : [])) || [];
       const summary = `已生成 ${imageUrls.length || batchCount} 张图片，结果已保存到统一图片画廊。`;
@@ -202,7 +205,7 @@ export function StyleReferenceGenerator() {
         errorMessage: null,
       });
     } catch (caughtError) {
-      const message = caughtError instanceof Error ? caughtError.message : "男装风格参考生图失败";
+      const message = caughtError instanceof Error ? caughtError.message : `${genderLabel}风格参考生图失败`;
       setError(message);
       if (activeSessionId) await patchSession(activeSessionId, { status: "FAILED", errorMessage: message });
     } finally {
@@ -212,14 +215,14 @@ export function StyleReferenceGenerator() {
 
   function submitGeneration(workbenchSessionId: string, finalPrompt: string) {
     const formData = new FormData();
-    formData.set("mode", "menswear");
-    formData.set("sourceTool", "menswear-style-reference");
-    formData.set("description", "男装主图参考风格生成");
-    formData.set("purpose", "男装风格参考生图");
+    formData.set("mode", isWomen ? "womenswear" : "menswear");
+    formData.set("sourceTool", isWomen ? "womenswear-style-reference" : "menswear-style-reference");
+    formData.set("description", `${genderLabel}主图参考风格生成`);
+    formData.set("purpose", `${genderLabel}风格参考生图`);
     formData.set("style", styleInstructions);
-    formData.set("caption", `按风格参考图生成真实男装图，保留要求：${preserveInstructions}`);
-    formData.set("tags", "#男装 #风格参考 #AI生图");
-    formData.set("productKeywords", "男装 风格参考 真实服装摄影");
+    formData.set("caption", `按风格参考图生成真实${genderLabel}图，保留要求：${preserveInstructions}`);
+    formData.set("tags", isWomen ? "#女装 #女生穿搭 #风格参考 #AI生图" : "#男装 #风格参考 #AI生图");
+    formData.set("productKeywords", `${genderLabel} 风格参考 真实服装摄影`);
     formData.set("aspectRatio", aspectRatio);
     formData.set("quality", quality);
     formData.set("batchCount", String(batchCount));
@@ -353,7 +356,7 @@ export function StyleReferenceGenerator() {
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {resultImages.map((imageUrl, index) => (
               <a className="block overflow-hidden rounded-lg border border-slate-200 bg-white" href={imageUrl} key={`${imageUrl}-${index}`} rel="noreferrer" target="_blank">
-                <img alt={`男装风格参考结果 ${index + 1}`} className="aspect-[3/4] w-full object-cover" src={imageUrl} />
+                <img alt={`${genderLabel}风格参考结果 ${index + 1}`} className="aspect-[3/4] w-full object-cover" src={imageUrl} />
               </a>
             ))}
           </div>
@@ -366,7 +369,7 @@ export function StyleReferenceGenerator() {
         onSave={generate}
         open={isPromptOpen}
         prompt={promptDraft}
-        title="确认男装风格参考提示词"
+        title={`确认${genderLabel}风格参考提示词`}
       />
     </>
   );
