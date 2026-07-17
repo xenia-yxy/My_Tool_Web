@@ -52,6 +52,8 @@ test("product catalog exposes a standalone visible list instead of the material 
   assert.match(workspace, /\/api\/tools\/products/);
   assert.match(workspace, /\/api\/tools\/product-categories/);
   assert.match(workspace, /新建选品/);
+  assert.match(workspace, /新增分类/);
+  assert.match(workspace, /创建选品分类/);
   assert.match(workspace, /图片数量/);
   assert.match(workspace, /AI 分析状态/);
   assert.doesNotMatch(workspace, /menswear\/materials/);
