@@ -137,7 +137,7 @@ export function MenswearSingleOutfitGenerator() {
         <CardContent><form className="grid gap-5" onSubmit={openPrompt}>
           <ImageReferenceUploader emptyText="上传服装单品图" files={productImages} helper="1-6 张；支持衣服、裤子、内搭、鞋包和配饰，本次会严格保留。" label="锁定单品图" materialCategories={["top", "inner", "bottom", "shoes", "bag", "accessory", "outfit"]} maxFiles={6} onChange={setProductImages} />
           <ImageReferenceUploader emptyText="上传穿搭/构图参考图（可选）" files={compositionImages} helper="只借鉴动作、人物占比、镜头、构图和氛围，不复制参考图中的衣服。" label="构图参考图" materialCategories={["pose", "background", "composition", "lighting", "mood"]} maxFiles={1} onChange={setCompositionImages} />
-          <ImageReferenceUploader allowMaterialPicker={false} emptyText="上传脸部参考图" files={modelFaceFiles} helper="脸部只使用你本地上传的图片；选择完整露脸时必填，仅锁定人物身份。" label="脸部参考图" maxFiles={1} onChange={setModelFaceFiles} />
+          <ImageReferenceUploader emptyText="上传脸部参考图" files={modelFaceFiles} helper="可本地上传或从素材库选择模特脸部；选择完整露脸时必填，仅锁定人物身份。" label="脸部参考图" materialCategories={["model_face"]} maxFiles={1} onChange={setModelFaceFiles} />
           <div className="grid gap-3 md:grid-cols-2">
             <SelectField label="模特性别" onChange={(value) => setModelGender(value as MenswearSingleOutfitModelGender)} options={[["male", "男模特"], ["female", "女模特"], ["auto", "按商品判断"]]} value={modelGender} />
             <SelectField label="是否露脸" onChange={(value) => setFaceMode(value as MenswearSingleOutfitFaceMode)} options={[["show_face", "完整露脸"], ["hidden_face", "无头 / 不露脸"]]} value={faceMode} />

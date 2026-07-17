@@ -33,11 +33,14 @@ test("registers the single-look menswear workflow across workspace, history, and
   const workspace = readFileSync("src/components/tools/menswear/menswear-workspace.tsx", "utf8");
   const page = readFileSync("src/app/tools/menswear/single-outfit/page.tsx", "utf8");
   const skillCatalog = readFileSync("src/lib/creative-skills.ts", "utf8");
+  const generator = readFileSync("src/components/tools/menswear/single-outfit-generator.tsx", "utf8");
 
   assert.match(workspace, /单品穿搭生图/);
   assert.match(workspace, /\/tools\/menswear\/single-outfit/);
   assert.match(page, /MenswearSingleOutfitGenerator/);
   assert.match(skillCatalog, /menswear-single-outfit/);
+  assert.match(generator, /materialCategories=\{\["model_face"\]\}/);
+  assert.doesNotMatch(generator, /allowMaterialPicker=\{false\}/);
   assert.equal(getWorkbenchTool("menswear-single-outfit")?.label, "男装单品穿搭生图");
   assert.equal(resolveImageWorkbenchToolId("menswear-single-outfit"), "menswear-single-outfit");
 });
