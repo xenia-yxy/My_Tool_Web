@@ -18,6 +18,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { IMAGE_ASPECT_RATIO_OPTIONS } from "@/lib/image-aspect-ratios";
 import { buildIpPromptPreview } from "@/lib/image-generation-workflow";
 
 type IpType = "person" | "product" | "content";
@@ -59,7 +60,7 @@ export function IpPrototypeWorkbench() {
   const [visualAnchors, setVisualAnchors] = useState("");
   const [avoidDirections, setAvoidDirections] = useState("");
   const [scenario, setScenario] = useState("");
-  const [aspectRatio, setAspectRatio] = useState("square");
+  const [aspectRatio, setAspectRatio] = useState("3:4");
   const [quality, setQuality] = useState("low");
   const [batchCount, setBatchCount] = useState(1);
   const [draftImages, setDraftImages] = useState<File[]>([]);
@@ -320,11 +321,7 @@ export function IpPrototypeWorkbench() {
                     <SelectField
                       label="尺寸"
                       onChange={setAspectRatio}
-                      options={[
-                        { value: "square", label: "方图" },
-                        { value: "portrait", label: "竖图" },
-                        { value: "landscape", label: "横图" },
-                      ]}
+                      options={IMAGE_ASPECT_RATIO_OPTIONS.map(([value, label]) => ({ value, label }))}
                       value={aspectRatio}
                     />
                     <SelectField

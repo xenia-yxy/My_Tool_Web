@@ -26,6 +26,12 @@ import type {
 } from "@/components/tools/menswear/types";
 import { Button } from "@/components/ui/button";
 import {
+  getImageAspectClass,
+  IMAGE_ASPECT_RATIO_OPTIONS,
+  isImageAspectRatioPreset,
+  type ImageAspectRatioPreset,
+} from "@/lib/image-aspect-ratios";
+import {
   buildStrictMenswearPrompt,
   type MenswearCameraDistance,
   type MenswearReferencePolicy,
@@ -100,6 +106,7 @@ const cameraDistanceOptions: Array<[MenswearCameraDistance, string]> = [
   ["half_body", "半身"],
   ["close_detail", "近景细节"],
 ];
+const aspectRatioOptions = IMAGE_ASPECT_RATIO_OPTIONS;
 
 type SystemControls = Record<keyof typeof systemControlOptions, string>;
 
@@ -124,7 +131,7 @@ export function StrictFidelityGenerator({ gender = "men" }: { gender?: "men" | "
   const [customStyle, setCustomStyle] = useState("");
   const [systemControls, setSystemControls] = useState<SystemControls>(defaultSystemControls);
   const [customSystemControls, setCustomSystemControls] = useState<Partial<SystemControls>>({});
-  const [aspectRatio, setAspectRatio] = useState<"square" | "portrait" | "landscape">("portrait");
+  const [aspectRatio, setAspectRatio] = useState<ImageAspectRatioPreset>("3:4");
   const [cameraDistance, setCameraDistance] = useState<MenswearCameraDistance>("three_quarter");
   const [batchCount, setBatchCount] = useState(1);
   const [quality, setQuality] = useState<"low" | "medium" | "high">("medium");
@@ -438,12 +445,12 @@ export function StrictFidelityGenerator({ gender = "men" }: { gender?: "men" | "
             <span className="text-sm font-medium text-slate-700">比例</span>
             <select
               className="h-10 rounded-md border border-slate-200 px-3 text-sm"
-              onChange={(event) => setAspectRatio(event.target.value as typeof aspectRatio)}
+              onChange={(event) => setAspectRatio(event.target.value as ImageAspectRatioPreset)}
               value={aspectRatio}
             >
-              <option value="portrait">竖图 3:4</option>
-              <option value="square">方图 1:1</option>
-              <option value="landscape">横图</option>
+              {aspectRatioOptions.map(([value, label]) => (
+                <option key={value} value={value}>{label}</option>
+              ))}
             </select>
           </label>
           <label className="grid gap-1.5">
@@ -518,7 +525,7 @@ export function StrictFidelityGenerator({ gender = "men" }: { gender?: "men" | "
               </Button>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {results.map((result, index) => <ResultCard key={`${result.imageUrl}-${index}`} result={result} />)}
+              {results.map((result, index) => <ResultCard aspectRatio={aspectRatio} key={`${result.imageUrl}-${index}`} result={result} />)}
             </div>
           </section>
         ) : null}
@@ -603,10 +610,10 @@ function CopyButton({ text }: { text: string }) {
   );
 }
 
-function ResultCard({ result }: { result: GeneratedResult }) {
+function ResultCard({ aspectRatio, result }: { aspectRatio: ImageAspectRatioPreset; result: GeneratedResult }) {
   return (
     <article className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-      <a className="relative block aspect-[3/4] overflow-hidden bg-slate-50" href={result.imageUrl} rel="noreferrer" target="_blank">
+      <a className={`relative block ${getImageAspectClass(aspectRatio)} overflow-hidden bg-slate-50`} href={result.imageUrl} rel="noreferrer" target="_blank">
         <Image alt={result.title} className="object-cover" fill sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw" src={result.imageUrl} unoptimized />
       </a>
       <div className="grid gap-2 p-3">
@@ -633,7 +640,7 @@ function normalizeRestoredReferences(value: RestoredMenswearProject["references"
 }
 
 function normalizeProjectSettings(value: unknown): {
-  aspectRatio: "square" | "portrait" | "landscape";
+  aspectRatio: ImageAspectRatioPreset;
   batchCount: number;
   cameraDistance: MenswearCameraDistance;
   customInstructions: string;
@@ -646,9 +653,9 @@ function normalizeProjectSettings(value: unknown): {
   const settings = value && typeof value === "object" && !Array.isArray(value)
     ? value as Record<string, unknown>
     : {};
-  const aspectRatio = settings.aspectRatio === "square" || settings.aspectRatio === "landscape"
+  const aspectRatio = isImageAspectRatioPreset(settings.aspectRatio)
     ? settings.aspectRatio
-    : "portrait";
+    : "3:4";
   const batchCount = [1, 2, 4, 6, 9, 12].includes(Number(settings.batchCount))
     ? Number(settings.batchCount)
     : 4;

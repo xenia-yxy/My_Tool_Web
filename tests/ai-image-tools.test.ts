@@ -13,6 +13,12 @@ test("normalizeImageSize maps tool aspect ratios to image API sizes", () => {
   assert.equal(normalizeImageSize("square"), "1024x1024");
   assert.equal(normalizeImageSize("portrait"), "1024x1536");
   assert.equal(normalizeImageSize("landscape"), "1536x1024");
+  assert.equal(normalizeImageSize("1:1"), "1024x1024");
+  assert.equal(normalizeImageSize("3:4"), "1080x1440");
+  assert.equal(normalizeImageSize("4:3"), "1440x1080");
+  assert.equal(normalizeImageSize("9:16"), "1080x1920");
+  assert.equal(normalizeImageSize("16:9"), "1920x1080");
+  assert.equal(normalizeImageSize("xiaohongshu"), "1080x1440");
   assert.equal(normalizeImageSize("unexpected"), "1024x1024");
 });
 

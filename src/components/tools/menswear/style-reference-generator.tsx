@@ -12,6 +12,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  getImageAspectClass,
+  IMAGE_ASPECT_RATIO_OPTIONS,
+} from "@/lib/image-aspect-ratios";
+import {
   buildMenswearStyleReferencePrompt,
   type MenswearStyleReferenceAspectRatio,
   type MenswearStyleReferenceCameraDistance,
@@ -37,11 +41,7 @@ const stylePresets = [
   "自定义",
 ];
 
-const aspectRatioOptions: Array<[MenswearStyleReferenceAspectRatio, string]> = [
-  ["portrait", "竖图 3:4"],
-  ["square", "方图 1:1"],
-  ["landscape", "横图"],
-];
+const aspectRatioOptions = IMAGE_ASPECT_RATIO_OPTIONS;
 
 const cameraDistanceOptions: Array<[MenswearStyleReferenceCameraDistance, string]> = [
   ["match_reference", "保持参考图远近"],
@@ -63,7 +63,7 @@ export function StyleReferenceGenerator({ gender = "men" }: { gender?: "men" | "
   const [customPreserve, setCustomPreserve] = useState("");
   const [stylePreset, setStylePreset] = useState(stylePresets[0]);
   const [customStyle, setCustomStyle] = useState("");
-  const [aspectRatio, setAspectRatio] = useState<MenswearStyleReferenceAspectRatio>("portrait");
+  const [aspectRatio, setAspectRatio] = useState<MenswearStyleReferenceAspectRatio>("3:4");
   const [cameraDistance, setCameraDistance] = useState<MenswearStyleReferenceCameraDistance>("match_reference");
   const [quality, setQuality] = useState("medium");
   const [batchCount, setBatchCount] = useState(1);
@@ -362,7 +362,7 @@ export function StyleReferenceGenerator({ gender = "men" }: { gender?: "men" | "
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {resultImages.map((imageUrl, index) => (
               <a className="block overflow-hidden rounded-lg border border-slate-200 bg-white" href={imageUrl} key={`${imageUrl}-${index}`} rel="noreferrer" target="_blank">
-                <img alt={`${genderLabel}风格参考结果 ${index + 1}`} className="aspect-[3/4] w-full object-cover" src={imageUrl} />
+                <img alt={`${genderLabel}风格参考结果 ${index + 1}`} className={`${getImageAspectClass(aspectRatio)} w-full object-cover`} src={imageUrl} />
               </a>
             ))}
           </div>

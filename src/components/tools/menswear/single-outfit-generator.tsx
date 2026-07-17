@@ -11,6 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  getImageAspectClass,
+  IMAGE_ASPECT_RATIO_OPTIONS,
+} from "@/lib/image-aspect-ratios";
+import {
   buildMenswearSingleOutfitPrompt,
   type MenswearSingleOutfitAspectRatio,
   type MenswearSingleOutfitBackgroundMode,
@@ -25,7 +29,7 @@ import {
 
 type GenerationPayload = { error?: string; job?: { id?: string }; results?: Array<{ imageUrl?: string; asset?: { id?: string } }> };
 
-const aspectRatioOptions: Array<[MenswearSingleOutfitAspectRatio, string]> = [["portrait", "竖图 3:4"], ["square", "方图 1:1"], ["landscape", "横图"]];
+const aspectRatioOptions = IMAGE_ASPECT_RATIO_OPTIONS;
 const cameraDistanceOptions: Array<[MenswearSingleOutfitCameraDistance, string]> = [["full_body", "全身"], ["three_quarter", "七分身"], ["half_body", "半身"]];
 const personScaleOptions: Array<[MenswearSingleOutfitPersonScale, string]> = [["small", "人物小 / 环境多"], ["balanced", "均衡（55%-70%）"], ["dominant", "人物突出（70%-80%）"], ["close", "近景（80%-90%）"]];
 
@@ -40,7 +44,7 @@ export function MenswearSingleOutfitGenerator({ gender = "men" }: { gender?: "me
   const [modelGender, setModelGender] = useState<MenswearSingleOutfitModelGender>(isWomen ? "female" : "male");
   const [maskMode, setMaskMode] = useState<MenswearSingleOutfitMaskMode>("no_mask");
   const [faceMode, setFaceMode] = useState<MenswearSingleOutfitFaceMode>("show_face");
-  const [aspectRatio, setAspectRatio] = useState<MenswearSingleOutfitAspectRatio>("portrait");
+  const [aspectRatio, setAspectRatio] = useState<MenswearSingleOutfitAspectRatio>("3:4");
   const [cameraDistance, setCameraDistance] = useState<MenswearSingleOutfitCameraDistance>("three_quarter");
   const [personScale, setPersonScale] = useState<MenswearSingleOutfitPersonScale>("balanced");
   const [poseInstruction, setPoseInstruction] = useState("");
@@ -179,7 +183,7 @@ export function MenswearSingleOutfitGenerator({ gender = "men" }: { gender?: "me
       </Card>
       <PromptPreviewPanel meta={[{ label: "锁定单品", value: `${productImages.length} 张` }, { label: "构图参考", value: compositionImages.length ? "已提供" : "系统生成" }, { label: "人物占比", value: personScaleOptions.find(([value]) => value === personScale)?.[1] || "均衡" }, { label: "露脸", value: faceMode === "show_face" ? "完整露脸" : "无头 / 不露脸" }, { label: "口罩", value: maskMode === "wear_mask" ? "戴口罩" : maskMode === "no_mask" ? "不戴口罩" : "自动判断" }, { label: "数量", value: `${batchCount} 张` }]} prompt={prompt} />
     </div>
-    {resultImages.length ? <section className="mt-5 border-t border-slate-200 pt-5"><div className="flex items-center justify-between gap-3"><div><h2 className="text-base font-semibold text-slate-950">本次生成结果</h2><p className="mt-1 text-sm text-slate-500">每张图片是一套独立穿搭，可继续在画廊查看完整提示词和参考图。</p></div><Button asChild variant="secondary"><Link href="/tools/image-gallery">打开图片画廊</Link></Button></div><div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{resultImages.map((url, index) => <a className="block overflow-hidden rounded-md border border-slate-200 bg-white" href={url} key={`${url}-${index}`} rel="noreferrer" target="_blank"><img alt={`单品穿搭结果 ${index + 1}`} className="aspect-[3/4] w-full object-cover" src={url} /></a>)}</div></section> : null}
+    {resultImages.length ? <section className="mt-5 border-t border-slate-200 pt-5"><div className="flex items-center justify-between gap-3"><div><h2 className="text-base font-semibold text-slate-950">本次生成结果</h2><p className="mt-1 text-sm text-slate-500">每张图片是一套独立穿搭，可继续在画廊查看完整提示词和参考图。</p></div><Button asChild variant="secondary"><Link href="/tools/image-gallery">打开图片画廊</Link></Button></div><div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">{resultImages.map((url, index) => <a className="block overflow-hidden rounded-md border border-slate-200 bg-white" href={url} key={`${url}-${index}`} rel="noreferrer" target="_blank"><img alt={`单品穿搭结果 ${index + 1}`} className={`${getImageAspectClass(aspectRatio)} w-full object-cover`} src={url} /></a>)}</div></section> : null}
     <PromptEditorDialog description="请确认或修改完整提示词，保存后提交单品穿搭生图任务。" onClose={() => setPromptOpen(false)} onSave={generate} open={isPromptOpen} prompt={promptDraft} title={`确认${genderLabel}单品穿搭提示词`} />
   </>;
 }

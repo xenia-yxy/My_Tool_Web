@@ -7,6 +7,10 @@ import {
   isAliyunOssEnabled,
   uploadBufferToAliyunOss,
 } from "@/server/oss-storage";
+import {
+  imageAspectRatioToSize,
+  type ImageAspectRatioPreset,
+} from "@/lib/image-aspect-ratios";
 
 export type AiImageToolMode =
   | "custom"
@@ -15,7 +19,7 @@ export type AiImageToolMode =
   | "womenswear"
   | "snack-grocery"
   | "ip-prototype";
-export type ImageAspectRatio = "square" | "portrait" | "landscape";
+export type ImageAspectRatio = ImageAspectRatioPreset;
 export type ImageQuality = "low" | "medium" | "high";
 export type OutfitModelMode = "flatlay" | "half_body" | "full_body";
 export type OutfitModelGender = "female" | "male" | "unspecified";
@@ -77,15 +81,7 @@ export function normalizeImageBatchCount(value: unknown) {
 }
 
 export function normalizeImageSize(value?: string | null) {
-  if (value === "portrait") {
-    return "1024x1536";
-  }
-
-  if (value === "landscape") {
-    return "1536x1024";
-  }
-
-  return "1024x1024";
+  return imageAspectRatioToSize(value);
 }
 
 export function normalizeImageQuality(value?: string | null): ImageQuality {

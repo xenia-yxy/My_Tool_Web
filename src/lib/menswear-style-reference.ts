@@ -1,4 +1,6 @@
-export type MenswearStyleReferenceAspectRatio = "square" | "portrait" | "landscape";
+import type { ImageAspectRatioPreset } from "@/lib/image-aspect-ratios";
+
+export type MenswearStyleReferenceAspectRatio = ImageAspectRatioPreset;
 export type MenswearStyleReferenceCameraDistance =
   | "match_reference"
   | "full_body"

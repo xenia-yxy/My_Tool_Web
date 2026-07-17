@@ -13,6 +13,10 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  getImageAspectClass,
+  IMAGE_ASPECT_RATIO_OPTIONS,
+} from "@/lib/image-aspect-ratios";
+import {
   buildIpDerivativePrompt,
   getIpDerivativeModeControlPresets,
   getIpDerivativeModePresets,
@@ -38,7 +42,7 @@ export function IpDerivativeFactoryWorkbench() {
   const [referenceFocus, setReferenceFocus] = useState("");
   const [outfitTransfer, setOutfitTransfer] = useState<string[]>(["服装版型", "配色", "搭配关系", "配饰"]);
   const [stickerText, setStickerText] = useState("");
-  const [aspectRatio, setAspectRatio] = useState("square");
+  const [aspectRatio, setAspectRatio] = useState("3:4");
   const [quality, setQuality] = useState("medium");
   const [batchCount, setBatchCount] = useState(1);
   const [baseIpImages, setBaseIpImages] = useState<File[]>([]);
@@ -359,7 +363,7 @@ export function IpDerivativeFactoryWorkbench() {
               ) : null}
 
               <div className="grid gap-3 md:grid-cols-3">
-                <SelectField label="画面比例" onChange={setAspectRatio} options={[{ value: "square", label: "方图" }, { value: "portrait", label: "竖图" }, { value: "landscape", label: "横图" }]} value={aspectRatio} />
+                <SelectField label="画面比例" onChange={setAspectRatio} options={IMAGE_ASPECT_RATIO_OPTIONS.map(([value, label]) => ({ value, label }))} value={aspectRatio} />
                 <SelectField label="质量" onChange={setQuality} options={[{ value: "low", label: "低" }, { value: "medium", label: "中" }, { value: "high", label: "高" }]} value={quality} />
                 <SelectField label="数量" onChange={(value) => setBatchCount(Number(value))} options={[{ value: "1", label: "1 张" }, { value: "2", label: "2 张" }, { value: "4", label: "4 张" }, { value: "6", label: "6 张" }, { value: "9", label: "9 张" }, { value: "12", label: "12 张" }, { value: "18", label: "18 张" }, { value: "30", label: "30 张" }]} value={String(batchCount)} />
               </div>
@@ -399,7 +403,7 @@ export function IpDerivativeFactoryWorkbench() {
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {resultImages.map((imageUrl, index) => (
               <a className="block overflow-hidden rounded-lg border border-slate-200 bg-white" href={imageUrl} key={`${imageUrl}-${index}`} rel="noreferrer" target="_blank">
-                <img alt={`IP 衍生结果 ${index + 1}`} className="aspect-square w-full object-cover" src={imageUrl} />
+                <img alt={`IP 衍生结果 ${index + 1}`} className={`${getImageAspectClass(aspectRatio)} w-full object-cover`} src={imageUrl} />
               </a>
             ))}
           </div>

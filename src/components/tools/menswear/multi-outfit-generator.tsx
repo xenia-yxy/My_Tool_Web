@@ -8,6 +8,10 @@ import { ModelFaceReferenceSelector, type ModelFaceReferenceSource } from "@/com
 import { PromptEditorDialog } from "@/components/tools/prompt-editor-dialog";
 import { PromptPreviewPanel } from "@/components/tools/prompt-preview-panel";
 import { useWorkbenchSession } from "@/components/tools/workbench-session-client";
+import {
+  getImageAspectClass,
+  IMAGE_ASPECT_RATIO_OPTIONS,
+} from "@/lib/image-aspect-ratios";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -62,11 +66,7 @@ const seasonOptions: Array<[MenswearMultiOutfitSeason, string]> = [
   ["all_season", "四季通用"],
 ];
 
-const aspectRatioOptions: Array<[MenswearMultiOutfitAspectRatio, string]> = [
-  ["landscape", "横图合集"],
-  ["portrait", "竖图 3:4"],
-  ["square", "方图 1:1"],
-];
+const aspectRatioOptions = IMAGE_ASPECT_RATIO_OPTIONS;
 
 const cameraDistanceOptions: Array<[MenswearMultiOutfitCameraDistance, string]> = [
   ["full_body", "全身"],
@@ -114,7 +114,7 @@ export function MenswearMultiOutfitGenerator({ gender = "men", variant = "board"
   const [targetAudience, setTargetAudience] = useState("");
   const [usageScene, setUsageScene] = useState("");
   const [season, setSeason] = useState<MenswearMultiOutfitSeason>("spring_autumn");
-  const [aspectRatio, setAspectRatio] = useState<MenswearMultiOutfitAspectRatio>(isSplit ? "portrait" : "landscape");
+  const [aspectRatio, setAspectRatio] = useState<MenswearMultiOutfitAspectRatio>(isSplit ? "3:4" : "16:9");
   const [cameraDistance, setCameraDistance] = useState<MenswearMultiOutfitCameraDistance>("three_quarter");
   const [preservePreset, setPreservePreset] = useState(preservePresets[0]);
   const [customPreserve, setCustomPreserve] = useState("");
@@ -692,7 +692,7 @@ export function MenswearMultiOutfitGenerator({ gender = "men", variant = "board"
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {resultImages.map((imageUrl, index) => (
               <a className="block overflow-hidden rounded-lg border border-slate-200 bg-white" href={imageUrl} key={`${imageUrl}-${index}`} rel="noreferrer" target="_blank">
-                <img alt={`${isSplit ? "平铺多搭拆分" : "男装一衣多搭"}结果 ${index + 1}`} className={`${isSplit ? "aspect-[3/4]" : "aspect-video"} w-full object-cover`} src={imageUrl} />
+                <img alt={`${isSplit ? "平铺多搭拆分" : "男装一衣多搭"}结果 ${index + 1}`} className={`${getImageAspectClass(aspectRatio)} w-full object-cover`} src={imageUrl} />
               </a>
             ))}
           </div>

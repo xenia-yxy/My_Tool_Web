@@ -1,4 +1,6 @@
-export type MenswearSingleOutfitAspectRatio = "square" | "portrait" | "landscape";
+import type { ImageAspectRatioPreset } from "@/lib/image-aspect-ratios";
+
+export type MenswearSingleOutfitAspectRatio = ImageAspectRatioPreset;
 export type MenswearSingleOutfitBackgroundMode = "inherit" | "custom";
 export type MenswearSingleOutfitCompositionFidelity = "locked" | "adjustable";
 export type MenswearSingleOutfitCameraDistance = "full_body" | "three_quarter" | "half_body";

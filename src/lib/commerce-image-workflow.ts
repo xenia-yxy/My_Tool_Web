@@ -1,3 +1,5 @@
+import type { ImageAspectRatioPreset } from "@/lib/image-aspect-ratios";
+
 export type CommerceToolMode = "menswear" | "womenswear" | "snack-grocery";
 
 export type CommerceImageRequest = {
@@ -9,7 +11,7 @@ export type CommerceImageRequest = {
   tags: string[];
   productKeywords: string[];
   style: string;
-  aspectRatio: "square" | "portrait" | "landscape";
+  aspectRatio: ImageAspectRatioPreset;
 };
 
 export type FashionImageInput = {
@@ -176,7 +178,7 @@ export function buildSnackGroceryImageRequests(
       tags,
       productKeywords,
       style: category,
-      aspectRatio: outputType === "清爽主图" ? "square" : "portrait",
+      aspectRatio: outputType === "清爽主图" ? "1:1" : "3:4",
     };
   });
 }
@@ -285,20 +287,20 @@ function buildFashionVisualInstruction(outputType: string) {
   return "图片类型要求：生成真实穿搭画面，只展示人物和服装搭配，不要生成文字排版或图文模板。";
 }
 
-function resolveFashionAspectRatio(outputType: string): "square" | "portrait" | "landscape" {
+function resolveFashionAspectRatio(outputType: string): ImageAspectRatioPreset {
   if (outputType === "一衣多搭展示" || outputType === "白底一衣多搭") {
-    return "landscape";
+    return "16:9";
   }
 
   if (outputType === "平铺搭配图" || outputType === "白底商品主图") {
-    return "square";
+    return "1:1";
   }
 
   if (outputType === "穿搭对比图" || outputType === "模特上身图") {
-    return "portrait";
+    return "3:4";
   }
 
-  return "portrait";
+  return "3:4";
 }
 
 export function buildFashionTitle(

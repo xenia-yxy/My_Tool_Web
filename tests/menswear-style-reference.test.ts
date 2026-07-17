@@ -131,14 +131,14 @@ test("multi-outfit split mode locks each output to its matching flatlay look", (
     outputFormat: "split",
   });
   const component = readFileSync("src/components/tools/menswear/multi-outfit-generator.tsx", "utf8");
-  const imageRoute = readFileSync("src/app/api/tools/image-generation/route.ts", "utf8");
+  const imageQueue = readFileSync("src/server/ai-image-queue.ts", "utf8");
 
   assert.match(prompt, /最后一张为平铺多搭参考图/);
   assert.match(prompt, /不复制其主商品、文字、品牌或人物/);
   assert.match(prompt, /必须生成 6 张独立人物穿搭图/);
   assert.match(prompt, /第 N 张只呈现参考图第 N 套搭配/);
   assert.match(component, /splitOutfitMode/);
-  assert.match(imageRoute, /平铺多搭拆分序号/);
+  assert.match(imageQueue, /平铺多搭拆分序号/);
 });
 
 test("multi-outfit prompt offers independent background and pose controls for split images", () => {

@@ -20,7 +20,7 @@ test("one-piece multi outfit prompt generates image-only landscape visuals", () 
     hasReferenceImages: true,
   });
 
-  assert.equal(request.aspectRatio, "landscape");
+  assert.equal(request.aspectRatio, "16:9");
   assert.match(request.prompt, /5 套不同搭配/);
   assert.match(request.prompt, /不要生成标题/);
   assert.match(request.prompt, /不要生成.*搭配公式/);

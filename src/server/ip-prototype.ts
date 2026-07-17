@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { prisma } from "@/lib/prisma";
+import { isImageAspectRatioPreset } from "@/lib/image-aspect-ratios";
 import {
   editImageWithReferences,
   generateImageFromText,
@@ -546,11 +547,11 @@ function normalizeOutputGoal(value: unknown): IpPrototypeOutputGoal {
 }
 
 function normalizeAspectRatio(value: unknown) {
-  if (value === "portrait" || value === "landscape") {
+  if (isImageAspectRatioPreset(value)) {
     return value;
   }
 
-  return "square";
+  return "3:4";
 }
 
 function normalizeRequiredText(value: unknown, label: string, maxLength: number) {

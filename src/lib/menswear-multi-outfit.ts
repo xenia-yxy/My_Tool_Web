@@ -1,3 +1,5 @@
+import type { ImageAspectRatioPreset } from "@/lib/image-aspect-ratios";
+
 export type MenswearMultiOutfitDisplayMode = "model" | "flatlay";
 export type MenswearMultiOutfitTextMode = "with_labels" | "no_text";
 export type MenswearMultiOutfitModelGender =
@@ -9,7 +11,7 @@ export type MenswearMultiOutfitModelFaceMode =
   | "hidden_face"
   | "visible_face"
   | "no_model";
-export type MenswearMultiOutfitAspectRatio = "square" | "portrait" | "landscape";
+export type MenswearMultiOutfitAspectRatio = ImageAspectRatioPreset;
 export type MenswearMultiOutfitCameraDistance =
   | "full_body"
   | "three_quarter"

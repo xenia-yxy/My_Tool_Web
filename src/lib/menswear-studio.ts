@@ -1,3 +1,8 @@
+import {
+  isImageAspectRatioPreset,
+  type ImageAspectRatioPreset,
+} from "@/lib/image-aspect-ratios";
+
 export const menswearReferenceRoles = [
   "top",
   "inner",
@@ -46,7 +51,7 @@ export type MenswearGenerationReference = {
 };
 
 export type NormalizedMenswearGenerationInput = {
-  aspectRatio: "square" | "portrait" | "landscape";
+  aspectRatio: ImageAspectRatioPreset;
   batchCount: number;
   cameraDistance: MenswearCameraDistance;
   customInstructions: string;
@@ -132,7 +137,7 @@ export function normalizeMenswearGenerationInput(input: {
 }
 
 export function buildStrictMenswearPrompt(input: {
-  aspectRatio: "square" | "portrait" | "landscape";
+  aspectRatio: ImageAspectRatioPreset;
   cameraDistance?: MenswearCameraDistance;
   customInstructions?: string;
   description: string;
@@ -184,7 +189,7 @@ export function buildStrictMenswearPrompt(input: {
 }
 
 export function buildSceneImagePrompt(input: {
-  aspectRatio: "square" | "portrait" | "landscape";
+  aspectRatio: ImageAspectRatioPreset;
   cameraDistance?: MenswearCameraDistance;
   customInstructions?: string;
   description: string;
@@ -294,16 +299,12 @@ function normalizeReferences(value: unknown): MenswearGenerationReference[] {
   }).filter((reference) => Boolean(reference.materialId));
 }
 
-function normalizeAspectRatio(value: unknown): "square" | "portrait" | "landscape" {
-  if (value === "portrait" || value === "landscape") {
+function normalizeAspectRatio(value: unknown): ImageAspectRatioPreset {
+  if (isImageAspectRatioPreset(value)) {
     return value;
   }
 
-  if (value === "square") {
-    return "square";
-  }
-
-  return "portrait";
+  return "3:4";
 }
 
 function normalizeCameraDistance(value: unknown): MenswearCameraDistance {

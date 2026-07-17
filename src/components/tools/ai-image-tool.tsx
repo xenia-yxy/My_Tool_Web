@@ -14,6 +14,10 @@ import {
 } from "@/components/ui/card";
 import { PromptEditorDialog } from "@/components/tools/prompt-editor-dialog";
 import { useWorkbenchSession } from "@/components/tools/workbench-session-client";
+import {
+  getImageAspectClass,
+  IMAGE_ASPECT_RATIO_OPTIONS,
+} from "@/lib/image-aspect-ratios";
 import { buildAiPromptPreview } from "@/lib/image-generation-workflow";
 
 type AiImageToolMode = "custom" | "outfit";
@@ -41,7 +45,7 @@ export function AiImageTool({ mode }: AiImageToolProps) {
   const [style, setStyle] = useState(styles[0]);
   const [category, setCategory] = useState(categories[0]);
   const [scene, setScene] = useState(scenes[0]);
-  const [aspectRatio, setAspectRatio] = useState(isOutfit ? "landscape" : "square");
+  const [aspectRatio, setAspectRatio] = useState(isOutfit ? "16:9" : "3:4");
   const [quality, setQuality] = useState("low");
   const [batchCount, setBatchCount] = useState(1);
   const [outfitModelMode, setOutfitModelMode] = useState("flatlay");
@@ -410,11 +414,7 @@ export function AiImageTool({ mode }: AiImageToolProps) {
               <SelectField
                 label="尺寸"
                 onChange={setAspectRatio}
-                options={[
-                  ["square", "方图"],
-                  ["portrait", "竖图"],
-                  ["landscape", "横图"],
-                ]}
+                options={IMAGE_ASPECT_RATIO_OPTIONS}
                 value={aspectRatio}
               />
               <SelectField
@@ -490,7 +490,7 @@ export function AiImageTool({ mode }: AiImageToolProps) {
                 >
                   <img
                     alt={`已生成图片 ${index + 1}`}
-                    className="aspect-square w-full rounded-md border border-slate-200 object-cover"
+                    className={`${getImageAspectClass(aspectRatio)} w-full rounded-md border border-slate-200 object-cover`}
                     src={imageUrl}
                   />
                 </button>
