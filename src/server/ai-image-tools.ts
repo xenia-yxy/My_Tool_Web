@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { buildAiRuntimeConfigsForUser } from "@/server/ai-model-configs";
 import { createAiGateway } from "@/server/ai-gateway/provider-registry";
@@ -372,6 +372,32 @@ export async function saveReferenceImageToRuntime(file: File): Promise<string> {
   }
 
   return `/api/uploads/ai-images/${fileName}`;
+}
+
+export async function hydrateReferenceImages(referenceImageUrls: string[]) {
+  const files = await Promise.all(referenceImageUrls.slice(0, 8).map(hydrateReferenceImage));
+  return files.filter((file): file is File => file !== null);
+}
+
+async function hydrateReferenceImage(imageUrl: string): Promise<File | null> {
+  try {
+    if (imageUrl.startsWith("/api/uploads/ai-images/")) {
+      const fileName = path.basename(imageUrl);
+      if (!/^ref-[\w-]+\.png$/i.test(fileName)) return null;
+      const filePath = path.join(process.cwd(), ".runtime", "uploads", "ai-images", fileName);
+      return new File([await readFile(filePath)], fileName, { type: "image/png" });
+    }
+
+    if (!/^https?:\/\//i.test(imageUrl)) return null;
+    const response = await fetch(imageUrl);
+    if (!response.ok) return null;
+    const contentType = response.headers.get("content-type")?.split(";", 1)[0] || "image/png";
+    if (!contentType.startsWith("image/")) return null;
+    const fileName = path.basename(new URL(imageUrl).pathname) || "reference.png";
+    return new File([await response.arrayBuffer()], fileName, { type: contentType });
+  } catch {
+    return null;
+  }
 }
 
 async function generatedImageToBuffer(imageUrl: string) {

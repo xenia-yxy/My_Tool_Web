@@ -216,13 +216,15 @@ export function OutfitPromptWorkbench({
         clothingFiles.length > 0 || sceneFiles.length > 0 || modelFaceFiles.length > 0
           ? await submitMultipart(prompt, meta)
           : await submitJson(prompt, meta);
-      const payload = (await response.json()) as { error?: string };
+      const payload = (await response.json()) as { error?: string; queued?: boolean };
 
       if (!response.ok) {
         throw new Error(payload.error || "批量生图失败");
       }
 
-      setNotice(`已提交并生成 ${batchCount} 张图片。结果已保存到统一图片画廊。`);
+      setNotice(payload.queued
+        ? "已进入任务队列，可继续上传下一组素材；完成后会自动保存到统一图片画廊。"
+        : `已提交并生成 ${batchCount} 张图片。结果已保存到统一图片画廊。`);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "批量生图失败");
     } finally {

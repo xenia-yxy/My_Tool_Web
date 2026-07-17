@@ -84,6 +84,12 @@ export async function getWorkbenchSession(authorId: string, id: string) {
   return prisma.workbenchSession.findFirst({ where: { id, authorId } });
 }
 
+export async function getWorkbenchSessionByExternalJobId(authorId: string, externalJobId: string) {
+  return prisma.workbenchSession.findFirst({
+    where: { authorId, externalJobId },
+  });
+}
+
 export async function updateWorkbenchSession(
   authorId: string,
   id: string,
@@ -104,7 +110,7 @@ export async function updateWorkbenchSession(
     outputSnapshot: input.outputSnapshot ?? existing.outputSnapshot,
     imageAssetIds: input.imageAssetIds ?? existing.imageAssetIds,
     externalJobId: input.externalJobId ?? existing.externalJobId,
-    errorMessage: input.errorMessage ?? existing.errorMessage,
+    errorMessage: hasOwn(input, "errorMessage") ? input.errorMessage : existing.errorMessage,
   });
 
   return prisma.workbenchSession.update({
@@ -116,6 +122,10 @@ export async function updateWorkbenchSession(
       completedAt: isCompleteStatus(data.status) ? new Date() : null,
     },
   });
+}
+
+function hasOwn(value: object, key: string) {
+  return Object.prototype.hasOwnProperty.call(value, key);
 }
 
 export function normalizeWorkbenchSessionPatch(value: unknown): WorkbenchSessionPatch {

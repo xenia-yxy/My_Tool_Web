@@ -191,6 +191,12 @@ export function AiImageTool({ mode }: AiImageToolProps) {
         throw new Error(payload.error || "生成失败");
       }
 
+      if ("queued" in payload && payload.queued) {
+        setResultImages([]);
+        setNotice("已进入任务队列，可继续上传下一组素材；完成后会自动保存到统一图片画廊。");
+        return;
+      }
+
       const imageUrls = payload.results?.map((result) => result.imageUrl).filter(Boolean) ?? [];
       setResultImages(imageUrls);
       const summary = `已生成 ${imageUrls.length || batchCount} 张图片，结果已保存到统一图片画廊。`;

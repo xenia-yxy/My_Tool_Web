@@ -108,6 +108,11 @@ export function MenswearSingleOutfitGenerator({ gender = "men" }: { gender?: "me
       const response = await submitGeneration(session.id, finalPrompt);
       const payload = (await response.json().catch(() => ({}))) as GenerationPayload;
       if (!response.ok) throw new Error(payload.error || `${genderLabel}单品穿搭生图失败`);
+      if ("queued" in payload && payload.queued) {
+        setResultImages([]);
+        setNotice("已进入任务队列，可继续上传下一组素材；完成后会自动保存到统一图片画廊。");
+        return;
+      }
       const imageUrls = payload.results?.flatMap((item) => item.imageUrl ? [item.imageUrl] : []) || [];
       setResultImages(imageUrls);
       setNotice(`已生成 ${imageUrls.length || batchCount} 张单品穿搭图，每张为独立的一套完整搭配。`);

@@ -195,14 +195,14 @@ export function SnackGroceryPromptWorkbench() {
           imageFiles.length > 0
             ? await submitMultipart(prompt, meta)
             : await submitJson(prompt, meta);
-        const payload = (await response.json()) as { error?: string };
+        const payload = (await response.json()) as { error?: string; queued?: boolean };
 
         if (!response.ok) {
           throw new Error(payload.error || "发布包图片生成失败");
         }
       }
 
-      setNotice(`已按发布包分镜生成 ${frames.length} 张图片。结果已保存到统一图片画廊。`);
+      setNotice(`已将 ${frames.length} 个分镜加入任务队列，可继续上传下一组素材；完成后会自动保存到统一图片画廊。`);
     } catch (caughtError) {
       setError(caughtError instanceof Error ? caughtError.message : "批量生图失败");
     } finally {

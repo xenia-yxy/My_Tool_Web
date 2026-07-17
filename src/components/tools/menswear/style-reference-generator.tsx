@@ -188,6 +188,12 @@ export function StyleReferenceGenerator({ gender = "men" }: { gender?: "men" | "
       const payload = (await response.json().catch(() => ({}))) as GenerationPayload;
       if (!response.ok) throw new Error(payload.error || `${genderLabel}风格参考生图失败`);
 
+      if ("queued" in payload && payload.queued) {
+        setResultImages([]);
+        setNotice("已进入任务队列，可继续上传下一组素材；完成后会自动保存到统一图片画廊。");
+        return;
+      }
+
       const imageUrls = payload.results?.flatMap((item) => (item.imageUrl ? [item.imageUrl] : [])) || [];
       const summary = `已生成 ${imageUrls.length || batchCount} 张图片，结果已保存到统一图片画廊。`;
       setResultImages(imageUrls);

@@ -366,6 +366,46 @@ export async function markAiImageJobRunning(authorId: string, id: string) {
   });
 }
 
+/**
+ * Atomically claims the oldest queued job. The conditional update prevents two
+ * worker requests from processing the same job when a poll overlaps.
+ */
+export async function claimNextAiImageJob() {
+  const candidate = await prisma.aiImageJob.findFirst({
+    where: { status: "PENDING" },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (!candidate) {
+    return null;
+  }
+
+  const claim = await prisma.aiImageJob.updateMany({
+    where: { id: candidate.id, status: "PENDING" },
+    data: { status: "RUNNING", startedAt: new Date() },
+  });
+
+  if (claim.count !== 1) {
+    return null;
+  }
+
+  return prisma.aiImageJob.findUnique({ where: { id: candidate.id } });
+}
+
+export async function requeueStaleAiImageJobs() {
+  const staleBefore = new Date(Date.now() - 30 * 60 * 1000);
+  return prisma.aiImageJob.updateMany({
+    where: {
+      status: "RUNNING",
+      startedAt: { lt: staleBefore },
+    },
+    data: {
+      status: "PENDING",
+      startedAt: null,
+    },
+  });
+}
+
 export async function markAiImageJobCompleted(
   authorId: string,
   id: string,

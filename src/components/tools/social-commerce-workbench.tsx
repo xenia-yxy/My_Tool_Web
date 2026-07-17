@@ -171,11 +171,18 @@ export function SocialCommerceWorkbench() {
           : await submitJsonImageRequest(finalPrompt);
       const payload = (await response.json()) as {
         error?: string;
+        queued?: boolean;
         results?: Array<{ imageUrl?: string }>;
       };
 
       if (!response.ok) {
         throw new Error(payload.error || "封面底图生成失败");
+      }
+
+      if (payload.queued) {
+        setGeneratedCoverUrls([]);
+        setNotice("已进入任务队列，可继续上传下一组素材；完成后会自动保存到图片画廊。");
+        return;
       }
 
       const imageUrls = payload.results

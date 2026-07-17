@@ -315,6 +315,12 @@ export function MenswearMultiOutfitGenerator({ gender = "men", variant = "board"
       const payload = (await response.json().catch(() => ({}))) as GenerationPayload;
       if (!response.ok) throw new Error(payload.error || (isSplit ? `${genderLabel}平铺多搭拆分生图失败` : `${genderLabel}一衣多搭生图失败`));
 
+      if ("queued" in payload && payload.queued) {
+        setResultImages([]);
+        setNotice("已进入任务队列，可继续上传下一组素材；完成后会自动保存到统一图片画廊。");
+        return;
+      }
+
       const imageUrls = payload.results?.flatMap((item) => (item.imageUrl ? [item.imageUrl] : [])) || [];
       const summary = isSplit
         ? `已按平铺搭配顺序生成 ${imageUrls.length || outfitCount} 张单张人物穿搭图，结果已保存到统一图片画廊。`

@@ -143,6 +143,13 @@ export function AiImageGalleryWorkbench() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode, status]);
 
+  useEffect(() => {
+    if (runningJobs.length === 0) return;
+    const timer = window.setInterval(() => void loadGallery({ keepCurrentList: true }), 4_000);
+    return () => window.clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runningJobs.length, mode, status]);
+
   async function loadGallery(options: { keepCurrentList?: boolean } = {}) {
     if (options.keepCurrentList) {
       setIsRefreshing(true);
@@ -386,8 +393,8 @@ export function AiImageGalleryWorkbench() {
       {runningJobs.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>批量生图状态</CardTitle>
-            <CardDescription>生成任务会先在这里显示，完成后图片进入下方画廊。</CardDescription>
+            <CardTitle>任务队列</CardTitle>
+            <CardDescription>已提交的任务会持续保留。可继续上传下一组素材，完成后图片自动进入下方画廊。</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-3 md:grid-cols-2">
@@ -397,12 +404,12 @@ export function AiImageGalleryWorkbench() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-slate-950">{job.title}</p>
                       <p className="mt-1 text-xs text-slate-600">
-                        {getModeLabel(job.mode)} · {job.completedCount}/{job.batchCount}
+                        {getModeLabel(job.mode)} · {job.status === "PENDING" ? "等待处理" : "正在生成"} · {job.completedCount}/{job.batchCount}
                       </p>
                     </div>
                     <Badge variant="default">
                       <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                      生成中
+                      {job.status === "PENDING" ? "等待中" : "生成中"}
                     </Badge>
                   </div>
                 </div>
