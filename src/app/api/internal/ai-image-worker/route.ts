@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   const token = request.headers.get("x-internal-worker-token");
-  if (!process.env.NEXTAUTH_SECRET || token !== process.env.NEXTAUTH_SECRET) {
+  const workerToken = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+  if (!workerToken || token !== workerToken) {
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
 

@@ -24,7 +24,7 @@ services:
       - -c
       - |
         while true; do
-          wget -qO- --header="x-internal-worker-token: $$NEXTAUTH_SECRET" --post-data="" http://my-web:3000/api/internal/ai-image-worker || true
+          wget -qO- --header="x-internal-worker-token: $${AUTH_SECRET:-$${NEXTAUTH_SECRET}}" --post-data="" http://my-web:3000/api/internal/ai-image-worker || true
           sleep 2
         done
     volumes:

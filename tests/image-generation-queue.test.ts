@@ -10,5 +10,7 @@ test("shared image generation queues work for the background worker instead of h
   assert.match(route, /status: 202/);
   assert.match(route, /queuePayload/);
   assert.match(workerRoute, /claimNextAiImageJob/);
+  assert.match(workerRoute, /process\.env\.AUTH_SECRET/);
   assert.match(compose, /my-web-worker/);
+  assert.match(compose, /\$\$\{AUTH_SECRET/);
 });
