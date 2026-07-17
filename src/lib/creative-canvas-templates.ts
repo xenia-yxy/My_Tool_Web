@@ -24,6 +24,13 @@ export const creativeCanvasTemplates: readonly CreativeCanvasTemplate[] = [
     executorKey: "menswear-multi-outfit",
   },
   {
+    id: "menswear-single-outfit",
+    title: "单品穿搭",
+    description: "将单品图搭配为一张一套的真实上身穿搭图。",
+    requirement: "我想上传男装单品和构图参考，生成一张一套的上身穿搭图。",
+    executorKey: "menswear-single-outfit",
+  },
+  {
     id: "platform-cover-design",
     title: "小红书封面",
     description: "使用原图和可选参考图制作平台封面。",

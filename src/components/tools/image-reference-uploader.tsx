@@ -15,6 +15,7 @@ type ImageReferenceUploaderProps = {
   onChange: (files: File[]) => void;
   maxFiles?: number;
   materialCategories?: string[];
+  allowMaterialPicker?: boolean;
 };
 
 export function ImageReferenceUploader({
@@ -24,6 +25,7 @@ export function ImageReferenceUploader({
   label,
   maxFiles = 8,
   materialCategories,
+  allowMaterialPicker = true,
   onChange,
 }: ImageReferenceUploaderProps) {
   const inputId = useId();
@@ -147,7 +149,7 @@ export function ImageReferenceUploader({
             清空全部
           </button>
         ) : null}
-        <MaterialPickerDialog categoryFilter={materialCategories} materials={materials} onSelect={(material) => void appendMaterial(material)} />
+        {allowMaterialPicker ? <MaterialPickerDialog categoryFilter={materialCategories} materials={materials} onSelect={(material) => void appendMaterial(material)} /> : null}
       </div>
       <ImagePreviewDialog imageUrl={previewUrl} onClose={() => setPreviewUrl(null)} />
     </div>

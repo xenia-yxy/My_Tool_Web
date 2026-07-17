@@ -784,6 +784,9 @@ function getReferenceImageLabel(sourceTool: string | null, index: number, total:
   if (sourceTool === "menswear-multi-outfit") {
     return `主商品参考图 ${index + 1}`;
   }
+  if (sourceTool === "menswear-single-outfit") {
+    return index === 0 ? "锁定单品参考图" : `穿搭/脸部参考图 ${index + 1}`;
+  }
   if (sourceTool === "platform-cover-design") {
     return index === 0 ? "封面原图" : `风格参考图 ${index}`;
   }
