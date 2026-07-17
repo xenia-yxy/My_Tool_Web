@@ -429,7 +429,8 @@ async function readJsonResponse(response: Response) {
   }
 
   if (!response.ok) {
-    throw new Error(`模型请求失败：${JSON.stringify(payload)}`);
+    const status = `HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ""}`;
+    throw new Error(`模型请求失败：${status} ${JSON.stringify(payload)}`);
   }
 
   return payload;

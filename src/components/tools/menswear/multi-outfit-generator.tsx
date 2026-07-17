@@ -46,6 +46,13 @@ const stylePresets = [
   "自定义",
 ];
 
+const splitStylePresets = [
+  "真实人物穿搭摄影，单张全幅画面，服装主体清晰，背景自然且不抢主体",
+  "参考人物穿搭图的摄影感，单张完整人物画面，不要海报或拼贴",
+  "自然街拍人物穿搭，单张全幅，真实环境与自然光线",
+  "自定义",
+];
+
 const seasonOptions: Array<[MenswearMultiOutfitSeason, string]> = [
   ["spring", "春季"],
   ["summer", "夏季"],
@@ -103,7 +110,7 @@ export function MenswearMultiOutfitGenerator({ gender = "men", variant = "board"
   const [maskMode, setMaskMode] = useState<MenswearMultiOutfitMaskMode>("no_mask");
   const [poseMode, setPoseMode] = useState<MenswearMultiOutfitPoseMode>("random");
   const [poseInstruction, setPoseInstruction] = useState("");
-  const [textMode, setTextMode] = useState<MenswearMultiOutfitTextMode>("with_labels");
+  const [textMode, setTextMode] = useState<MenswearMultiOutfitTextMode>(isSplit ? "no_text" : "with_labels");
   const [targetAudience, setTargetAudience] = useState("");
   const [usageScene, setUsageScene] = useState("");
   const [season, setSeason] = useState<MenswearMultiOutfitSeason>("spring_autumn");
@@ -111,7 +118,7 @@ export function MenswearMultiOutfitGenerator({ gender = "men", variant = "board"
   const [cameraDistance, setCameraDistance] = useState<MenswearMultiOutfitCameraDistance>("three_quarter");
   const [preservePreset, setPreservePreset] = useState(preservePresets[0]);
   const [customPreserve, setCustomPreserve] = useState("");
-  const [stylePreset, setStylePreset] = useState(stylePresets[0]);
+  const [stylePreset, setStylePreset] = useState(isSplit ? splitStylePresets[0] : stylePresets[0]);
   const [customStyle, setCustomStyle] = useState("");
   const [outfitCount, setOutfitCount] = useState(5);
   const [quality, setQuality] = useState("medium");
@@ -583,17 +590,19 @@ export function MenswearMultiOutfitGenerator({ gender = "men", variant = "board"
                 /> : null}
               </div>
 
-              <div className="grid gap-3 md:grid-cols-2">
-                <SelectField
-                  label="版式文字"
-                  onChange={(value) => setTextMode(value as MenswearMultiOutfitTextMode)}
-                  options={[
-                    ["with_labels", "标题与搭配名"],
-                    ["no_text", "无文字"],
-                  ]}
-                  value={textMode}
-                />
-              </div>
+              {!isSplit ? (
+                <div className="grid gap-3 md:grid-cols-2">
+                  <SelectField
+                    label="版式文字"
+                    onChange={(value) => setTextMode(value as MenswearMultiOutfitTextMode)}
+                    options={[
+                      ["with_labels", "标题与搭配名"],
+                      ["no_text", "无文字"],
+                    ]}
+                    value={textMode}
+                  />
+                </div>
+              ) : null}
 
               <div className="grid gap-3 md:grid-cols-2">
                 <SelectField
@@ -621,7 +630,7 @@ export function MenswearMultiOutfitGenerator({ gender = "men", variant = "board"
               </div>
 
               <div className="grid gap-3 md:grid-cols-2">
-                <PresetSelect label="画面风格" onChange={setStylePreset} options={stylePresets} value={stylePreset} />
+                <PresetSelect label="画面风格" onChange={setStylePreset} options={isSplit ? splitStylePresets : stylePresets} value={stylePreset} />
               </div>
 
               {preservePreset === "自定义" ? (

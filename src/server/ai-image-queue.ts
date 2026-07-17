@@ -103,20 +103,22 @@ export async function processAiImageJob(input: {
 
     for (let index = 0; index < payload.batchCount; index += 1) {
       const prompt = buildBatchPrompt(payload, index);
-      const generated = images.length
-        ? await editImageWithReferences({
-            prompt,
-            images,
-            size: normalizeImageSize(payload.aspectRatio),
-            quality: normalizeImageQuality(payload.quality),
-            userId: input.authorId,
-          })
-        : await generateImageFromText({
-            prompt,
-            size: normalizeImageSize(payload.aspectRatio),
-            quality: normalizeImageQuality(payload.quality),
-            userId: input.authorId,
-          });
+      const generated = await retryAiImageGeneration(() =>
+        images.length
+          ? editImageWithReferences({
+              prompt,
+              images,
+              size: normalizeImageSize(payload.aspectRatio),
+              quality: normalizeImageQuality(payload.quality),
+              userId: input.authorId,
+            })
+          : generateImageFromText({
+              prompt,
+              size: normalizeImageSize(payload.aspectRatio),
+              quality: normalizeImageQuality(payload.quality),
+              userId: input.authorId,
+            }),
+      );
       const saved = await saveGeneratedImageToRuntime(generated);
       const asset = await createAiImageAsset(input.authorId, {
         mode: payload.mode,
@@ -160,6 +162,34 @@ export async function processAiImageJob(input: {
     });
     return { status: "failed" as const, reason: errorMessage };
   }
+}
+
+export async function retryAiImageGeneration<T>(
+  operation: () => Promise<T>,
+  options: { delayMs?: number; maxAttempts?: number } = {},
+) {
+  const maxAttempts = Math.min(Math.max(options.maxAttempts ?? 2, 1), 3);
+  const delayMs = Math.max(options.delayMs ?? 5_000, 0);
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (attempt === maxAttempts || !isRetryableImageError(error)) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
+    }
+  }
+
+  throw lastError;
+}
+
+function isRetryableImageError(error: unknown) {
+  const message = error instanceof Error ? error.message : "";
+  return /模型请求失败：HTTP (408|409|425|429|5\d\d)\b|fetch failed|network|timeout/i.test(message);
 }
 
 function buildBatchPrompt(payload: AiImageQueuePayload, index: number) {

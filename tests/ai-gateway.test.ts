@@ -318,6 +318,28 @@ test("createAiGateway can send multiple image edit references", async () => {
   assert.equal(formData.getAll("image").length, 2);
 });
 
+test("createAiGateway keeps the upstream HTTP status when an image request fails", async () => {
+  const gateway = createAiGateway({
+    models: [
+      {
+        id: "image",
+        provider: "openai-compatible",
+        baseUrl: "https://api.example.com",
+        apiKey: "image-key",
+        model: "image-model",
+        capabilities: ["image.generate"],
+        enabled: true,
+      },
+    ],
+    fetch: async () => new Response("", { status: 502, statusText: "Bad Gateway" }),
+  });
+
+  await assert.rejects(
+    gateway.generateImage({ prompt: "生成图", size: "1024x1024", quality: "low" }),
+    /HTTP 502 Bad Gateway/,
+  );
+});
+
 test("createAiGateway sends Anthropic text calls with provider-native auth", async () => {
   const calls: Array<{ url: string; init: RequestInit }> = [];
   const gateway = createAiGateway({

@@ -56,12 +56,15 @@ export function buildMenswearMultiOutfitPrompt(input: {
   gender?: "men" | "women";
 }) {
   const genderLabel = input.gender === "women" ? "女装" : "男装";
+  const isFlatlaySplit = input.outputFormat === "split" && (input.flatlayImageCount || 0) > 0;
   const preserve =
     input.preserveInstructions?.trim() ||
     "保留主商品的颜色、版型、材质、图案、领口、袖型、纽扣、印花、口袋和整体比例";
   const style =
     input.styleInstructions?.trim() ||
-    "干净白底横版合集，电商穿搭板式，商品清晰、留白充足、光线均匀";
+    (isFlatlaySplit
+      ? "真实人物穿搭摄影，单张全幅画面，服装主体清晰，背景自然且不抢主体"
+      : "干净白底横版合集，电商穿搭板式，商品清晰、留白充足、光线均匀");
   const aspectRatio = input.aspectRatio || "landscape";
   const season = seasonInstructions[input.season || "spring_autumn"];
   const targetAudience = input.targetAudience?.trim() || "空缺项交给 AI 根据商品图片与整体风格判断";
@@ -82,7 +85,6 @@ export function buildMenswearMultiOutfitPrompt(input: {
     input.displayMode === "model"
       ? `上身模特展示：${modelGender}${modelFace}每套搭配都自然穿着主商品，人体比例真实。`
       : "无模特平铺展示：所有服装与鞋包配饰平铺或悬挂展示，像商品搭配陈列图，不出现真人模特、不出现人体。";
-  const isFlatlaySplit = input.outputFormat === "split" && (input.flatlayImageCount || 0) > 0;
   const layoutRule = isFlatlaySplit
     ? "第 1 张为平铺多搭图，必须按其中从左到右、从上到下的套装顺序识别每套组合；平铺图只锁定服装组合、颜色、版型和搭配关系，不控制最终人物图的构图、背景、动作或画面风格。"
     : input.hasLayoutReference && input.compositionMode === "custom"
@@ -101,7 +103,7 @@ export function buildMenswearMultiOutfitPrompt(input: {
       ? "构图：人物位置、镜头和留白按用户说明变化。"
       : "构图：根据穿搭展示需要生成自然清晰的单人构图。";
   const outputRule = input.outputFormat === "split"
-    ? `拆分输出规则：本次必须生成 ${input.outfitCount} 张独立人物穿搭图；第 N 张只呈现参考图第 N 套搭配，使用同一主商品，不得生成拼图、合集或重复其他套装。`
+    ? `拆分输出规则：本次必须生成 ${input.outfitCount} 张独立人物穿搭图；第 N 张只呈现参考图第 N 套搭配，使用同一主商品，不得生成拼图、合集或重复其他套装。每张都是单张完整人物穿搭图片，主体占满正常摄影画面。禁止画框、边框、白边、留白版式、拼贴、分栏、海报排版、缩略图、标题区或说明区。`
     : "合集输出规则：在一张完整展示图中按顺序呈现所有搭配。";
   const backgroundRule = input.backgroundMode === "inherit" && input.hasStyleReference
     ? "背景：保持参考图的背景空间、光线和环境关系。"
@@ -138,7 +140,9 @@ export function buildMenswearMultiOutfitPrompt(input: {
     display,
     ...(input.outputFormat === "split" ? [`口罩：${maskModeInstruction(input.maskMode)}。`, compositionRule, backgroundRule, poseRule] : []),
     "搭配要求：每套搭配的裤装、鞋子、外套、包或配饰可以变化，但必须服务于同一主商品；搭配之间要有明确差异，整体仍然真实可穿。",
-    `版式要求：横向排列，间距均匀，主商品识别度高，背景干净，适合${genderLabel}电商图文和社媒封面。`,
+    input.outputFormat === "split"
+      ? "画面格式：只输出一张无边框的完整人物穿搭图片，不要把结果放进画板、杂志版式、卡片、相框或页面截图中。"
+      : `版式要求：横向排列，间距均匀，主商品识别度高，背景干净，适合${genderLabel}电商图文和社媒封面。`,
     "真实感要求：服装结构可信，面料纹理自然，阴影和透视合理，不要生成畸形人体、错误袖口、错乱领口或重复肢体。",
     textRule,
   ].join("\n");
