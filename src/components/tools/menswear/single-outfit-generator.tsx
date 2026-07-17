@@ -14,6 +14,7 @@ import {
   buildMenswearSingleOutfitPrompt,
   type MenswearSingleOutfitAspectRatio,
   type MenswearSingleOutfitCameraDistance,
+  type MenswearSingleOutfitCompositionFidelity,
   type MenswearSingleOutfitFaceMode,
   type MenswearSingleOutfitModelGender,
   type MenswearSingleOutfitMaskMode,
@@ -29,6 +30,7 @@ const personScaleOptions: Array<[MenswearSingleOutfitPersonScale, string]> = [["
 export function MenswearSingleOutfitGenerator() {
   const [productImages, setProductImages] = useState<File[]>([]);
   const [compositionImages, setCompositionImages] = useState<File[]>([]);
+  const [compositionFidelity, setCompositionFidelity] = useState<MenswearSingleOutfitCompositionFidelity>("locked");
   const [modelFaceFiles, setModelFaceFiles] = useState<File[]>([]);
   const [modelGender, setModelGender] = useState<MenswearSingleOutfitModelGender>("male");
   const [maskMode, setMaskMode] = useState<MenswearSingleOutfitMaskMode>("no_mask");
@@ -51,6 +53,7 @@ export function MenswearSingleOutfitGenerator() {
   const prompt = useMemo(() => buildMenswearSingleOutfitPrompt({
     aspectRatio,
     backgroundInstruction,
+    compositionFidelity,
     cameraDistance,
     faceMode,
     hasCompositionReference: compositionImages.length > 0,
@@ -60,7 +63,7 @@ export function MenswearSingleOutfitGenerator() {
     personScale,
     poseInstruction,
     productImageCount: productImages.length,
-  }), [aspectRatio, backgroundInstruction, cameraDistance, compositionImages.length, faceMode, maskMode, modelFaceFiles.length, modelGender, personScale, poseInstruction, productImages.length]);
+  }), [aspectRatio, backgroundInstruction, cameraDistance, compositionFidelity, compositionImages.length, faceMode, maskMode, modelFaceFiles.length, modelGender, personScale, poseInstruction, productImages.length]);
 
   function openPrompt(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -90,7 +93,7 @@ export function MenswearSingleOutfitGenerator() {
         title: "男装单品穿搭生图",
         status: "RUNNING",
         prompt: finalPrompt,
-        inputSnapshot: { aspectRatio, backgroundInstruction, batchCount, cameraDistance, compositionImageCount: compositionImages.length, faceMode, hasFaceReference: modelFaceFiles.length > 0, maskMode, modelGender, personScale, poseInstruction, productImageCount: productImages.length, quality },
+        inputSnapshot: { aspectRatio, backgroundInstruction, batchCount, cameraDistance, compositionFidelity, compositionImageCount: compositionImages.length, faceMode, hasFaceReference: modelFaceFiles.length > 0, maskMode, modelGender, personScale, poseInstruction, productImageCount: productImages.length, quality },
         outputSnapshot: {}, imageAssetIds: [], externalJobId: null, errorMessage: null,
       });
       const response = await submitGeneration(session.id, finalPrompt);
@@ -137,6 +140,7 @@ export function MenswearSingleOutfitGenerator() {
         <CardContent><form className="grid gap-5" onSubmit={openPrompt}>
           <ImageReferenceUploader emptyText="上传服装单品图" files={productImages} helper="1-6 张；支持衣服、裤子、内搭、鞋包和配饰，本次会严格保留。" label="锁定单品图" materialCategories={["top", "inner", "bottom", "shoes", "bag", "accessory", "outfit"]} maxFiles={6} onChange={setProductImages} />
           <ImageReferenceUploader emptyText="上传穿搭/构图参考图（可选）" files={compositionImages} helper="只借鉴动作、人物占比、镜头、构图和氛围，不复制参考图中的衣服。" label="构图参考图" materialCategories={["pose", "background", "composition", "lighting", "mood"]} maxFiles={1} onChange={setCompositionImages} />
+          {compositionImages.length ? <SelectField label="构图复刻方式" onChange={(value) => setCompositionFidelity(value as MenswearSingleOutfitCompositionFidelity)} options={[["locked", "严格复刻参考图构图"], ["adjustable", "参考构图，可按说明微调"]]} value={compositionFidelity} /> : null}
           <ImageReferenceUploader emptyText="上传脸部参考图" files={modelFaceFiles} helper="可本地上传或从素材库选择模特脸部；选择完整露脸时必填，仅锁定人物身份。" label="脸部参考图" materialCategories={["model_face"]} maxFiles={1} onChange={setModelFaceFiles} />
           <div className="grid gap-3 md:grid-cols-2">
             <SelectField label="模特性别" onChange={(value) => setModelGender(value as MenswearSingleOutfitModelGender)} options={[["male", "男模特"], ["female", "女模特"], ["auto", "按商品判断"]]} value={modelGender} />

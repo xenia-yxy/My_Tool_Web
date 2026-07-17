@@ -1,4 +1,5 @@
 export type MenswearSingleOutfitAspectRatio = "square" | "portrait" | "landscape";
+export type MenswearSingleOutfitCompositionFidelity = "locked" | "adjustable";
 export type MenswearSingleOutfitCameraDistance = "full_body" | "three_quarter" | "half_body";
 export type MenswearSingleOutfitFaceMode = "show_face" | "hidden_face";
 export type MenswearSingleOutfitModelGender = "male" | "female" | "auto";
@@ -8,6 +9,7 @@ export type MenswearSingleOutfitPersonScale = "small" | "balanced" | "dominant" 
 export function buildMenswearSingleOutfitPrompt(input: {
   aspectRatio?: MenswearSingleOutfitAspectRatio;
   backgroundInstruction?: string;
+  compositionFidelity?: MenswearSingleOutfitCompositionFidelity;
   cameraDistance?: MenswearSingleOutfitCameraDistance;
   faceMode?: MenswearSingleOutfitFaceMode;
   hasCompositionReference: boolean;
@@ -19,7 +21,9 @@ export function buildMenswearSingleOutfitPrompt(input: {
   productImageCount: number;
 }) {
   const compositionRule = input.hasCompositionReference
-    ? "构图参考图只借用人物姿势、镜头距离、构图与氛围；绝不复制其中的服装、人物身份、品牌、文字或商品细节。"
+    ? input.compositionFidelity === "adjustable"
+      ? "构图参考图以人物姿势、镜头距离、构图与氛围为主，可按用户明确说明轻微调整人物位置或背景；绝不复制其中的服装、人物身份、品牌、文字或商品细节。"
+      : "构图参考图为硬约束：必须复刻构图参考图的人物位置、姿势、镜头角度、人物占比、裁切范围、留白和背景空间关系；仅将参考图中的服装替换为锁定单品，绝不复制其中的服装、人物身份、品牌、文字或商品细节。"
     : "没有构图参考图，根据动作和背景要求生成自然真实的男装上身图。";
   const faceRule = input.hasFaceReference
     ? "最后一张为脸部身份参考图，只锁定五官、发型和年龄感，不改变服装、身材、动作、背景或画面风格。"

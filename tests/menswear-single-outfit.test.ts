@@ -8,6 +8,7 @@ import { getWorkbenchTool } from "../src/server/workbench-sessions";
 test("builds a single-look menswear prompt that separates product, reference, face, and person scale", () => {
   const prompt = buildMenswearSingleOutfitPrompt({
     backgroundInstruction: "室内白墙，改为自然窗边光",
+    compositionFidelity: "locked",
     cameraDistance: "three_quarter",
     faceMode: "show_face",
     hasCompositionReference: true,
@@ -19,7 +20,8 @@ test("builds a single-look menswear prompt that separates product, reference, fa
   });
 
   assert.match(prompt, /前 2 张为锁定服装单品参考图/);
-  assert.match(prompt, /构图参考图只借用人物姿势、镜头距离、构图与氛围/);
+  assert.match(prompt, /构图参考图为硬约束/);
+  assert.match(prompt, /必须复刻构图参考图的人物位置、姿势、镜头角度、人物占比、裁切范围、留白和背景空间关系/);
   assert.match(prompt, /脸部身份参考图/);
   assert.match(prompt, /人物完整露头/);
   assert.match(prompt, /不戴口罩/);
