@@ -268,63 +268,20 @@ export function SnackGroceryPromptWorkbench() {
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="rounded-lg border border-blue-100 bg-blue-50 p-3">
-            <div className="text-sm font-semibold text-blue-950">发布包模式</div>
-            <div className="mt-1 text-xs leading-5 text-blue-800">
-              前期优先跑流量、留有效粉丝和测试栏目，缺场景素材时自动推荐场景。
+          <section className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <p className="text-sm font-semibold text-slate-900">核心配置</p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <SelectField label="目标人群" onChange={setAudience} options={audiences} value={audience} />
+              <SelectField label="商品品类" onChange={setCategory} options={categories} value={category} />
+              <SelectField label="使用场景" onChange={(value) => { setScene(value); setSceneStrategy("custom"); setCustomScene(value); }} options={useScenes} value={scene} />
             </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-            <OptionSelectField
-              label="账号阶段"
-              onChange={(value) => setAccountStage(value as SnackGroceryAccountStage)}
-              options={publishingPresets.accountStages}
-              value={accountStage}
-            />
-            <OptionSelectField
-              label="发布目标"
-              onChange={(value) => setPublishingGoal(value as SnackGroceryPublishingGoal)}
-              options={publishingPresets.publishingGoals}
-              value={publishingGoal}
-            />
             <OptionSelectField
               label="内容类型"
               onChange={(value) => setContentType(value as SnackGroceryContentType)}
               options={publishingPresets.contentTypes}
               value={contentType}
             />
-            <OptionSelectField
-              label="栏目模板"
-              onChange={(value) => setColumnTemplate(value as SnackGroceryColumnTemplate)}
-              options={publishingPresets.columnTemplates}
-              value={columnTemplate}
-            />
-            <OptionSelectField
-              label="素材状态"
-              onChange={(value) => setMaterialMode(value as SnackGroceryMaterialMode)}
-              options={publishingPresets.materialModes}
-              value={materialMode}
-            />
-            <OptionSelectField
-              label="场景方式"
-              onChange={(value) => setSceneStrategy(value as SnackGrocerySceneStrategy)}
-              options={publishingPresets.sceneStrategies}
-              value={sceneStrategy}
-            />
-          </div>
-
-          {sceneStrategy === "custom" ? (
-            <Field label="自定义场景">
-              <textarea
-                className={textareaClass}
-                onChange={(event) => setCustomScene(event.target.value)}
-                placeholder="例如：宿舍床边小桌，晚上台灯暖光，旁边有书和水杯"
-                rows={2}
-                value={customScene}
-              />
-            </Field>
-          ) : null}
+          </section>
 
           <label className="block">
             <span className="text-sm font-medium text-slate-800">商品参考图</span>
@@ -425,12 +382,15 @@ export function SnackGroceryPromptWorkbench() {
             description="这些参数会影响目标用户、场景和卖点，图片里不会生成文字说明。"
             onClose={() => setAdvancedOpen(false)}
             open={advancedOpen}
-            title="零食百货高级参数"
+            title="高级起号设置"
           >
             <div className="grid gap-4 sm:grid-cols-2">
-              <SelectField label="目标人群" onChange={setAudience} options={audiences} value={audience} />
-              <SelectField label="商品品类" onChange={setCategory} options={categories} value={category} />
-              <SelectField label="使用场景" onChange={setScene} options={useScenes} value={scene} />
+              <OptionSelectField label="账号阶段" onChange={(value) => setAccountStage(value as SnackGroceryAccountStage)} options={publishingPresets.accountStages} value={accountStage} />
+              <OptionSelectField label="发布目标" onChange={(value) => setPublishingGoal(value as SnackGroceryPublishingGoal)} options={publishingPresets.publishingGoals} value={publishingGoal} />
+              <OptionSelectField label="栏目模板" onChange={(value) => setColumnTemplate(value as SnackGroceryColumnTemplate)} options={publishingPresets.columnTemplates} value={columnTemplate} />
+              <OptionSelectField label="素材状态" onChange={(value) => setMaterialMode(value as SnackGroceryMaterialMode)} options={publishingPresets.materialModes} value={materialMode} />
+              <OptionSelectField label="场景方式" onChange={(value) => setSceneStrategy(value as SnackGrocerySceneStrategy)} options={publishingPresets.sceneStrategies} value={sceneStrategy} />
+              {sceneStrategy === "custom" ? <Field label="自定义场景"><textarea className={textareaClass} onChange={(event) => setCustomScene(event.target.value)} placeholder="例如：宿舍床边小桌，晚上台灯暖光，旁边有书和水杯" rows={2} value={customScene} /></Field> : null}
               <div className="sm:col-span-2">
                 <Field label="卖点方向">
                   <textarea

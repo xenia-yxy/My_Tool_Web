@@ -15,7 +15,9 @@ import {
   getPlatformCoverAspectRatio,
   getPlatformCoverLabel,
   type PlatformCoverPlatform,
+  type PlatformCoverReferenceMode,
   type PlatformCoverTextMode,
+  type PlatformCoverTransformation,
 } from "@/lib/platform-cover-design";
 
 type GenerationPayload = {
@@ -30,10 +32,14 @@ const platforms: Array<[PlatformCoverPlatform, string]> = [
   ["shipinhao", "视频号"],
   ["wechat", "公众号"],
   ["xianyu", "闲鱼"],
+  ["kuaishou", "快手图文"],
+  ["bilibili", "B 站专栏"],
+  ["zhihu", "知乎"],
+  ["taobao", "淘宝逛逛"],
 ];
 
-const coverGoals = ["种草封面", "知识干货", "对比避坑", "清单合集", "商品首图", "个人 IP 封面", "自定义"];
-const visualStyles = ["清透生活感", "强对比信息流", "杂志留白", "电商干净主图", "高级简约", "自定义"];
+const coverGoals = ["商品种草", "知识干货", "测评对比", "避坑复盘", "清单合集", "教程步骤", "直播预告", "活动预告", "账号主页首图", "个人 IP 封面", "自定义"];
+const visualStyles = ["真实手机随拍", "清透生活感", "强对比信息流", "知识卡片", "拼贴手帐", "杂志留白", "电商干净主图", "高级简约", "自定义"];
 
 export function PlatformCoverDesignWorkbench() {
   const [platform, setPlatform] = useState<PlatformCoverPlatform>("xiaohongshu");
@@ -41,6 +47,8 @@ export function PlatformCoverDesignWorkbench() {
   const [customGoal, setCustomGoal] = useState("");
   const [visualStyle, setVisualStyle] = useState(visualStyles[0]);
   const [customStyle, setCustomStyle] = useState("");
+  const [referenceMode, setReferenceMode] = useState<PlatformCoverReferenceMode>("style_only");
+  const [transformation, setTransformation] = useState<PlatformCoverTransformation>("optimize");
   const [title, setTitle] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [editInstructions, setEditInstructions] = useState("");
@@ -68,12 +76,14 @@ export function PlatformCoverDesignWorkbench() {
         editInstructions,
         hasStyleReferences: styleReferences.length > 0,
         platform,
+        referenceMode,
         subtitle,
         textMode,
         title,
+        transformation,
         visualStyle: promptStyle,
       }),
-    [editInstructions, platform, promptGoal, promptStyle, styleReferences.length, subtitle, textMode, title],
+    [editInstructions, platform, promptGoal, promptStyle, referenceMode, styleReferences.length, subtitle, textMode, title, transformation],
   );
   const canSubmit = coverImages.length === 1 && !isGenerating;
 
@@ -107,6 +117,8 @@ export function PlatformCoverDesignWorkbench() {
       if (typeof input.customGoal === "string") setCustomGoal(input.customGoal);
       if (typeof input.visualStyle === "string") setVisualStyle(input.visualStyle);
       if (typeof input.customStyle === "string") setCustomStyle(input.customStyle);
+      if (isReferenceMode(input.referenceMode)) setReferenceMode(input.referenceMode);
+      if (isTransformation(input.transformation)) setTransformation(input.transformation);
       if (typeof input.title === "string") setTitle(input.title);
       if (typeof input.subtitle === "string") setSubtitle(input.subtitle);
       if (typeof input.editInstructions === "string") setEditInstructions(input.editInstructions);
@@ -152,6 +164,8 @@ export function PlatformCoverDesignWorkbench() {
           customGoal,
           visualStyle,
           customStyle,
+          referenceMode,
+          transformation,
           title,
           subtitle,
           editInstructions,
@@ -265,6 +279,11 @@ export function PlatformCoverDesignWorkbench() {
                 <PresetSelect label="视觉风格" onChange={setVisualStyle} options={visualStyles} value={visualStyle} />
               </div>
 
+              <div className="grid gap-3 md:grid-cols-2">
+                <SelectField label="参考图复刻范围" onChange={(value) => setReferenceMode(value as PlatformCoverReferenceMode)} options={[["style_only", "仅学习风格"], ["layout", "复刻版式"], ["layout_color", "版式 + 配色"], ["layout_color_elements", "版式 + 配色 + 元素"]]} value={referenceMode} />
+                <SelectField label="改造方式" onChange={(value) => setTransformation(value as PlatformCoverTransformation)} options={[["optimize", "保留主体，优化点击感"], ["recompose", "重新组织版式"], ["replace_background", "替换/简化背景"], ["highlight_product", "突出商品或人物"]]} value={transformation} />
+              </div>
+
               {coverGoal === "自定义" ? (
                 <Field label="自定义封面目标">
                   <input className={inputClass} onChange={(event) => setCustomGoal(event.target.value)} placeholder="例如：AI 工具测评封面" value={customGoal} />
@@ -311,6 +330,7 @@ export function PlatformCoverDesignWorkbench() {
             { label: "平台", value: getPlatformCoverLabel(platform) },
             { label: "封面原图", value: `${coverImages.length} 张` },
             { label: "风格参考", value: `${styleReferences.length} 张` },
+            { label: "参考图复刻范围", value: referenceMode },
             { label: "比例", value: aspectRatio },
           ]}
           prompt={prompt}
@@ -393,8 +413,11 @@ function PresetSelect({
 }
 
 function isPlatform(value: unknown): value is PlatformCoverPlatform {
-  return value === "xiaohongshu" || value === "douyin" || value === "shipinhao" || value === "wechat" || value === "xianyu";
+  return value === "xiaohongshu" || value === "douyin" || value === "shipinhao" || value === "wechat" || value === "xianyu" || value === "kuaishou" || value === "bilibili" || value === "zhihu" || value === "taobao";
 }
+
+function isReferenceMode(value: unknown): value is PlatformCoverReferenceMode { return value === "style_only" || value === "layout" || value === "layout_color" || value === "layout_color_elements"; }
+function isTransformation(value: unknown): value is PlatformCoverTransformation { return value === "optimize" || value === "recompose" || value === "replace_background" || value === "highlight_product"; }
 
 const inputClass = "h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100";
 const textareaClass = "min-h-24 w-full rounded-lg border border-slate-200 bg-white px-3 py-3 text-sm leading-6 text-slate-950 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100";

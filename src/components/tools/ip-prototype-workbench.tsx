@@ -30,10 +30,10 @@ type OutputGoal =
   | "poster"
   | "series";
 
-const ipTypeOptions: Array<{ value: IpType; label: string; hint: string }> = [
-  { value: "person", label: "人物 IP", hint: "头像、虚拟人、个人形象、账号主理人" },
-  { value: "product", label: "产品 IP", hint: "包装、周边、玩具、商品视觉" },
-  { value: "content", label: "内容 IP", hint: "栏目封面、账号视觉、系列模板" },
+const ipTypeOptions: Array<{ value: IpType; label: string }> = [
+  { value: "person", label: "人物形象" },
+  { value: "product", label: "产品形象" },
+  { value: "content", label: "内容视觉" },
 ];
 
 const outputGoalOptions: Array<{ value: OutputGoal; label: string }> = [
@@ -258,26 +258,6 @@ export function IpPrototypeWorkbench() {
             <CardContent>
               <form className="grid gap-5" onSubmit={openConfirm}>
                 <div className="grid gap-3 md:grid-cols-3">
-                  {ipTypeOptions.map((option) => (
-                    <button
-                      className={`rounded-xl border p-4 text-left transition ${
-                        ipType === option.value
-                          ? "border-blue-600 bg-blue-50 text-blue-950"
-                          : "border-slate-200 bg-white text-slate-950 hover:border-slate-300"
-                      }`}
-                      key={option.value}
-                      onClick={() => setIpType(option.value)}
-                      type="button"
-                    >
-                      <span className="text-sm font-semibold">{option.label}</span>
-                      <span className="mt-2 block text-xs leading-5 text-slate-500">
-                        {option.hint}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="grid gap-3 md:grid-cols-2">
                   <Field label="IP 名称">
                     <input
                       className={inputClass}
@@ -286,6 +266,12 @@ export function IpPrototypeWorkbench() {
                       value={ipName}
                     />
                   </Field>
+                  <SelectField
+                    label="创作方向"
+                    onChange={(value) => setIpType(value as IpType)}
+                    options={ipTypeOptions}
+                    value={ipType}
+                  />
                   <SelectField
                     label="输出类型"
                     onChange={(value) => setOutputGoal(value as OutputGoal)}

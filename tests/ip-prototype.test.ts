@@ -104,6 +104,7 @@ test("IP prototype workbench keeps the main flow short and folds optional settin
   assert.match(workbench, /补充设定（可选）/);
   assert.match(workbench, /<details/);
   assert.match(workbench, /核心想法/);
+  assert.doesNotMatch(workbench, /ipTypeOptions\.map/);
   assert.doesNotMatch(workbench, /IP 创作怎么用/);
   assert.doesNotMatch(workbench, /stepItems/);
 });

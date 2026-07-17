@@ -22,7 +22,7 @@ test("builds a platform cover prompt that preserves the original cover and only 
 
   assert.match(prompt, /第 1 张是封面原图/);
   assert.match(prompt, /保留封面原图的主体、商品、人物、脸部、关键构图和真实质感/);
-  assert.match(prompt, /参考图只用于学习版式、色彩、装饰元素和视觉层级/);
+  assert.match(prompt, /参考图复刻范围：只学习整体风格与视觉情绪/);
   assert.match(prompt, /小红书/);
   assert.match(prompt, /普通人夏天这样穿/);
   assert.match(prompt, /不要出现任何文字/);
@@ -46,6 +46,21 @@ test("builds a controlled text cover prompt for title layout attempts", () => {
   assert.match(prompt, /没有参考图时/);
 });
 
+test("platform cover prompt controls reference imitation range and cover transformation", () => {
+  const prompt = buildPlatformCoverDesignPrompt({
+    platform: "xiaohongshu",
+    coverGoal: "测评对比封面",
+    editInstructions: "保留商品，换成更清晰的左右对比结构",
+    hasStyleReferences: true,
+    referenceMode: "layout_color_elements",
+    textMode: "no_text",
+    transformation: "recompose",
+  });
+
+  assert.match(prompt, /参考图复刻范围：复刻版式、配色和装饰元素/);
+  assert.match(prompt, /改造方式：重新组织版式/);
+});
+
 test("resolves platform cover dimensions and registers tool history", () => {
   assert.equal(getPlatformCoverAspectRatio("xiaohongshu"), "portrait");
   assert.equal(getPlatformCoverAspectRatio("xianyu"), "square");
@@ -64,6 +79,8 @@ test("platform cover design has navigation, page, component, and gallery referen
   assert.match(page, /PlatformCoverDesignWorkbench/);
   assert.match(component, /封面原图/);
   assert.match(component, /风格参考图/);
+  assert.match(component, /参考图复刻范围/);
+  assert.match(component, /改造方式/);
   assert.match(component, /platform-cover-design/);
   assert.match(gallery, /封面原图/);
   assert.match(gallery, /风格参考图/);

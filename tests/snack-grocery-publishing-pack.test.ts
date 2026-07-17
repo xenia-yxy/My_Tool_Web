@@ -4,6 +4,7 @@ import {
   buildSnackGroceryPublishingPack,
   getSnackGroceryPublishingPresets,
 } from "../src/lib/snack-grocery-publishing-pack";
+import { readFileSync } from "node:fs";
 
 test("publishing pack recommends scenes when product image exists but scene image is missing", () => {
   const pack = buildSnackGroceryPublishingPack({
@@ -104,4 +105,12 @@ test("each storyboard image prompt is safe for direct image generation", () => {
     assert.match(frame.imagePrompt, /不要夸张食品功效/);
     assert.ok(frame.imagePrompt.includes(frame.role));
   }
+});
+
+test("snack grocery workbench keeps account strategy in advanced settings", () => {
+  const workbench = readFileSync("src/components/tools/snack-grocery-prompt-workbench.tsx", "utf8");
+
+  assert.match(workbench, /核心配置/);
+  assert.match(workbench, /高级起号设置/);
+  assert.doesNotMatch(workbench, /发布包模式/);
 });
