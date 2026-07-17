@@ -7,6 +7,7 @@ import {
   Copy,
   Download,
   Eye,
+  FolderPlus,
   Loader2,
   RefreshCw,
   Square,
@@ -77,6 +78,24 @@ type MenswearProvenance = {
     role: string;
   }>;
 };
+
+const materialCategoryOptions = [
+  ["outfit", "整套穿搭"],
+  ["top", "主上衣"],
+  ["inner", "内搭"],
+  ["bottom", "下装"],
+  ["shoes", "鞋子"],
+  ["bag", "包"],
+  ["accessory", "配饰"],
+  ["model_face", "模特脸部"],
+  ["model_body", "模特身材"],
+  ["pose", "姿势"],
+  ["background", "背景"],
+  ["composition", "构图"],
+  ["lighting", "光线"],
+  ["mood", "氛围"],
+  ["other", "其他"],
+] as const;
 
 const modeFilters = [
   { value: "", label: "全部" },
@@ -601,6 +620,28 @@ function AssetDetailModal({
   onPreview: (url: string, alt: string) => void;
 }) {
   const menswearProvenance = getMenswearProvenance(asset);
+  const [materialCategory, setMaterialCategory] = useState("outfit");
+  const [isSavingMaterial, setIsSavingMaterial] = useState(false);
+  const [materialNotice, setMaterialNotice] = useState<string | null>(null);
+
+  async function saveToMaterialLibrary() {
+    setIsSavingMaterial(true);
+    setMaterialNotice(null);
+    try {
+      const response = await fetch("/api/tools/menswear/materials/from-asset", {
+        body: JSON.stringify({ assetId: asset.id, category: materialCategory }),
+        headers: { "content-type": "application/json" },
+        method: "POST",
+      });
+      const payload = (await readJsonResponse<{ error?: string }>(response)) as { error?: string };
+      if (!response.ok) throw new Error(payload.error || "保存到素材库失败");
+      setMaterialNotice("已保存到素材库，可在男装工具中直接选择使用。");
+    } catch (caughtError) {
+      setMaterialNotice(caughtError instanceof Error ? caughtError.message : "保存到素材库失败");
+    } finally {
+      setIsSavingMaterial(false);
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 px-4 py-6">
@@ -657,6 +698,17 @@ function AssetDetailModal({
               {asset.productKeywords.length ? asset.productKeywords.join("、") : "暂无选品关键词"}
             </DetailBlock>
             <DetailBlock title="生图提示词">{asset.prompt}</DetailBlock>
+            <div className="grid gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <p className="text-sm font-semibold text-slate-900">保存到素材库</p>
+              <select aria-label="素材分类" className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-900" onChange={(event) => setMaterialCategory(event.target.value)} value={materialCategory}>
+                {materialCategoryOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+              <Button className="gap-2" disabled={asset.status !== "SUCCEEDED" || isSavingMaterial} onClick={() => void saveToMaterialLibrary()} type="button" variant="secondary">
+                {isSavingMaterial ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <FolderPlus aria-hidden="true" className="h-4 w-4" />}
+                {isSavingMaterial ? "保存中" : "保存到素材库"}
+              </Button>
+              {materialNotice ? <p className="text-xs leading-5 text-slate-600">{materialNotice}</p> : null}
+            </div>
             <div className="flex flex-wrap gap-2">
               <Button className="gap-2" onClick={() => onDownload(asset)} type="button" variant="secondary">
                 <Download aria-hidden="true" className="h-4 w-4" />

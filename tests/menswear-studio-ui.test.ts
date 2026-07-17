@@ -310,3 +310,20 @@ test("material library supports AI product recognition, editing, and private CRU
   assert.match(materials, /选品素材库/);
   assert.match(analysisRoute, /generateVisionText/);
 });
+
+test("generated gallery images can be copied into the reusable material library", () => {
+  const gallery = readFileSync(
+    "src/components/tools/ai-image-gallery-workbench.tsx",
+    "utf8",
+  );
+  const route = readFileSync(
+    "src/app/api/tools/menswear/materials/from-asset/route.ts",
+    "utf8",
+  );
+
+  assert.match(gallery, /保存到素材库/);
+  assert.match(gallery, /\/api\/tools\/menswear\/materials\/from-asset/);
+  assert.match(route, /getAiImageAsset/);
+  assert.match(route, /saveReferenceImageToRuntime/);
+  assert.match(route, /sourceType: "GENERATED"/);
+});
