@@ -1,14 +1,17 @@
 export type MenswearSingleOutfitAspectRatio = "square" | "portrait" | "landscape";
+export type MenswearSingleOutfitBackgroundMode = "inherit" | "custom";
 export type MenswearSingleOutfitCompositionFidelity = "locked" | "adjustable";
 export type MenswearSingleOutfitCameraDistance = "full_body" | "three_quarter" | "half_body";
 export type MenswearSingleOutfitFaceMode = "show_face" | "hidden_face";
 export type MenswearSingleOutfitModelGender = "male" | "female" | "auto";
 export type MenswearSingleOutfitMaskMode = "wear_mask" | "no_mask" | "auto";
 export type MenswearSingleOutfitPersonScale = "small" | "balanced" | "dominant" | "close";
+export type MenswearSingleOutfitPoseMode = "inherit" | "custom" | "random";
 
 export function buildMenswearSingleOutfitPrompt(input: {
   aspectRatio?: MenswearSingleOutfitAspectRatio;
   backgroundInstruction?: string;
+  backgroundMode?: MenswearSingleOutfitBackgroundMode;
   compositionFidelity?: MenswearSingleOutfitCompositionFidelity;
   cameraDistance?: MenswearSingleOutfitCameraDistance;
   faceMode?: MenswearSingleOutfitFaceMode;
@@ -18,6 +21,7 @@ export function buildMenswearSingleOutfitPrompt(input: {
   maskMode?: MenswearSingleOutfitMaskMode;
   personScale?: MenswearSingleOutfitPersonScale;
   poseInstruction?: string;
+  poseMode?: MenswearSingleOutfitPoseMode;
   productImageCount: number;
 }) {
   const compositionRule = input.hasCompositionReference
@@ -28,6 +32,14 @@ export function buildMenswearSingleOutfitPrompt(input: {
   const faceRule = input.hasFaceReference
     ? "最后一张为脸部身份参考图，只锁定五官、发型和年龄感，不改变服装、身材、动作、背景或画面风格。"
     : "没有脸部身份参考图，按模特要求生成自然真实人物。";
+  const backgroundRule = input.backgroundMode === "inherit" && input.hasCompositionReference
+    ? "背景：保持构图参考图中的背景、光线和空间关系不变。"
+    : `背景：${input.backgroundInstruction?.trim() || "按服装风格生成真实生活化背景，并保持环境、光线和透视自然。"}`;
+  const poseRule = input.poseMode === "inherit" && input.hasCompositionReference
+    ? "动作：保持构图参考图中的人物姿势和身体方向不变。"
+    : input.poseMode === "random"
+      ? "动作：不设定固定动作，生成自然随机动作。"
+      : `动作：${input.poseInstruction?.trim() || "生成自然、合理且能展示服装的站姿或行走动作。"}`;
 
   return [
     "你是专业男装单品穿搭视觉生成师。",
@@ -40,8 +52,8 @@ export function buildMenswearSingleOutfitPrompt(input: {
     `口罩要求：${maskModeLabel(input.maskMode)}。`,
     `人物远近：${cameraDistanceLabel(input.cameraDistance)}。`,
     `人物占比：${personScaleLabel(input.personScale)}。`,
-    `动作要求：${input.poseInstruction?.trim() || "动作不要固定，每张图使用自然、合理且能展示服装的不同站姿或行走动作。"}`,
-    `背景变化：${input.backgroundInstruction?.trim() || "按服装风格生成真实生活化背景，并保持环境、光线和透视自然。"}`,
+    poseRule,
+    backgroundRule,
     `输出比例：${input.aspectRatio || "portrait"}。`,
     "输出规则：一张图片只生成一套完整穿搭和一个单独画面，不要拼图、九宫格、搭配合集、并排人物或多个造型。多张生成时，每张可变化动作、背景或搭配的补充单品，但上传的主商品必须保持一致。",
     "真实感规则：人物比例、衣物垂感、面料纹理、阴影、手部和鞋部必须合理；不要生成文字、价格、标签、水印、账号、广告牌、错误 Logo 或无关商品。",

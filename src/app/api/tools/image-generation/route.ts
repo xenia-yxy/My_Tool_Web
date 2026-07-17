@@ -201,6 +201,7 @@ async function handleMultipartImageRequest(request: Request, authorId: string) {
     }
   }
   const batchCount = normalizeImageBatchCount(getFormText(formData, "batchCount"));
+  const splitOutfitMode = getFormText(formData, "splitOutfitMode") === "true";
   const mode = normalizeRequestMode(getFormText(formData, "mode"));
   const description = getFormText(formData, "description");
   const finalPrompt = getFormText(formData, "finalPrompt");
@@ -252,6 +253,7 @@ async function handleMultipartImageRequest(request: Request, authorId: string) {
       aspectRatio: getFormText(formData, "aspectRatio") || "square",
       quality: getFormText(formData, "quality") || "low",
       batchCount,
+      splitOutfitMode,
       outfitModelMode: getFormText(formData, "outfitModelMode") || "",
       outfitModelGender: getFormText(formData, "outfitModelGender") || "",
       outfitModelFace: getFormText(formData, "outfitModelFace") || "",
@@ -266,11 +268,13 @@ async function handleMultipartImageRequest(request: Request, authorId: string) {
 
   try {
     for (let index = 0; index < batchCount; index += 1) {
+      const batchPrompt = splitOutfitMode
+        ? `${prompt}\n\n平铺多搭拆分序号：${index + 1}/${batchCount}。只生成平铺多搭参考图中从左到右、从上到下的第 ${index + 1} 套完整组合；该图只能出现这一套，不得拼图、合集或使用其他序号搭配。`
+        : batchCount > 1
+          ? `${prompt}\n\n批量生成序号：${index + 1}/${batchCount}。请保持主商品一致，但让搭配组合、陈列顺序或拍摄细节有所区别。`
+          : prompt;
       const generated = await editImageWithReferences({
-        prompt:
-          batchCount > 1
-            ? `${prompt}\n\n批量生成序号：${index + 1}/${batchCount}。请保持主商品一致，但让搭配组合、陈列顺序或拍摄细节有所区别。`
-            : prompt,
+        prompt: batchPrompt,
         images,
         size: normalizeImageSize(getFormText(formData, "aspectRatio")),
         quality: normalizeImageQuality(getFormText(formData, "quality")),
@@ -297,6 +301,7 @@ async function handleMultipartImageRequest(request: Request, authorId: string) {
         fileName: saved.fileName,
         mimeType: saved.mimeType,
         referenceImages: referenceImageUrls,
+        referenceLabels: parseFormList(formData, "referenceLabel"),
       });
 
       results.push({

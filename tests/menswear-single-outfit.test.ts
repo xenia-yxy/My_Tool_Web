@@ -31,6 +31,20 @@ test("builds a single-look menswear prompt that separates product, reference, fa
   assert.match(prompt, /室内白墙，改为自然窗边光/);
 });
 
+test("single-look prompt supports independent background, composition, and pose reference controls", () => {
+  const prompt = buildMenswearSingleOutfitPrompt({
+    backgroundMode: "inherit",
+    compositionFidelity: "locked",
+    hasCompositionReference: true,
+    hasFaceReference: false,
+    poseMode: "random",
+    productImageCount: 1,
+  });
+
+  assert.match(prompt, /背景：保持构图参考图中的背景、光线和空间关系不变/);
+  assert.match(prompt, /动作：不设定固定动作，生成自然随机动作/);
+});
+
 test("registers the single-look menswear workflow across workspace, history, and skills", () => {
   const workspace = readFileSync("src/components/tools/menswear/menswear-workspace.tsx", "utf8");
   const page = readFileSync("src/app/tools/menswear/single-outfit/page.tsx", "utf8");

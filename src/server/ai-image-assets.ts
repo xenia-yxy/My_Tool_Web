@@ -24,6 +24,7 @@ type AiImageAssetCreateInput = {
   mimeType?: string | null;
   errorMessage?: string | null;
   referenceImages?: string[] | null;
+  referenceLabels?: string[] | null;
 };
 
 type AiImageAssetUpdateInput = {
@@ -93,6 +94,7 @@ export function normalizeAiImageAssetCreateInput(
     mimeType: normalizeRequiredText(input.mimeType, "image/png"),
     errorMessage: normalizeOptionalText(input.errorMessage),
     referenceImages: normalizeStringList(input.referenceImages),
+    referenceLabels: normalizeStringList(input.referenceLabels),
   };
 }
 

@@ -102,6 +102,50 @@ test("builds a menswear one-piece multi outfit prompt for model and flatlay layo
   assert.match(flatlayPrompt, /不要出现文字/);
 });
 
+test("multi-outfit split mode locks each output to its matching flatlay look", () => {
+  const prompt = buildMenswearMultiOutfitPrompt({
+    subjectImageCount: 1,
+    displayMode: "model",
+    modelGender: "male",
+    modelFaceMode: "visible_face",
+    outfitCount: 6,
+    textMode: "no_text",
+    hasLayoutReference: true,
+    outputFormat: "split",
+  });
+  const component = readFileSync("src/components/tools/menswear/multi-outfit-generator.tsx", "utf8");
+  const imageRoute = readFileSync("src/app/api/tools/image-generation/route.ts", "utf8");
+
+  assert.match(prompt, /最后一张为平铺多搭参考图/);
+  assert.match(prompt, /不复制其主商品、文字、品牌或人物/);
+  assert.match(prompt, /必须生成 6 张独立人物穿搭图/);
+  assert.match(prompt, /第 N 张只呈现参考图第 N 套搭配/);
+  assert.match(component, /splitOutfitMode/);
+  assert.match(imageRoute, /平铺多搭拆分序号/);
+});
+
+test("multi-outfit prompt offers independent background and pose controls for split images", () => {
+  const prompt = buildMenswearMultiOutfitPrompt({
+    subjectImageCount: 1,
+    displayMode: "model",
+    modelGender: "male",
+    modelFaceMode: "hidden_face",
+    outfitCount: 3,
+    textMode: "no_text",
+    hasLayoutReference: true,
+    outputFormat: "split",
+    backgroundMode: "inherit",
+    compositionMode: "custom",
+    poseMode: "random",
+    maskMode: "wear_mask",
+  });
+
+  assert.match(prompt, /构图：平铺参考图只锁定每套组合顺序/);
+  assert.match(prompt, /背景：保持参考图的背景空间、光线和环境关系/);
+  assert.match(prompt, /动作：不设定固定动作，按真实穿搭展示生成自然随机动作/);
+  assert.match(prompt, /口罩：佩戴干净简洁的口罩/);
+});
+
 test("menswear workspace exposes one-piece multi outfit generation and registers its history tool", () => {
   const workspace = readFileSync("src/components/tools/menswear/menswear-workspace.tsx", "utf8");
   const page = readFileSync("src/app/tools/menswear/multi-outfit/page.tsx", "utf8");

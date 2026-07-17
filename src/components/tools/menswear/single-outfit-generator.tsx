@@ -13,12 +13,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import {
   buildMenswearSingleOutfitPrompt,
   type MenswearSingleOutfitAspectRatio,
+  type MenswearSingleOutfitBackgroundMode,
   type MenswearSingleOutfitCameraDistance,
   type MenswearSingleOutfitCompositionFidelity,
   type MenswearSingleOutfitFaceMode,
   type MenswearSingleOutfitModelGender,
   type MenswearSingleOutfitMaskMode,
   type MenswearSingleOutfitPersonScale,
+  type MenswearSingleOutfitPoseMode,
 } from "@/lib/menswear-single-outfit";
 
 type GenerationPayload = { error?: string; job?: { id?: string }; results?: Array<{ imageUrl?: string; asset?: { id?: string } }> };
@@ -31,6 +33,7 @@ export function MenswearSingleOutfitGenerator() {
   const [productImages, setProductImages] = useState<File[]>([]);
   const [compositionImages, setCompositionImages] = useState<File[]>([]);
   const [compositionFidelity, setCompositionFidelity] = useState<MenswearSingleOutfitCompositionFidelity>("locked");
+  const [backgroundMode, setBackgroundMode] = useState<MenswearSingleOutfitBackgroundMode>("custom");
   const [modelFaceFiles, setModelFaceFiles] = useState<File[]>([]);
   const [modelGender, setModelGender] = useState<MenswearSingleOutfitModelGender>("male");
   const [maskMode, setMaskMode] = useState<MenswearSingleOutfitMaskMode>("no_mask");
@@ -39,6 +42,7 @@ export function MenswearSingleOutfitGenerator() {
   const [cameraDistance, setCameraDistance] = useState<MenswearSingleOutfitCameraDistance>("three_quarter");
   const [personScale, setPersonScale] = useState<MenswearSingleOutfitPersonScale>("balanced");
   const [poseInstruction, setPoseInstruction] = useState("");
+  const [poseMode, setPoseMode] = useState<MenswearSingleOutfitPoseMode>("random");
   const [backgroundInstruction, setBackgroundInstruction] = useState("");
   const [batchCount, setBatchCount] = useState(1);
   const [quality, setQuality] = useState("medium");
@@ -53,6 +57,7 @@ export function MenswearSingleOutfitGenerator() {
   const prompt = useMemo(() => buildMenswearSingleOutfitPrompt({
     aspectRatio,
     backgroundInstruction,
+    backgroundMode,
     compositionFidelity,
     cameraDistance,
     faceMode,
@@ -62,8 +67,9 @@ export function MenswearSingleOutfitGenerator() {
     maskMode,
     personScale,
     poseInstruction,
+    poseMode,
     productImageCount: productImages.length,
-  }), [aspectRatio, backgroundInstruction, cameraDistance, compositionFidelity, compositionImages.length, faceMode, maskMode, modelFaceFiles.length, modelGender, personScale, poseInstruction, productImages.length]);
+  }), [aspectRatio, backgroundInstruction, backgroundMode, cameraDistance, compositionFidelity, compositionImages.length, faceMode, maskMode, modelFaceFiles.length, modelGender, personScale, poseInstruction, poseMode, productImages.length]);
 
   function openPrompt(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -93,7 +99,7 @@ export function MenswearSingleOutfitGenerator() {
         title: "男装单品穿搭生图",
         status: "RUNNING",
         prompt: finalPrompt,
-        inputSnapshot: { aspectRatio, backgroundInstruction, batchCount, cameraDistance, compositionFidelity, compositionImageCount: compositionImages.length, faceMode, hasFaceReference: modelFaceFiles.length > 0, maskMode, modelGender, personScale, poseInstruction, productImageCount: productImages.length, quality },
+        inputSnapshot: { aspectRatio, backgroundInstruction, backgroundMode, batchCount, cameraDistance, compositionFidelity, compositionImageCount: compositionImages.length, faceMode, hasFaceReference: modelFaceFiles.length > 0, maskMode, modelGender, personScale, poseInstruction, poseMode, productImageCount: productImages.length, quality },
         outputSnapshot: {}, imageAssetIds: [], externalJobId: null, errorMessage: null,
       });
       const response = await submitGeneration(session.id, finalPrompt);
@@ -141,6 +147,10 @@ export function MenswearSingleOutfitGenerator() {
           <ImageReferenceUploader emptyText="上传服装单品图" files={productImages} helper="1-6 张；支持衣服、裤子、内搭、鞋包和配饰，本次会严格保留。" label="锁定单品图" materialCategories={["top", "inner", "bottom", "shoes", "bag", "accessory", "outfit"]} maxFiles={6} onChange={setProductImages} />
           <ImageReferenceUploader emptyText="上传穿搭/构图参考图（可选）" files={compositionImages} helper="只借鉴动作、人物占比、镜头、构图和氛围，不复制参考图中的衣服。" label="构图参考图" materialCategories={["pose", "background", "composition", "lighting", "mood"]} maxFiles={1} onChange={setCompositionImages} />
           {compositionImages.length ? <SelectField label="构图复刻方式" onChange={(value) => setCompositionFidelity(value as MenswearSingleOutfitCompositionFidelity)} options={[["locked", "严格复刻参考图构图"], ["adjustable", "参考构图，可按说明微调"]]} value={compositionFidelity} /> : null}
+          <div className="grid gap-3 md:grid-cols-2">
+            <SelectField label="背景控制" onChange={(value) => setBackgroundMode(value as MenswearSingleOutfitBackgroundMode)} options={compositionImages.length ? [["inherit", "保持参考图背景"], ["custom", "自定义背景"]] : [["custom", "自定义背景"]]} value={backgroundMode} />
+            <SelectField label="动作控制" onChange={(value) => setPoseMode(value as MenswearSingleOutfitPoseMode)} options={compositionImages.length ? [["inherit", "保持参考图动作"], ["custom", "自定义动作"], ["random", "随机自然动作"]] : [["custom", "自定义动作"], ["random", "随机自然动作"]]} value={poseMode} />
+          </div>
           <ImageReferenceUploader emptyText="上传脸部参考图" files={modelFaceFiles} helper="可本地上传或从素材库选择模特脸部；选择完整露脸时必填，仅锁定人物身份。" label="脸部参考图" materialCategories={["model_face"]} maxFiles={1} onChange={setModelFaceFiles} />
           <div className="grid gap-3 md:grid-cols-2">
             <SelectField label="模特性别" onChange={(value) => setModelGender(value as MenswearSingleOutfitModelGender)} options={[["male", "男模特"], ["female", "女模特"], ["auto", "按商品判断"]]} value={modelGender} />
@@ -151,8 +161,8 @@ export function MenswearSingleOutfitGenerator() {
             <SelectField label="图片比例" onChange={(value) => setAspectRatio(value as MenswearSingleOutfitAspectRatio)} options={aspectRatioOptions} value={aspectRatio} />
             <SelectField label="生成数量" onChange={(value) => setBatchCount(Number(value))} options={["1", "2", "4", "6"].map((item): [string, string] => [item, `${item} 张`])} value={String(batchCount)} />
           </div>
-          <Field label="动作要求"><textarea className={textareaClass} onChange={(event) => setPoseInstruction(event.target.value)} placeholder="例如：自然站立、侧身行走或坐姿；留空则每张自动变化动作" value={poseInstruction} /></Field>
-          <Field label="背景变化说明"><textarea className={textareaClass} onChange={(event) => setBackgroundInstruction(event.target.value)} placeholder="例如：第一张室内白墙，第二张城市街角；自然日光，背景不能抢服装" value={backgroundInstruction} /></Field>
+          {poseMode === "custom" ? <Field label="自定义动作"><textarea className={textareaClass} onChange={(event) => setPoseInstruction(event.target.value)} placeholder="例如：自然站立、侧身行走或坐姿" value={poseInstruction} /></Field> : null}
+          {backgroundMode === "custom" ? <Field label="自定义背景"><textarea className={textareaClass} onChange={(event) => setBackgroundInstruction(event.target.value)} placeholder="例如：室内白墙、城市街角；自然日光，背景不能抢服装" value={backgroundInstruction} /></Field> : null}
           <SelectField label="生成质量" onChange={setQuality} options={[["low", "低"], ["medium", "中"], ["high", "高"]]} value={quality} />
           {error ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
           {notice ? <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{notice}</p> : null}

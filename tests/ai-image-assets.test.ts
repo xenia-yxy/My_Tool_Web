@@ -39,6 +39,7 @@ test("normalizeAiImageAssetCreateInput prepares a generated image asset", () => 
       mimeType: "image/png",
       errorMessage: null,
       referenceImages: [],
+      referenceLabels: [],
     },
   );
 });
@@ -52,6 +53,7 @@ test("AiImageAsset migrations include reference image persistence", () => {
     .join("\n");
 
   assert.match(migrationSql, /"referenceImages"/);
+  assert.match(migrationSql, /"referenceLabels"/);
 });
 
 test("normalizeAiImageAssetCreateInput rejects unsupported modes", () => {

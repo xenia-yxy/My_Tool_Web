@@ -153,6 +153,7 @@ model AiImageAsset {
   note        String?  @db.Text
   errorMessage String? @db.Text
   referenceImages String[] @default([])
+  referenceLabels String[] @default([])
   authorId    String
   author      User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())

@@ -14,12 +14,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import {
   buildMenswearMultiOutfitPrompt,
   type MenswearMultiOutfitAspectRatio,
+  type MenswearMultiOutfitBackgroundMode,
   type MenswearMultiOutfitCameraDistance,
+  type MenswearMultiOutfitCompositionMode,
   type MenswearMultiOutfitDisplayMode,
   type MenswearMultiOutfitModelFaceMode,
   type MenswearMultiOutfitModelGender,
+  type MenswearMultiOutfitMaskMode,
+  type MenswearMultiOutfitPoseMode,
   type MenswearMultiOutfitSeason,
   type MenswearMultiOutfitTextMode,
+  type MenswearMultiOutfitOutputFormat,
 } from "@/lib/menswear-multi-outfit";
 
 type GenerationPayload = {
@@ -79,12 +84,22 @@ const modelFaceOptions: Array<[MenswearMultiOutfitModelFaceMode, string]> = [
 
 export function MenswearMultiOutfitGenerator() {
   const [subjectImages, setSubjectImages] = useState<File[]>([]);
+  const [layoutReferenceImages, setLayoutReferenceImages] = useState<File[]>([]);
+  const [outputFormat, setOutputFormat] = useState<MenswearMultiOutfitOutputFormat>("board");
+  const [isAnalyzingLayout, setIsAnalyzingLayout] = useState(false);
+  const [layoutAnalysis, setLayoutAnalysis] = useState<string | null>(null);
   const [modelFaceFiles, setModelFaceFiles] = useState<File[]>([]);
   const [modelFaceSource, setModelFaceSource] = useState<ModelFaceReferenceSource>("system");
   const [modelProfileId, setModelProfileId] = useState("");
   const [displayMode, setDisplayMode] = useState<MenswearMultiOutfitDisplayMode>("model");
+  const [backgroundMode, setBackgroundMode] = useState<MenswearMultiOutfitBackgroundMode>("custom");
+  const [backgroundInstruction, setBackgroundInstruction] = useState("");
+  const [compositionMode, setCompositionMode] = useState<MenswearMultiOutfitCompositionMode>("inherit");
   const [modelGender, setModelGender] = useState<MenswearMultiOutfitModelGender>("male");
   const [modelFaceMode, setModelFaceMode] = useState<MenswearMultiOutfitModelFaceMode>("hidden_face");
+  const [maskMode, setMaskMode] = useState<MenswearMultiOutfitMaskMode>("no_mask");
+  const [poseMode, setPoseMode] = useState<MenswearMultiOutfitPoseMode>("random");
+  const [poseInstruction, setPoseInstruction] = useState("");
   const [textMode, setTextMode] = useState<MenswearMultiOutfitTextMode>("with_labels");
   const [targetAudience, setTargetAudience] = useState("");
   const [usageScene, setUsageScene] = useState("");
@@ -113,13 +128,21 @@ export function MenswearMultiOutfitGenerator() {
     () =>
       buildMenswearMultiOutfitPrompt({
         aspectRatio,
+        backgroundInstruction,
+        backgroundMode,
         cameraDistance,
+        compositionMode,
         displayMode,
         modelFaceMode,
         modelFaceReferenceSource: modelFaceFiles.length > 0 ? modelFaceSourceLabel(modelFaceSource) : undefined,
+        hasLayoutReference: layoutReferenceImages.length > 0,
+        outputFormat,
         modelGender,
+        maskMode,
         outfitCount,
         preserveInstructions,
+        poseInstruction,
+        poseMode,
         season,
         styleInstructions,
         subjectImageCount: subjectImages.length,
@@ -129,14 +152,22 @@ export function MenswearMultiOutfitGenerator() {
       }),
     [
       aspectRatio,
+      backgroundInstruction,
+      backgroundMode,
       cameraDistance,
+      compositionMode,
       displayMode,
       modelFaceMode,
       modelFaceFiles.length,
       modelFaceSource,
+      layoutReferenceImages.length,
+      outputFormat,
       modelGender,
+      maskMode,
       outfitCount,
       preserveInstructions,
+      poseInstruction,
+      poseMode,
       season,
       styleInstructions,
       subjectImages.length,
@@ -145,7 +176,7 @@ export function MenswearMultiOutfitGenerator() {
       usageScene,
     ],
   );
-  const canSubmit = subjectImages.length > 0 && !isGenerating;
+  const canSubmit = subjectImages.length > 0 && !isGenerating && (outputFormat !== "split" || layoutReferenceImages.length > 0);
 
   useEffect(() => {
     if (!session) return;
@@ -173,8 +204,15 @@ export function MenswearMultiOutfitGenerator() {
       restoredSessionId.current = session.id;
       const input = session.inputSnapshot;
       if (input.displayMode === "model" || input.displayMode === "flatlay") setDisplayMode(input.displayMode);
+      if (input.backgroundMode === "inherit" || input.backgroundMode === "custom") setBackgroundMode(input.backgroundMode);
+      if (typeof input.backgroundInstruction === "string") setBackgroundInstruction(input.backgroundInstruction);
+      if (input.compositionMode === "inherit" || input.compositionMode === "custom") setCompositionMode(input.compositionMode);
       if (isModelGender(input.modelGender)) setModelGender(input.modelGender);
       if (isModelFaceMode(input.modelFaceMode)) setModelFaceMode(input.modelFaceMode);
+      if (input.maskMode === "wear_mask" || input.maskMode === "no_mask" || input.maskMode === "auto") setMaskMode(input.maskMode);
+      if (input.poseMode === "inherit" || input.poseMode === "custom" || input.poseMode === "random") setPoseMode(input.poseMode);
+      if (typeof input.poseInstruction === "string") setPoseInstruction(input.poseInstruction);
+      if (input.outputFormat === "board" || input.outputFormat === "split") setOutputFormat(input.outputFormat);
       if (input.textMode === "with_labels" || input.textMode === "no_text") setTextMode(input.textMode);
       if (typeof input.targetAudience === "string") setTargetAudience(input.targetAudience);
       if (typeof input.usageScene === "string") setUsageScene(input.usageScene);
@@ -188,6 +226,7 @@ export function MenswearMultiOutfitGenerator() {
       if (typeof input.outfitCount === "number") setOutfitCount(input.outfitCount);
       if (typeof input.quality === "string") setQuality(input.quality);
       if (typeof input.batchCount === "number") setBatchCount(input.batchCount);
+      if (typeof input.layoutAnalysis === "string") setLayoutAnalysis(input.layoutAnalysis);
     }, 0);
 
     return () => window.clearTimeout(timer);
@@ -223,8 +262,14 @@ export function MenswearMultiOutfitGenerator() {
         prompt: finalPrompt,
         inputSnapshot: {
           displayMode,
+          backgroundInstruction,
+          backgroundMode,
+          compositionMode,
           modelGender,
           modelFaceMode,
+          maskMode,
+          poseInstruction,
+          poseMode,
           modelFaceReferenceSource: modelFaceFiles.length > 0 ? modelFaceSourceLabel(modelFaceSource) : undefined,
           modelProfileId: modelProfileId || null,
           textMode,
@@ -239,8 +284,11 @@ export function MenswearMultiOutfitGenerator() {
           customStyle,
           outfitCount,
           quality,
-          batchCount,
+          batchCount: outputFormat === "split" ? outfitCount : batchCount,
           subjectImageCount: subjectImages.length,
+          outputFormat,
+          hasLayoutReference: layoutReferenceImages.length > 0,
+          layoutAnalysis,
         },
         outputSnapshot: {},
         imageAssetIds: [],
@@ -290,13 +338,57 @@ export function MenswearMultiOutfitGenerator() {
     formData.set("productKeywords", "男装 一衣多搭 搭配合集");
     formData.set("aspectRatio", aspectRatio);
     formData.set("quality", quality);
-    formData.set("batchCount", String(batchCount));
+    formData.set("batchCount", String(outputFormat === "split" ? outfitCount : batchCount));
+    formData.set("splitOutfitMode", outputFormat === "split" ? "true" : "false");
     formData.set("finalPrompt", finalPrompt);
     formData.set("workbenchSessionId", workbenchSessionId);
-    subjectImages.forEach((file) => formData.append("image", file));
-    modelFaceFiles.forEach((file) => formData.append("image", file));
+    subjectImages.forEach((file) => {
+      formData.append("image", file);
+      formData.append("referenceLabel", "锁定主体商品图");
+    });
+    layoutReferenceImages.forEach((file) => {
+      formData.append("image", file);
+      formData.append("referenceLabel", "平铺多搭参考图");
+    });
+    modelFaceFiles.forEach((file) => {
+      formData.append("image", file);
+      formData.append("referenceLabel", "脸部身份参考图");
+    });
 
     return fetch("/api/tools/image-generation", { method: "POST", body: formData });
+  }
+
+  async function analyzeLayoutReference() {
+    const image = layoutReferenceImages[0];
+    if (!image) {
+      setError("请先上传一张平铺多搭参考图");
+      return;
+    }
+
+    setIsAnalyzingLayout(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.set("image", image);
+      const response = await fetch("/api/tools/menswear/multi-outfit/analyze", { method: "POST", body: formData });
+      const payload = (await response.json().catch(() => ({}))) as { error?: string; analysis?: { outfitCount?: number; summary?: string } };
+      if (!response.ok) throw new Error(payload.error || "平铺搭配识别失败");
+      const detectedCount = payload.analysis?.outfitCount;
+      if (typeof detectedCount === "number") setOutfitCount(detectedCount);
+      setLayoutAnalysis(payload.analysis?.summary || (typeof detectedCount === "number" ? `已识别 ${detectedCount} 套搭配，可继续手动调整。` : "已完成平铺搭配识别。"));
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "平铺搭配识别失败");
+    } finally {
+      setIsAnalyzingLayout(false);
+    }
+  }
+
+  function updateOutputFormat(value: MenswearMultiOutfitOutputFormat) {
+    setOutputFormat(value);
+    if (value === "split") {
+      updateDisplayMode("model");
+      if (modelFaceMode === "no_model") setModelFaceMode("hidden_face");
+    }
   }
 
   async function patchSession(sessionId: string, patch: Record<string, unknown>) {
@@ -308,6 +400,12 @@ export function MenswearMultiOutfitGenerator() {
   }
 
   function updateDisplayMode(value: MenswearMultiOutfitDisplayMode) {
+    if (outputFormat === "split" && value === "flatlay") {
+      setDisplayMode("model");
+      setModelGender((current) => current === "none" ? "male" : current);
+      setModelFaceMode((current) => current === "no_model" ? "hidden_face" : current);
+      return;
+    }
     setDisplayMode(value);
     if (value === "flatlay") {
       setModelGender("none");
@@ -364,6 +462,41 @@ export function MenswearMultiOutfitGenerator() {
                 maxFiles={6}
                 onChange={setSubjectImages}
               />
+              <ImageReferenceUploader
+                emptyText="上传平铺多搭参考图（可选）"
+                files={layoutReferenceImages}
+                helper="用于识别每套搭配的顺序、组合、版式和风格；不复制图中文字或主商品。"
+                label="平铺多搭参考图"
+                materialCategories={["outfit", "composition", "mood"]}
+                maxFiles={1}
+                onChange={setLayoutReferenceImages}
+              />
+              {layoutReferenceImages.length ? (
+                <div className="flex flex-wrap items-center gap-3 rounded-lg border border-sky-200 bg-sky-50 p-3">
+                  <Button disabled={isAnalyzingLayout} onClick={analyzeLayoutReference} type="button" variant="secondary">
+                    {isAnalyzingLayout ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+                    {isAnalyzingLayout ? "识别中" : "AI 识别平铺套数"}
+                  </Button>
+                  <p className="text-xs leading-5 text-sky-900">{layoutAnalysis || "识别后会自动回填套数；可按实际平铺搭配手动修正。"}</p>
+                </div>
+              ) : null}
+              <SelectField
+                label="输出方式"
+                onChange={(value) => updateOutputFormat(value as MenswearMultiOutfitOutputFormat)}
+                options={[["board", "一张多搭合集"], ["split", "按套数拆分为单张人物图"]]}
+                value={outputFormat}
+              />
+              {layoutReferenceImages.length ? (
+                <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 md:grid-cols-3">
+                  <div className="md:col-span-3">
+                    <p className="text-sm font-semibold text-slate-900">平铺参考控制</p>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">搭配顺序始终按平铺图读取；构图、背景与动作可分别保持或改写。</p>
+                  </div>
+                  <SelectField label="构图控制" onChange={(value) => setCompositionMode(value as MenswearMultiOutfitCompositionMode)} options={[["inherit", "保持参考版式"], ["custom", "按说明变化"]]} value={compositionMode} />
+                  <SelectField label="背景控制" onChange={(value) => setBackgroundMode(value as MenswearMultiOutfitBackgroundMode)} options={[["inherit", "保持参考背景"], ["custom", "自定义背景"]]} value={backgroundMode} />
+                  <SelectField label="动作控制" onChange={(value) => setPoseMode(value as MenswearMultiOutfitPoseMode)} options={[["inherit", "保持参考动作"], ["custom", "自定义动作"], ["random", "随机自然动作"]]} value={poseMode} />
+                </div>
+              ) : null}
 
               {displayMode === "model" ? <ModelFaceReferenceSelector
                 files={modelFaceFiles}
@@ -405,7 +538,7 @@ export function MenswearMultiOutfitGenerator() {
                     ["flatlay", "无模特平铺"],
                     ["model", "有模特上身"],
                   ]}
-                  value={displayMode}
+                  value={outputFormat === "split" ? "model" : displayMode}
                 />
                 <SelectField
                   label="模特性别"
@@ -418,6 +551,12 @@ export function MenswearMultiOutfitGenerator() {
                   onChange={(value) => updateModelFaceMode(value as MenswearMultiOutfitModelFaceMode)}
                   options={modelFaceOptions}
                   value={modelFaceMode}
+                />
+                <SelectField
+                  label="口罩"
+                  onChange={(value) => setMaskMode(value as MenswearMultiOutfitMaskMode)}
+                  options={[["no_mask", "不戴口罩"], ["wear_mask", "戴口罩"], ["auto", "自动判断"]]}
+                  value={maskMode}
                 />
               </div>
 
@@ -472,6 +611,8 @@ export function MenswearMultiOutfitGenerator() {
                   <textarea className={textareaClass} onChange={(event) => setCustomStyle(event.target.value)} placeholder="例如：参考韩系男装白底合集，5 套横向排列，鞋包配饰完整" value={customStyle} />
                 </Field>
               ) : null}
+              {poseMode === "custom" ? <Field label="自定义动作"><textarea className={textareaClass} onChange={(event) => setPoseInstruction(event.target.value)} placeholder="例如：自然站立、侧身行走或坐姿" value={poseInstruction} /></Field> : null}
+              {backgroundMode === "custom" ? <Field label="自定义背景"><textarea className={textareaClass} onChange={(event) => setBackgroundInstruction(event.target.value)} placeholder="例如：明亮街角、室内白墙或自然日光；背景不要抢服装" value={backgroundInstruction} /></Field> : null}
 
               <div className="grid gap-3 md:grid-cols-3">
                 <SelectField label="搭配套数" onChange={(value) => setOutfitCount(Number(value))} options={["3", "4", "5", "6"].map((count) => [count, `${count} 套`])} value={String(outfitCount)} />
@@ -499,6 +640,7 @@ export function MenswearMultiOutfitGenerator() {
             { label: "季节", value: seasonLabel(season) },
             { label: "人物远近", value: cameraDistanceLabel(cameraDistance) },
             { label: "搭配套数", value: `${outfitCount} 套` },
+            { label: "输出方式", value: outputFormat === "split" ? `拆分 ${outfitCount} 张` : "一张多搭合集" },
             { label: "比例", value: aspectRatio },
           ]}
           prompt={prompt}

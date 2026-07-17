@@ -22,17 +22,30 @@ export type MenswearMultiOutfitSeason =
   | "autumn_winter"
   | "winter"
   | "all_season";
+export type MenswearMultiOutfitOutputFormat = "board" | "split";
+export type MenswearMultiOutfitBackgroundMode = "inherit" | "custom";
+export type MenswearMultiOutfitCompositionMode = "inherit" | "custom";
+export type MenswearMultiOutfitPoseMode = "inherit" | "custom" | "random";
+export type MenswearMultiOutfitMaskMode = "wear_mask" | "no_mask" | "auto";
 
 export function buildMenswearMultiOutfitPrompt(input: {
   aspectRatio?: MenswearMultiOutfitAspectRatio;
+  backgroundInstruction?: string;
+  backgroundMode?: MenswearMultiOutfitBackgroundMode;
   cameraDistance?: MenswearMultiOutfitCameraDistance;
+  compositionMode?: MenswearMultiOutfitCompositionMode;
   subjectImageCount: number;
   displayMode: MenswearMultiOutfitDisplayMode;
   modelFaceMode?: MenswearMultiOutfitModelFaceMode;
   modelFaceReferenceSource?: string;
+  hasLayoutReference?: boolean;
+  outputFormat?: MenswearMultiOutfitOutputFormat;
   modelGender?: MenswearMultiOutfitModelGender;
+  maskMode?: MenswearMultiOutfitMaskMode;
   outfitCount: number;
   preserveInstructions?: string;
+  poseInstruction?: string;
+  poseMode?: MenswearMultiOutfitPoseMode;
   season?: MenswearMultiOutfitSeason;
   styleInstructions?: string;
   targetAudience?: string;
@@ -65,6 +78,22 @@ export function buildMenswearMultiOutfitPrompt(input: {
     input.displayMode === "model"
       ? `上身模特展示：${modelGender}${modelFace}每套搭配都自然穿着主商品，人体比例真实。`
       : "无模特平铺展示：所有服装与鞋包配饰平铺或悬挂展示，像商品搭配陈列图，不出现真人模特、不出现人体。";
+  const layoutRule = input.hasLayoutReference && input.compositionMode === "custom"
+    ? "构图：平铺参考图只锁定每套组合顺序与搭配关系；构图、镜头、人物位置和视觉风格按用户说明生成，不复制其主商品、文字、品牌或人物。"
+    : input.hasLayoutReference
+    ? "最后一张为平铺多搭参考图。必须按其中从左到右、从上到下的套装顺序识别搭配；参考图只锁定每套的组合关系、版式、色彩风格和视觉节奏，不复制其主商品、文字、品牌或人物。"
+    : "没有平铺多搭参考图，按本次参数设计搭配顺序与版式。";
+  const outputRule = input.outputFormat === "split"
+    ? `拆分输出规则：本次必须生成 ${input.outfitCount} 张独立人物穿搭图；第 N 张只呈现参考图第 N 套搭配，使用同一主商品，不得生成拼图、合集或重复其他套装。`
+    : "合集输出规则：在一张完整展示图中按顺序呈现所有搭配。";
+  const backgroundRule = input.backgroundMode === "inherit" && input.hasLayoutReference
+    ? "背景：保持参考图的背景空间、光线和环境关系。"
+    : `背景：${input.backgroundInstruction?.trim() || "按服装风格生成真实自然的背景，环境和光线不得抢夺主体。"}`;
+  const poseRule = input.poseMode === "inherit" && input.hasLayoutReference
+    ? "动作：保持参考图中对应搭配的人物动作和身体方向。"
+    : input.poseMode === "random"
+      ? "动作：不设定固定动作，按真实穿搭展示生成自然随机动作。"
+      : `动作：${input.poseInstruction?.trim() || "自然站立、行走或轻微转身，完整展示穿搭。"}`;
   const textRule =
     input.textMode === "with_labels"
       ? "版式可包含标题和每套搭配名；文字必须简洁、清晰、无错字，如果无法保证文字准确，可以保留空白标题区。"
@@ -81,13 +110,26 @@ export function buildMenswearMultiOutfitPrompt(input: {
     `人物远近与主体占比：${cameraDistance}`,
     `必须保留：${preserve}。同一件主商品必须出现在每一套搭配里，不得改款、换色、替换图案或改变材质。`,
     `画面风格：${style}。`,
+    layoutRule,
+    outputRule,
     modelFaceReference,
     display,
+    `口罩：${maskModeInstruction(input.maskMode)}。`,
+    backgroundRule,
+    poseRule,
     "搭配要求：每套搭配的裤装、鞋子、外套、包或配饰可以变化，但必须服务于同一主商品；搭配之间要有明确差异，整体仍然真实可穿。",
     "版式要求：横向排列，间距均匀，主商品识别度高，背景干净，适合男装电商图文和社媒封面。",
     "真实感要求：服装结构可信，面料纹理自然，阴影和透视合理，不要生成畸形人体、错误袖口、错乱领口或重复肢体。",
     textRule,
   ].join("\n");
+}
+
+function maskModeInstruction(value: MenswearMultiOutfitMaskMode | undefined) {
+  return {
+    auto: "根据场景自然判断是否佩戴口罩，不遮挡上传脸部参考的核心五官",
+    no_mask: "不戴口罩，露脸时五官自然清晰",
+    wear_mask: "佩戴干净简洁的口罩，保留脸型、发型与可见五官特征",
+  }[value || "no_mask"];
 }
 
 const seasonInstructions: Record<MenswearMultiOutfitSeason, string> = {

@@ -44,6 +44,7 @@ type AiImageAsset = {
   note: string | null;
   errorMessage: string | null;
   referenceImages: string[];
+  referenceLabels: string[];
   createdAt: string;
 };
 
@@ -637,7 +638,7 @@ function AssetDetailModal({
                         <Image alt={`参考图 ${index + 1}`} className="object-contain" fill sizes="160px" src={url} unoptimized />
                       </button>
                       <p className="text-center text-xs text-slate-500">
-                        {getReferenceImageLabel(asset.sourceTool, index, asset.referenceImages.length)}
+                        {getReferenceImageLabel(asset, index)}
                       </p>
                     </div>
                   ))}
@@ -777,7 +778,11 @@ function getMenswearRoleLabel(role: string) {
   return labels[role] ?? role;
 }
 
-function getReferenceImageLabel(sourceTool: string | null, index: number, total: number) {
+function getReferenceImageLabel(asset: AiImageAsset, index: number) {
+  const explicitLabel = asset.referenceLabels[index];
+  if (explicitLabel) return explicitLabel;
+  const { sourceTool } = asset;
+  const total = asset.referenceImages.length;
   if (sourceTool === "menswear-style-reference") {
     return index === total - 1 ? "风格参考图" : `主图 ${index + 1}`;
   }

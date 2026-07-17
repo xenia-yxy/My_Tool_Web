@@ -1,0 +1,2 @@
+ALTER TABLE "AiImageAsset"
+ADD COLUMN "referenceLabels" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[];
