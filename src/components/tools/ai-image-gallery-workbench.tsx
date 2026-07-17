@@ -789,6 +789,9 @@ function getReferenceImageLabel(asset: AiImageAsset, index: number) {
   if (sourceTool === "menswear-multi-outfit") {
     return `主商品参考图 ${index + 1}`;
   }
+  if (sourceTool === "menswear-flatlay-outfit-split") {
+    return index === total - 1 ? "平铺多搭参考图" : `锁定主体商品图 ${index + 1}`;
+  }
   if (sourceTool === "menswear-single-outfit") {
     return index === 0 ? "锁定单品参考图" : `穿搭/脸部参考图 ${index + 1}`;
   }

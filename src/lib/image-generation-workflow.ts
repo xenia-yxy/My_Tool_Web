@@ -80,6 +80,8 @@ export function resolveImageWorkbenchToolId(sourceTool: string | null | undefine
       return "menswear-style-reference";
     case "menswear-multi-outfit":
       return "menswear-multi-outfit";
+    case "menswear-flatlay-outfit-split":
+      return "menswear-flatlay-outfit-split";
     case "menswear-single-outfit":
       return "menswear-single-outfit";
     case "platform-cover-design":

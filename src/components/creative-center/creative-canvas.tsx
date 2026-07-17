@@ -268,6 +268,7 @@ const skillDestinationRoutes: Record<string, string> = {
   "menswear-generate": "/tools/menswear/generate",
   "menswear-style-reference": "/tools/menswear/style-reference",
   "menswear-multi-outfit": "/tools/menswear/multi-outfit",
+  "menswear-flatlay-outfit-split": "/tools/menswear/flatlay-outfit-split",
   "menswear-single-outfit": "/tools/menswear/single-outfit",
   "platform-cover-design": "/tools/platform-cover-design",
   "ip-derivative-factory": "/tools/ip-factory",

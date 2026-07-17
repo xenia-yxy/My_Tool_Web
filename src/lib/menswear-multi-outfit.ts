@@ -102,7 +102,9 @@ export function buildMenswearMultiOutfitPrompt(input: {
   return [
     "你是专业男装一衣多搭视觉生成师。",
     `图片顺序：前 ${input.subjectImageCount} 张为服装主体参考图。`,
-    `输出目标：生成一张一衣多搭展示图，展示 ${input.outfitCount} 套不同男装搭配。`,
+    input.outputFormat === "split"
+      ? `输出目标：按平铺多搭顺序生成 ${input.outfitCount} 张单张人物穿搭图，每张只展示一套不同男装搭配。`
+      : `输出目标：生成一张一衣多搭展示图，展示 ${input.outfitCount} 套不同男装搭配。`,
     `目标客群：${targetAudience}。`,
     `使用场景：${usageScene}。`,
     `输出比例：${aspectRatio}。`,
@@ -114,9 +116,7 @@ export function buildMenswearMultiOutfitPrompt(input: {
     outputRule,
     modelFaceReference,
     display,
-    `口罩：${maskModeInstruction(input.maskMode)}。`,
-    backgroundRule,
-    poseRule,
+    ...(input.outputFormat === "split" ? [`口罩：${maskModeInstruction(input.maskMode)}。`, backgroundRule, poseRule] : []),
     "搭配要求：每套搭配的裤装、鞋子、外套、包或配饰可以变化，但必须服务于同一主商品；搭配之间要有明确差异，整体仍然真实可穿。",
     "版式要求：横向排列，间距均匀，主商品识别度高，背景干净，适合男装电商图文和社媒封面。",
     "真实感要求：服装结构可信，面料纹理自然，阴影和透视合理，不要生成畸形人体、错误袖口、错乱领口或重复肢体。",

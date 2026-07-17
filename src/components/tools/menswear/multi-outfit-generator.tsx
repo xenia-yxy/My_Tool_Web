@@ -24,7 +24,6 @@ import {
   type MenswearMultiOutfitPoseMode,
   type MenswearMultiOutfitSeason,
   type MenswearMultiOutfitTextMode,
-  type MenswearMultiOutfitOutputFormat,
 } from "@/lib/menswear-multi-outfit";
 
 type GenerationPayload = {
@@ -82,10 +81,11 @@ const modelFaceOptions: Array<[MenswearMultiOutfitModelFaceMode, string]> = [
   ["no_model", "无模特"],
 ];
 
-export function MenswearMultiOutfitGenerator() {
+export function MenswearMultiOutfitGenerator({ variant = "board" }: { variant?: "board" | "split" }) {
+  const isSplit = variant === "split";
+  const outputFormat = variant;
   const [subjectImages, setSubjectImages] = useState<File[]>([]);
   const [layoutReferenceImages, setLayoutReferenceImages] = useState<File[]>([]);
-  const [outputFormat, setOutputFormat] = useState<MenswearMultiOutfitOutputFormat>("board");
   const [isAnalyzingLayout, setIsAnalyzingLayout] = useState(false);
   const [layoutAnalysis, setLayoutAnalysis] = useState<string | null>(null);
   const [modelFaceFiles, setModelFaceFiles] = useState<File[]>([]);
@@ -104,7 +104,7 @@ export function MenswearMultiOutfitGenerator() {
   const [targetAudience, setTargetAudience] = useState("");
   const [usageScene, setUsageScene] = useState("");
   const [season, setSeason] = useState<MenswearMultiOutfitSeason>("spring_autumn");
-  const [aspectRatio, setAspectRatio] = useState<MenswearMultiOutfitAspectRatio>("landscape");
+  const [aspectRatio, setAspectRatio] = useState<MenswearMultiOutfitAspectRatio>(isSplit ? "portrait" : "landscape");
   const [cameraDistance, setCameraDistance] = useState<MenswearMultiOutfitCameraDistance>("three_quarter");
   const [preservePreset, setPreservePreset] = useState(preservePresets[0]);
   const [customPreserve, setCustomPreserve] = useState("");
@@ -120,7 +120,7 @@ export function MenswearMultiOutfitGenerator() {
   const [notice, setNotice] = useState<string | null>(null);
   const [resultImages, setResultImages] = useState<string[]>([]);
   const restoredSessionId = useRef<string | null>(null);
-  const { create, session } = useWorkbenchSession("menswear-multi-outfit");
+  const { create, session } = useWorkbenchSession(isSplit ? "menswear-flatlay-outfit-split" : "menswear-multi-outfit");
 
   const preserveInstructions = preservePreset === "自定义" ? customPreserve : preservePreset;
   const styleInstructions = stylePreset === "自定义" ? customStyle : stylePreset;
@@ -176,7 +176,7 @@ export function MenswearMultiOutfitGenerator() {
       usageScene,
     ],
   );
-  const canSubmit = subjectImages.length > 0 && !isGenerating && (outputFormat !== "split" || layoutReferenceImages.length > 0);
+  const canSubmit = subjectImages.length > 0 && !isGenerating && (!isSplit || layoutReferenceImages.length > 0);
 
   useEffect(() => {
     if (!session) return;
@@ -212,7 +212,6 @@ export function MenswearMultiOutfitGenerator() {
       if (input.maskMode === "wear_mask" || input.maskMode === "no_mask" || input.maskMode === "auto") setMaskMode(input.maskMode);
       if (input.poseMode === "inherit" || input.poseMode === "custom" || input.poseMode === "random") setPoseMode(input.poseMode);
       if (typeof input.poseInstruction === "string") setPoseInstruction(input.poseInstruction);
-      if (input.outputFormat === "board" || input.outputFormat === "split") setOutputFormat(input.outputFormat);
       if (input.textMode === "with_labels" || input.textMode === "no_text") setTextMode(input.textMode);
       if (typeof input.targetAudience === "string") setTargetAudience(input.targetAudience);
       if (typeof input.usageScene === "string") setUsageScene(input.usageScene);
@@ -257,7 +256,7 @@ export function MenswearMultiOutfitGenerator() {
 
     try {
       const activeSession = await create({
-        title: "男装一衣多搭生图",
+        title: isSplit ? "男装平铺多搭拆分生图" : "男装一衣多搭合集生图",
         status: "RUNNING",
         prompt: finalPrompt,
         inputSnapshot: {
@@ -299,10 +298,12 @@ export function MenswearMultiOutfitGenerator() {
 
       const response = await submitGeneration(activeSession.id, finalPrompt);
       const payload = (await response.json().catch(() => ({}))) as GenerationPayload;
-      if (!response.ok) throw new Error(payload.error || "男装一衣多搭生图失败");
+      if (!response.ok) throw new Error(payload.error || (isSplit ? "男装平铺多搭拆分生图失败" : "男装一衣多搭生图失败"));
 
       const imageUrls = payload.results?.flatMap((item) => (item.imageUrl ? [item.imageUrl] : [])) || [];
-      const summary = `已生成 ${imageUrls.length || batchCount} 张一衣多搭图片，结果已保存到统一图片画廊。`;
+      const summary = isSplit
+        ? `已按平铺搭配顺序生成 ${imageUrls.length || outfitCount} 张单张人物穿搭图，结果已保存到统一图片画廊。`
+        : `已生成 ${imageUrls.length || batchCount} 张一衣多搭合集图，结果已保存到统一图片画廊。`;
       setResultImages(imageUrls);
       setNotice(summary);
       await patchSession(activeSession.id, {
@@ -318,7 +319,7 @@ export function MenswearMultiOutfitGenerator() {
         errorMessage: null,
       });
     } catch (caughtError) {
-      const message = caughtError instanceof Error ? caughtError.message : "男装一衣多搭生图失败";
+      const message = caughtError instanceof Error ? caughtError.message : (isSplit ? "男装平铺多搭拆分生图失败" : "男装一衣多搭生图失败");
       setError(message);
       if (activeSessionId) await patchSession(activeSessionId, { status: "FAILED", errorMessage: message });
     } finally {
@@ -329,13 +330,13 @@ export function MenswearMultiOutfitGenerator() {
   function submitGeneration(workbenchSessionId: string, finalPrompt: string) {
     const formData = new FormData();
     formData.set("mode", "menswear");
-    formData.set("sourceTool", "menswear-multi-outfit");
-    formData.set("description", "男装一衣多搭主体参考生成");
-    formData.set("purpose", "男装一衣多搭生图");
+    formData.set("sourceTool", isSplit ? "menswear-flatlay-outfit-split" : "menswear-multi-outfit");
+    formData.set("description", isSplit ? "男装平铺多搭拆分生成" : "男装一衣多搭合集生成");
+    formData.set("purpose", isSplit ? "男装平铺多搭拆分生图" : "男装一衣多搭合集生图");
     formData.set("style", styleInstructions);
-    formData.set("caption", `${outfitCount} 套男装一衣多搭，展示方式：${displayModeLabel(displayMode)}，模特：${modelGenderLabel(displayMode === "flatlay" ? "none" : modelGender)}，脸部：${modelFaceLabel(displayMode === "flatlay" ? "no_model" : modelFaceMode)}，季节：${seasonLabel(season)}`);
+    formData.set("caption", isSplit ? `${outfitCount} 套平铺搭配按顺序拆分为单张人物穿搭，模特：${modelGenderLabel(modelGender)}，脸部：${modelFaceLabel(modelFaceMode)}，季节：${seasonLabel(season)}` : `${outfitCount} 套男装一衣多搭合集，展示方式：${displayModeLabel(displayMode)}，模特：${modelGenderLabel(displayMode === "flatlay" ? "none" : modelGender)}，脸部：${modelFaceLabel(displayMode === "flatlay" ? "no_model" : modelFaceMode)}，季节：${seasonLabel(season)}`);
     formData.set("tags", "#男装 #一衣多搭 #AI生图");
-    formData.set("productKeywords", "男装 一衣多搭 搭配合集");
+    formData.set("productKeywords", isSplit ? "男装 平铺多搭 单张穿搭" : "男装 一衣多搭 搭配合集");
     formData.set("aspectRatio", aspectRatio);
     formData.set("quality", quality);
     formData.set("batchCount", String(outputFormat === "split" ? outfitCount : batchCount));
@@ -383,14 +384,6 @@ export function MenswearMultiOutfitGenerator() {
     }
   }
 
-  function updateOutputFormat(value: MenswearMultiOutfitOutputFormat) {
-    setOutputFormat(value);
-    if (value === "split") {
-      updateDisplayMode("model");
-      if (modelFaceMode === "no_model") setModelFaceMode("hidden_face");
-    }
-  }
-
   async function patchSession(sessionId: string, patch: Record<string, unknown>) {
     await fetch(`/api/tools/sessions/${sessionId}`, {
       method: "PATCH",
@@ -400,7 +393,7 @@ export function MenswearMultiOutfitGenerator() {
   }
 
   function updateDisplayMode(value: MenswearMultiOutfitDisplayMode) {
-    if (outputFormat === "split" && value === "flatlay") {
+    if (isSplit && value === "flatlay") {
       setDisplayMode("model");
       setModelGender((current) => current === "none" ? "male" : current);
       setModelFaceMode((current) => current === "no_model" ? "hidden_face" : current);
@@ -447,31 +440,31 @@ export function MenswearMultiOutfitGenerator() {
           <CardHeader>
             <div className="flex flex-wrap gap-2">
               <Badge variant="success">主商品锁定</Badge>
-              <Badge variant="secondary">横版搭配合集</Badge>
+              <Badge variant="secondary">{isSplit ? "平铺顺序拆分" : "横版搭配合集"}</Badge>
             </div>
             <CardTitle>生成配置</CardTitle>
-            <CardDescription>上传一个或多个服装主体参考图，生成上身模特或无模特平铺的一衣多搭图。</CardDescription>
+            <CardDescription>{isSplit ? "上传平铺多搭图，识别每套组合后按顺序生成对应数量的单张人物穿搭图。" : "上传一个或多个服装主体参考图，生成上身模特或无模特平铺的一衣多搭合集。"}</CardDescription>
           </CardHeader>
           <CardContent>
             <form className="grid gap-5" onSubmit={openPrompt}>
               <ImageReferenceUploader
                 emptyText="上传服装主体参考图"
                 files={subjectImages}
-                helper="可上传 1-6 张；主商品会出现在每一套搭配里"
+                helper={isSplit ? "可上传 1-6 张；每套拆分结果都必须保留主体商品。" : "可上传 1-6 张；主商品会出现在每一套搭配里"}
                 label="服装主体参考图"
                 maxFiles={6}
                 onChange={setSubjectImages}
               />
-              <ImageReferenceUploader
-                emptyText="上传平铺多搭参考图（可选）"
+              {isSplit ? <ImageReferenceUploader
+                emptyText="上传平铺多搭参考图"
                 files={layoutReferenceImages}
-                helper="用于识别每套搭配的顺序、组合、版式和风格；不复制图中文字或主商品。"
+                helper="必填。系统按从左到右、从上到下识别每套组合，逐套输出单张人物穿搭。"
                 label="平铺多搭参考图"
                 materialCategories={["outfit", "composition", "mood"]}
                 maxFiles={1}
                 onChange={setLayoutReferenceImages}
-              />
-              {layoutReferenceImages.length ? (
+              /> : null}
+              {isSplit && layoutReferenceImages.length ? (
                 <div className="flex flex-wrap items-center gap-3 rounded-lg border border-sky-200 bg-sky-50 p-3">
                   <Button disabled={isAnalyzingLayout} onClick={analyzeLayoutReference} type="button" variant="secondary">
                     {isAnalyzingLayout ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
@@ -480,13 +473,7 @@ export function MenswearMultiOutfitGenerator() {
                   <p className="text-xs leading-5 text-sky-900">{layoutAnalysis || "识别后会自动回填套数；可按实际平铺搭配手动修正。"}</p>
                 </div>
               ) : null}
-              <SelectField
-                label="输出方式"
-                onChange={(value) => updateOutputFormat(value as MenswearMultiOutfitOutputFormat)}
-                options={[["board", "一张多搭合集"], ["split", "按套数拆分为单张人物图"]]}
-                value={outputFormat}
-              />
-              {layoutReferenceImages.length ? (
+              {isSplit && layoutReferenceImages.length ? (
                 <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 md:grid-cols-3">
                   <div className="md:col-span-3">
                     <p className="text-sm font-semibold text-slate-900">平铺参考控制</p>
@@ -529,35 +516,35 @@ export function MenswearMultiOutfitGenerator() {
               <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 md:grid-cols-3">
                 <div className="md:col-span-3">
                   <p className="text-sm font-semibold text-slate-900">模特设置</p>
-                  <p className="mt-1 text-xs leading-5 text-slate-500">默认无模特平铺；选择半身或全身后会写入生图提示词。</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">{isSplit ? "拆分图固定为单张人物穿搭；可设置脸部、口罩与人物远近。" : "可选择上身模特或无模特平铺合集。"}</p>
                 </div>
-                <SelectField
+                {!isSplit ? <SelectField
                   label="展示方式"
                   onChange={(value) => updateDisplayMode(value as MenswearMultiOutfitDisplayMode)}
                   options={[
                     ["flatlay", "无模特平铺"],
                     ["model", "有模特上身"],
                   ]}
-                  value={outputFormat === "split" ? "model" : displayMode}
-                />
+                  value={displayMode}
+                /> : null}
                 <SelectField
                   label="模特性别"
                   onChange={(value) => updateModelGender(value as MenswearMultiOutfitModelGender)}
-                  options={modelGenderOptions}
+                  options={isSplit ? modelGenderOptions.filter(([value]) => value !== "none") : modelGenderOptions}
                   value={modelGender}
                 />
                 <SelectField
                   label="脸部"
                   onChange={(value) => updateModelFaceMode(value as MenswearMultiOutfitModelFaceMode)}
-                  options={modelFaceOptions}
+                  options={isSplit ? modelFaceOptions.filter(([value]) => value !== "no_model") : modelFaceOptions}
                   value={modelFaceMode}
                 />
-                <SelectField
+                {isSplit ? <SelectField
                   label="口罩"
                   onChange={(value) => setMaskMode(value as MenswearMultiOutfitMaskMode)}
                   options={[["no_mask", "不戴口罩"], ["wear_mask", "戴口罩"], ["auto", "自动判断"]]}
                   value={maskMode}
-                />
+                /> : null}
               </div>
 
               <div className="grid gap-3 md:grid-cols-2">
@@ -611,13 +598,13 @@ export function MenswearMultiOutfitGenerator() {
                   <textarea className={textareaClass} onChange={(event) => setCustomStyle(event.target.value)} placeholder="例如：参考韩系男装白底合集，5 套横向排列，鞋包配饰完整" value={customStyle} />
                 </Field>
               ) : null}
-              {poseMode === "custom" ? <Field label="自定义动作"><textarea className={textareaClass} onChange={(event) => setPoseInstruction(event.target.value)} placeholder="例如：自然站立、侧身行走或坐姿" value={poseInstruction} /></Field> : null}
-              {backgroundMode === "custom" ? <Field label="自定义背景"><textarea className={textareaClass} onChange={(event) => setBackgroundInstruction(event.target.value)} placeholder="例如：明亮街角、室内白墙或自然日光；背景不要抢服装" value={backgroundInstruction} /></Field> : null}
+              {isSplit && poseMode === "custom" ? <Field label="自定义动作"><textarea className={textareaClass} onChange={(event) => setPoseInstruction(event.target.value)} placeholder="例如：自然站立、侧身行走或坐姿" value={poseInstruction} /></Field> : null}
+              {isSplit && backgroundMode === "custom" ? <Field label="自定义背景"><textarea className={textareaClass} onChange={(event) => setBackgroundInstruction(event.target.value)} placeholder="例如：明亮街角、室内白墙或自然日光；背景不要抢服装" value={backgroundInstruction} /></Field> : null}
 
               <div className="grid gap-3 md:grid-cols-3">
                 <SelectField label="搭配套数" onChange={(value) => setOutfitCount(Number(value))} options={["3", "4", "5", "6"].map((count) => [count, `${count} 套`])} value={String(outfitCount)} />
                 <SelectField label="质量" onChange={setQuality} options={[["low", "低"], ["medium", "中"], ["high", "高"]]} value={quality} />
-                <SelectField label="生成数量" onChange={(value) => setBatchCount(Number(value))} options={["1", "2", "4", "6"].map((count) => [count, `${count} 张`])} value={String(batchCount)} />
+                {!isSplit ? <SelectField label="生成数量" onChange={(value) => setBatchCount(Number(value))} options={["1", "2", "4", "6"].map((count) => [count, `${count} 张`])} value={String(batchCount)} /> : <Field label="拆分输出"><div className="flex h-10 items-center rounded-lg border border-slate-200 bg-slate-50 px-3 text-sm text-slate-700">按识别/设置套数输出 {outfitCount} 张</div></Field>}
               </div>
 
               {error ? <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div> : null}
@@ -659,7 +646,7 @@ export function MenswearMultiOutfitGenerator() {
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {resultImages.map((imageUrl, index) => (
               <a className="block overflow-hidden rounded-lg border border-slate-200 bg-white" href={imageUrl} key={`${imageUrl}-${index}`} rel="noreferrer" target="_blank">
-                <img alt={`男装一衣多搭结果 ${index + 1}`} className="aspect-video w-full object-cover" src={imageUrl} />
+                <img alt={`${isSplit ? "平铺多搭拆分" : "男装一衣多搭"}结果 ${index + 1}`} className={`${isSplit ? "aspect-[3/4]" : "aspect-video"} w-full object-cover`} src={imageUrl} />
               </a>
             ))}
           </div>
@@ -667,12 +654,12 @@ export function MenswearMultiOutfitGenerator() {
       ) : null}
 
       <PromptEditorDialog
-        description="请确认或修改完整提示词，保存后才会提交本次一衣多搭生图任务。"
+        description={isSplit ? "请确认或修改完整提示词，保存后按平铺搭配顺序提交单张人物穿搭任务。" : "请确认或修改完整提示词，保存后才会提交本次一衣多搭合集生图任务。"}
         onClose={() => setPromptOpen(false)}
         onSave={generate}
         open={isPromptOpen}
         prompt={promptDraft}
-        title="确认男装一衣多搭提示词"
+        title={isSplit ? "确认平铺多搭拆分提示词" : "确认男装一衣多搭合集提示词"}
       />
     </>
   );

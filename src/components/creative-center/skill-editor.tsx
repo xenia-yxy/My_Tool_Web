@@ -81,6 +81,7 @@ export function SkillEditor({ initialValue, onCancel, onSave, saving }: SkillEdi
           <option value="menswear-generate">男装视觉生成</option>
           <option value="menswear-style-reference">男装风格参考</option>
           <option value="menswear-multi-outfit">一衣多搭</option>
+          <option value="menswear-flatlay-outfit-split">平铺多搭拆分生图</option>
           <option value="platform-cover-design">平台封面设计</option>
           <option value="ip-derivative-factory">IP 衍生工厂</option>
           <option value="menswear-model-generate">模特生成</option>

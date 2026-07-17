@@ -15,6 +15,7 @@ export const workbenchTools = [
   { id: "menswear-style-reference", label: "男装风格参考生图", href: "/tools/menswear/style-reference", supportsPrompt: true },
   { id: "menswear-single-outfit", label: "男装单品穿搭生图", href: "/tools/menswear/single-outfit", supportsPrompt: true },
   { id: "menswear-multi-outfit", label: "男装一衣多搭生图", href: "/tools/menswear/multi-outfit", supportsPrompt: true },
+  { id: "menswear-flatlay-outfit-split", label: "男装平铺多搭拆分生图", href: "/tools/menswear/flatlay-outfit-split", supportsPrompt: true },
   { id: "womenswear", label: "女装视觉工作台", href: "/tools/womenswear", supportsPrompt: true },
   { id: "outfit-image", label: "AI 穿搭生图", href: "/tools/outfit-image", supportsPrompt: true },
   { id: "fashion-prompts", label: "穿搭提示词", href: "/tools/fashion-prompts", supportsPrompt: true },

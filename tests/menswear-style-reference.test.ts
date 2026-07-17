@@ -151,7 +151,7 @@ test("menswear workspace exposes one-piece multi outfit generation and registers
   const page = readFileSync("src/app/tools/menswear/multi-outfit/page.tsx", "utf8");
   const component = readFileSync("src/components/tools/menswear/multi-outfit-generator.tsx", "utf8");
 
-  assert.match(workspace, /一衣多搭生图/);
+  assert.match(workspace, /一衣多搭合集/);
   assert.match(workspace, /\/tools\/menswear\/multi-outfit/);
   assert.match(page, /MenswearMultiOutfitGenerator/);
   assert.match(component, /menswear-multi-outfit/);
@@ -161,6 +161,22 @@ test("menswear workspace exposes one-piece multi outfit generation and registers
   assert.match(component, /使用场景/);
   assert.equal(getWorkbenchTool("menswear-multi-outfit")?.label, "男装一衣多搭生图");
   assert.equal(resolveImageWorkbenchToolId("menswear-multi-outfit"), "menswear-multi-outfit");
+});
+
+test("menswear separates outfit-board generation from flatlay split generation", () => {
+  const workspace = readFileSync("src/components/tools/menswear/menswear-workspace.tsx", "utf8");
+  const page = readFileSync("src/app/tools/menswear/flatlay-outfit-split/page.tsx", "utf8");
+  const generator = readFileSync("src/components/tools/menswear/multi-outfit-generator.tsx", "utf8");
+  const sessions = readFileSync("src/lib/workbench-sessions.ts", "utf8");
+  const workflow = readFileSync("src/lib/image-generation-workflow.ts", "utf8");
+
+  assert.match(workspace, /一衣多搭合集/);
+  assert.match(workspace, /平铺多搭拆分生图/);
+  assert.match(workspace, /\/tools\/menswear\/flatlay-outfit-split/);
+  assert.match(page, /variant="split"/);
+  assert.match(generator, /variant\?: "board" \| "split"/);
+  assert.match(sessions, /menswear-flatlay-outfit-split/);
+  assert.match(workflow, /menswear-flatlay-outfit-split/);
 });
 
 test("ai image prompt editor opens with the current form prompt instead of a stale session prompt", () => {

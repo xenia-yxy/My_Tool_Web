@@ -24,6 +24,13 @@ export const creativeCanvasTemplates: readonly CreativeCanvasTemplate[] = [
     executorKey: "menswear-multi-outfit",
   },
   {
+    id: "menswear-flatlay-outfit-split",
+    title: "平铺多搭拆分",
+    description: "从平铺一衣多搭图中逐套生成单张人物穿搭。",
+    requirement: "我想上传平铺多搭图，按图中顺序将每套搭配生成一张独立人物穿搭图。",
+    executorKey: "menswear-flatlay-outfit-split",
+  },
+  {
     id: "menswear-single-outfit",
     title: "单品穿搭",
     description: "将单品图搭配为一张一套的真实上身穿搭图。",

@@ -12,7 +12,8 @@ export function buildCreativeCanvasPlan(message: string): CreativeCanvasPlan {
 
   const executorKeys: string[] = [];
   if (/单品穿搭|单件穿搭|一张图一套|一图一套/.test(text)) executorKeys.push("menswear-single-outfit");
-  if (/一衣多搭|搭配|季节|衬衫|衣服|服装/.test(text)) executorKeys.push("menswear-multi-outfit");
+  if (/平铺.*(拆分|单张|逐套)|多搭.*(拆分|单张|逐套)/.test(text)) executorKeys.push("menswear-flatlay-outfit-split");
+  else if (/一衣多搭|搭配|季节|衬衫|衣服|服装/.test(text)) executorKeys.push("menswear-multi-outfit");
   if (/封面|小红书|抖音图文|公众号|视频号|闲鱼/.test(text)) executorKeys.push("platform-cover-design");
   if (/换装|表情包|动作|IP/.test(text)) executorKeys.push("ip-derivative-factory");
   if (/模特|脸部|身材/.test(text)) executorKeys.push("menswear-model-generate");

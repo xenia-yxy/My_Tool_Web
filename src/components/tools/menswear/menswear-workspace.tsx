@@ -8,7 +8,8 @@ const actions = [
   { href: "/tools/menswear/scene-image", icon: ImagePlus, label: "场景图生成", description: "使用场景图完成人物换装、商品替换或纯背景视觉创作。" },
   { href: "/tools/menswear/style-reference", icon: ImagePlus, label: "风格参考生图", description: "上传多张主图与一张风格参考图，保留商品真实细节后生成。" },
   { href: "/tools/menswear/single-outfit", icon: Shirt, label: "单品穿搭生图", description: "上传单品和可选构图参考，一张图生成一套独立上身穿搭。" },
-  { href: "/tools/menswear/multi-outfit", icon: Shirt, label: "一衣多搭生图", description: "上传单个或多个主商品，生成上身模特或无模特平铺的多套搭配图。" },
+  { href: "/tools/menswear/multi-outfit", icon: Shirt, label: "一衣多搭合集", description: "上传单个或多个主商品，生成一张包含多套搭配的合集图。" },
+  { href: "/tools/menswear/flatlay-outfit-split", icon: Shirt, label: "平铺多搭拆分生图", description: "上传平铺多搭图，逐套生成对应的单张人物穿搭图。" },
   { href: "/tools/menswear/materials", icon: Images, label: "公开素材库", description: "分类管理服装、姿势、背景和脸部参考素材。" },
   { href: "/tools/menswear/models", icon: UserRound, label: "模特档案", description: "建立多模特身份和一致性控制。" },
 ];

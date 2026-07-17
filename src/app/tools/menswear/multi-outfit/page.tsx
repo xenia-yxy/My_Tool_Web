@@ -10,8 +10,8 @@ export default async function MenswearMultiOutfitPage() {
   return (
     <>
       <WorkspacePageHeader
-        description="上传单个或多个男装主体参考图，生成上身模特或无模特平铺的一衣多搭横版合集。"
-        title="男装一衣多搭生图"
+        description="上传单个或多个男装主体参考图，生成上身模特或无模特平铺的一衣多搭合集图。"
+        title="男装一衣多搭合集"
       />
       <MenswearMultiOutfitGenerator />
     </>
