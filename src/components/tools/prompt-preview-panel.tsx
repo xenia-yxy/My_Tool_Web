@@ -73,7 +73,7 @@ type PromptConfirmDialogProps = {
   title?: string;
   onCancel: () => void;
   onChange: (prompt: string) => void;
-  onConfirm: () => void;
+  onConfirm: (prompt: string) => void;
 };
 
 export function PromptConfirmDialog({
@@ -85,7 +85,23 @@ export function PromptConfirmDialog({
   prompt,
   title = "确认生图提示词",
 }: PromptConfirmDialogProps) {
+  const [controlPerson, setControlPerson] = useState(false);
+  const [personScale, setPersonScale] = useState("balanced");
+  const [bodyProportion, setBodyProportion] = useState("standard");
+  const [customBodyProportion, setCustomBodyProportion] = useState("");
   if (!isOpen) return null;
+
+  function confirm() {
+    const finalPrompt = buildFinalPrompt({
+      bodyProportion,
+      controlPerson,
+      customBodyProportion,
+      personScale,
+      prompt,
+    });
+    onChange(finalPrompt);
+    onConfirm(finalPrompt);
+  }
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/45 p-4">
@@ -101,11 +117,42 @@ export function PromptConfirmDialog({
           onChange={(event) => onChange(event.target.value)}
           value={prompt}
         />
+        <section className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <label className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+            <input checked={controlPerson} onChange={(event) => setControlPerson(event.target.checked)} type="checkbox" />
+            人物画面控制
+          </label>
+          {controlPerson ? <div className="grid gap-3 sm:grid-cols-2">
+            <label className="grid gap-1.5 text-sm text-slate-700">
+              人物大小
+              <select className={selectClass} onChange={(event) => setPersonScale(event.target.value)} value={personScale}>
+                <option value="environment">环境感（35%-50%）</option>
+                <option value="balanced">均衡（55%-70%）</option>
+                <option value="dominant">人物突出（70%-80%）</option>
+                <option value="close">近景（80%-90%）</option>
+              </select>
+            </label>
+            <label className="grid gap-1.5 text-sm text-slate-700">
+              身材比例
+              <select className={selectClass} onChange={(event) => setBodyProportion(event.target.value)} value={bodyProportion}>
+                <option value="standard">标准写实</option>
+                <option value="tall">修长男模</option>
+                <option value="athletic">运动肩宽</option>
+                <option value="street">街头宽松</option>
+                <option value="custom">自定义说明</option>
+              </select>
+            </label>
+            {bodyProportion === "custom" ? <label className="grid gap-1.5 text-sm text-slate-700 sm:col-span-2">
+              自定义身材说明
+              <input className={selectClass} onChange={(event) => setCustomBodyProportion(event.target.value)} placeholder="例如：修长比例、腿部完整、腰线略高、避免五五分" value={customBodyProportion} />
+            </label> : null}
+          </div> : <p className="text-xs leading-5 text-slate-500">纯商品、纯背景和封面图可不勾选；勾选后会将人物大小和身材比例写入本次完整提示词。</p>}
+        </section>
         <div className="flex flex-wrap justify-end gap-2">
           <Button disabled={isSubmitting} onClick={onCancel} type="button" variant="secondary">
             取消
           </Button>
-          <Button disabled={isSubmitting || !prompt.trim()} onClick={onConfirm} type="button">
+          <Button disabled={isSubmitting || !prompt.trim()} onClick={confirm} type="button">
             {isSubmitting ? "提交中" : "确认生图"}
           </Button>
         </div>
@@ -113,3 +160,37 @@ export function PromptConfirmDialog({
     </div>
   );
 }
+
+function buildFinalPrompt(input: {
+  bodyProportion: string;
+  controlPerson: boolean;
+  customBodyProportion: string;
+  personScale: string;
+  prompt: string;
+}) {
+  const prompt = input.prompt.trim();
+  if (!input.controlPerson) return prompt;
+
+  const scaleRules: Record<string, string> = {
+    balanced: "人物占画面约 55%-70%，完整展示穿搭与适量环境。",
+    close: "人物占画面约 80%-90%，仅在近景需要时使用，避免脸部畸变和裁切手脚。",
+    dominant: "人物占画面约 70%-80%，服装细节突出，手脚完整可见。",
+    environment: "人物占画面约 35%-50%，保留更多环境、背景与空间关系。",
+  };
+  const bodyRules: Record<string, string> = {
+    athletic: "运动肩宽比例：肩背自然挺拔、胸腰比例协调、腿部完整，避免夸张健身身材。",
+    custom: input.customBodyProportion.trim() || "自然修长比例，腿部完整，避免五五分和短腿。",
+    standard: "标准写实比例：约 7.5-8 头身，肩腰胯、腿长和衣物垂感符合真实人体。",
+    street: "街头宽松比例：身材自然修长，宽松衣裤保持廓形，腰线、裤长和鞋部完整，不做五五分。",
+    tall: "修长男模比例：约 8-8.5 头身，肩宽腿长，腰线略高，腿部与鞋子完整可见，避免短腿和五五分构图。",
+  };
+
+  return [
+    prompt,
+    "人物画面控制：",
+    `人物大小：${scaleRules[input.personScale] || scaleRules.balanced}`,
+    `身材比例：${bodyRules[input.bodyProportion] || bodyRules.standard}`,
+  ].join("\n\n");
+}
+
+const selectClass = "h-10 w-full rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100";

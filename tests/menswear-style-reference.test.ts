@@ -208,6 +208,23 @@ test("ai image prompt editor opens with the current form prompt instead of a sta
   assert.doesNotMatch(tool, /setPromptDraft\(session\?\.prompt\.trim\(\) \|\| fullPrompt\)/);
 });
 
+test("all prompt-confirmed image tools expose optional person scale and body proportion controls", () => {
+  const dialog = readFileSync("src/components/tools/prompt-editor-dialog.tsx", "utf8");
+  const confirmDialog = readFileSync("src/components/tools/prompt-preview-panel.tsx", "utf8");
+  const imageTool = readFileSync("src/components/tools/ai-image-tool.tsx", "utf8");
+  const scene = readFileSync("src/components/tools/menswear/scene-image-generator.tsx", "utf8");
+
+  assert.match(dialog, /人物大小/);
+  assert.match(dialog, /身材比例/);
+  assert.match(dialog, /修长男模/);
+  assert.match(dialog, /人物画面控制/);
+  assert.match(confirmDialog, /人物画面控制/);
+  assert.match(confirmDialog, /人物突出（70%-80%）/);
+  assert.match(confirmDialog, /街头宽松/);
+  assert.match(imageTool, /PromptEditorDialog/);
+  assert.match(scene, /PromptEditorDialog/);
+});
+
 test("commerce navigation uses formal workspace names instead of account-starting labels", () => {
   const nav = readFileSync("src/components/tools/nav-config.ts", "utf8");
   const menswearPage = readFileSync("src/app/tools/menswear/page.tsx", "utf8");

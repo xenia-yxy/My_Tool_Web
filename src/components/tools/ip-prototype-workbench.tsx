@@ -114,7 +114,7 @@ export function IpPrototypeWorkbench() {
     setIsConfirmOpen(true);
   }
 
-  async function confirmGenerate() {
+  async function confirmGenerate(promptToSubmit: string) {
     setError(null);
     setIsGenerating(true);
     setIsConfirmOpen(false);
@@ -124,7 +124,7 @@ export function IpPrototypeWorkbench() {
       const activeSession = await create({
         title: `IP 原型：${projectName}`,
         status: "RUNNING",
-        prompt: editablePrompt,
+        prompt: promptToSubmit,
         inputSnapshot: {
           projectName,
           ipType,
@@ -164,7 +164,7 @@ export function IpPrototypeWorkbench() {
       formData.set("aspectRatio", aspectRatio);
       formData.set("quality", quality);
       formData.set("batchCount", String(batchCount));
-      formData.set("finalPrompt", editablePrompt);
+      formData.set("finalPrompt", promptToSubmit);
       draftImages.forEach((image) => formData.append("draftImage", image));
       styleImages.forEach((image) => formData.append("styleImage", image));
 
@@ -418,7 +418,7 @@ export function IpPrototypeWorkbench() {
         isSubmitting={isGenerating}
         onCancel={() => setIsConfirmOpen(false)}
         onChange={setEditablePrompt}
-        onConfirm={() => void confirmGenerate()}
+        onConfirm={(finalPrompt) => void confirmGenerate(finalPrompt)}
         prompt={editablePrompt}
         title="确认 IP 生图提示词"
       />

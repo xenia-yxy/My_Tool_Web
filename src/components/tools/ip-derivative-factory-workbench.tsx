@@ -154,8 +154,8 @@ export function IpDerivativeFactoryWorkbench() {
     setIsConfirmOpen(true);
   }
 
-  async function confirmGenerate() {
-    if (!editablePrompt.trim()) return;
+  async function confirmGenerate(promptToSubmit: string) {
+    if (!promptToSubmit.trim()) return;
     setIsConfirmOpen(false);
     setIsGenerating(true);
     setError(null);
@@ -167,7 +167,7 @@ export function IpDerivativeFactoryWorkbench() {
       const activeSession = await create({
         title: `${ipName.trim() || "未命名 IP"}：${modeLabel}`,
         status: "RUNNING",
-        prompt: editablePrompt,
+        prompt: promptToSubmit,
         inputSnapshot: {
           mode,
           modeControlCustomValues,
@@ -192,7 +192,7 @@ export function IpDerivativeFactoryWorkbench() {
       });
       activeSessionId = activeSession.id;
 
-      const response = await submitGeneration(activeSession.id);
+      const response = await submitGeneration(activeSession.id, promptToSubmit);
       const payload = (await response.json().catch(() => ({}))) as GenerationPayload;
       if (!response.ok) throw new Error(payload.error || "IP 衍生图片生成失败");
 
@@ -223,13 +223,13 @@ export function IpDerivativeFactoryWorkbench() {
     }
   }
 
-  function submitGeneration(workbenchSessionId: string) {
+  function submitGeneration(workbenchSessionId: string, promptToSubmit: string) {
     const formData = new FormData();
     const modeLabel = modes.find((item) => item.id === mode)?.label || "IP 衍生";
     formData.set("mode", "custom");
     formData.set("sourceTool", "ip-factory");
-    formData.set("description", editablePrompt);
-    formData.set("finalPrompt", editablePrompt);
+    formData.set("description", promptToSubmit);
+    formData.set("finalPrompt", promptToSubmit);
     formData.set("purpose", `${ipName.trim() || "未命名 IP"}${modeLabel}`);
     formData.set("style", modeLabel);
     formData.set("caption", `${ipName.trim() || "未命名 IP"} ${modeLabel}衍生图`);
@@ -405,7 +405,7 @@ export function IpDerivativeFactoryWorkbench() {
         isSubmitting={isGenerating}
         onCancel={() => setIsConfirmOpen(false)}
         onChange={setEditablePrompt}
-        onConfirm={() => void confirmGenerate()}
+        onConfirm={(finalPrompt) => void confirmGenerate(finalPrompt)}
         prompt={editablePrompt}
         title="确认 IP 衍生提示词"
       />
