@@ -14,12 +14,33 @@ test("normalizeImageSize maps tool aspect ratios to image API sizes", () => {
   assert.equal(normalizeImageSize("portrait"), "1024x1536");
   assert.equal(normalizeImageSize("landscape"), "1536x1024");
   assert.equal(normalizeImageSize("1:1"), "1024x1024");
-  assert.equal(normalizeImageSize("3:4"), "1080x1440");
-  assert.equal(normalizeImageSize("4:3"), "1440x1080");
-  assert.equal(normalizeImageSize("9:16"), "1080x1920");
-  assert.equal(normalizeImageSize("16:9"), "1920x1080");
-  assert.equal(normalizeImageSize("xiaohongshu"), "1080x1440");
+  assert.equal(normalizeImageSize("3:4"), "1056x1408");
+  assert.equal(normalizeImageSize("4:3"), "1408x1056");
+  assert.equal(normalizeImageSize("9:16"), "1008x1792");
+  assert.equal(normalizeImageSize("16:9"), "1792x1008");
+  assert.equal(normalizeImageSize("xiaohongshu"), "1056x1408");
   assert.equal(normalizeImageSize("unexpected"), "1024x1024");
+});
+
+test("normalizeImageSize only returns model-safe dimensions", () => {
+  for (const ratio of [
+    "square",
+    "portrait",
+    "landscape",
+    "1:1",
+    "3:4",
+    "4:3",
+    "9:16",
+    "16:9",
+    "xiaohongshu",
+    "unexpected",
+  ]) {
+    const size = normalizeImageSize(ratio);
+    const [width, height] = size.split("x").map(Number);
+
+    assert.equal(width % 16, 0, `${ratio} width ${width} must be a multiple of 16`);
+    assert.equal(height % 16, 0, `${ratio} height ${height} must be a multiple of 16`);
+  }
 });
 
 test("normalizeImageBatchCount clamps batch generation size", () => {

@@ -50,9 +50,9 @@ export function isImageAspectRatioPreset(value: unknown): value is ImageAspectRa
 export function imageAspectRatioToSize(value?: string | null) {
   if (value === "portrait") return "1024x1536";
   if (value === "landscape") return "1536x1024";
-  if (value === "3:4" || value === "xiaohongshu") return "1080x1440";
-  if (value === "4:3") return "1440x1080";
-  if (value === "9:16") return "1080x1920";
-  if (value === "16:9") return "1920x1080";
+  if (value === "3:4" || value === "xiaohongshu") return "1056x1408";
+  if (value === "4:3") return "1408x1056";
+  if (value === "9:16") return "1008x1792";
+  if (value === "16:9") return "1792x1008";
   return "1024x1024";
 }
