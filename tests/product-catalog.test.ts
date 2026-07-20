@@ -94,3 +94,14 @@ test("product input keeps editable AI analysis and editor exposes AI analysis", 
   assert.match(editor, /products\/analyze/);
   assert.match(editor, /AI 识别商品/);
 });
+
+test("product editor keeps the manual archive open and makes AI analysis optional", () => {
+  const editor = readFileSync("src/components/tools/product-catalog/product-editor.tsx", "utf8");
+
+  assert.match(editor, /useState\(true\)/);
+  assert.match(editor, /AI 识别（可选）/);
+  assert.match(editor, /目标人群/);
+  assert.match(editor, /可见属性/);
+  assert.match(editor, /人工核对项/);
+  assert.match(editor, /请填写商品名称/);
+});
