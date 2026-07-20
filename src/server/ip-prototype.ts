@@ -10,6 +10,11 @@ import {
   normalizeImageSize,
   saveGeneratedImageToRuntime,
 } from "@/server/ai-image-tools";
+import {
+  deleteAliyunOssObjectByUrl,
+  shouldUseRuntimeStorage,
+  uploadBufferToAliyunOss,
+} from "@/server/oss-storage";
 
 export type IpPrototypeType = "person" | "product" | "content";
 export type IpPrototypeOutputGoal =
@@ -478,6 +483,16 @@ async function saveIpReferenceImage(image: File, prefix: "draft" | "style") {
   const fileName = `${prefix}-${new Date().toISOString().slice(0, 10)}-${randomUUID()}${extension}`;
   const buffer = Buffer.from(await image.arrayBuffer());
 
+  if (!shouldUseRuntimeStorage()) {
+    const uploaded = await uploadBufferToAliyunOss({
+      buffer,
+      fileName,
+      contentType: image.type || "image/png",
+      folder: "ip-prototypes",
+    });
+    return uploaded.imageUrl;
+  }
+
   await mkdir(uploadDir, { recursive: true });
   await writeFile(path.join(uploadDir, fileName), buffer);
 
@@ -493,6 +508,8 @@ function imageExtension(mimeType: string) {
 async function deleteRuntimeIpImage(imageUrl: string | null) {
   if (!imageUrl) return;
 
+  if (await deleteAliyunOssObjectByUrl(imageUrl).catch(() => false)) return;
+
   const match = imageUrl.match(
     /^\/api\/uploads\/ip-prototypes\/([^/]+\.(png|jpg|jpeg|webp))$/i,
   );
@@ -504,6 +521,8 @@ async function deleteRuntimeIpImage(imageUrl: string | null) {
 
 async function deleteRuntimeAiImage(imageUrl: string | null) {
   if (!imageUrl) return;
+
+  if (await deleteAliyunOssObjectByUrl(imageUrl).catch(() => false)) return;
 
   const match = imageUrl.match(/^\/api\/uploads\/ai-images\/([^/]+\.png)$/i);
 
