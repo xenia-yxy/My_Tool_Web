@@ -10,6 +10,7 @@ import {
   buildDefaultAiRuntimeConfigs,
   createAiGateway,
   fetchWithTimeout,
+  IMAGE_REQUEST_TIMEOUT_MS,
   selectModelForCapability,
   type AiModelRuntimeConfig,
 } from "../src/server/ai-gateway/provider-registry";
@@ -23,6 +24,10 @@ test("fetchWithTimeout aborts a stalled model request", async () => {
     () => fetchWithTimeout(stalledFetch, "https://api.example.com", {}, 5),
     /模型请求超时，请重试/,
   );
+});
+
+test("image generation allows the longer provider processing window", () => {
+  assert.equal(IMAGE_REQUEST_TIMEOUT_MS, 10 * 60 * 1_000);
 });
 
 test("selectModelForCapability picks an enabled model that supports the task", () => {

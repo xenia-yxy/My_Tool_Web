@@ -64,6 +64,8 @@ type EditImageInput = GenerateImageInput & {
   image: File | File[];
 };
 
+export const IMAGE_REQUEST_TIMEOUT_MS = 10 * 60 * 1_000;
+
 export async function fetchWithTimeout(
   fetchImpl: typeof fetch,
   input: RequestInfo | URL,
@@ -197,6 +199,7 @@ export function createAiGateway(options: AiGatewayOptions) {
             quality: input.quality,
           }),
         },
+        IMAGE_REQUEST_TIMEOUT_MS,
       );
 
       return readJsonResponse(response);
@@ -223,6 +226,7 @@ export function createAiGateway(options: AiGatewayOptions) {
           headers: buildMultipartHeaders(model),
           body: formData,
         },
+        IMAGE_REQUEST_TIMEOUT_MS,
       );
 
       return readJsonResponse(response);
