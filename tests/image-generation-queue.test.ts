@@ -23,3 +23,11 @@ test("shared image generation queues work for the background worker instead of h
   assert.match(compose, /my-web-worker/);
   assert.match(compose, /\$\$\{AUTH_SECRET/);
 });
+
+test("image queue records each completed image before the full batch finishes", () => {
+  const queue = readFileSync("src/server/ai-image-queue.ts", "utf8");
+  const assets = readFileSync("src/server/ai-image-assets.ts", "utf8");
+
+  assert.match(queue, /markAiImageJobProgress/);
+  assert.match(assets, /export async function markAiImageJobProgress/);
+});

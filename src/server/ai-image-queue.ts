@@ -3,6 +3,7 @@ import {
   createAiImageAsset,
   markAiImageJobCompleted,
   markAiImageJobFailed,
+  markAiImageJobProgress,
 } from "@/server/ai-image-assets";
 import {
   editImageWithReferences,
@@ -139,6 +140,7 @@ export async function processAiImageJob(input: {
         referenceLabels: payload.referenceLabels,
       });
       results.push({ ...saved, asset });
+      await markAiImageJobProgress(input.authorId, input.id, results.length);
     }
 
     await markAiImageJobCompleted(input.authorId, input.id, { completedCount: results.length });

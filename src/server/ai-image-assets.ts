@@ -460,6 +460,20 @@ export async function markAiImageJobCompleted(
   });
 }
 
+export async function markAiImageJobProgress(
+  authorId: string,
+  id: string,
+  completedCount: number,
+) {
+  const existing = await getAiImageJob(authorId, id);
+  if (!existing || existing.status !== "RUNNING") return null;
+
+  return prisma.aiImageJob.update({
+    where: { id },
+    data: { completedCount: Math.max(Math.floor(completedCount), 0) },
+  });
+}
+
 export async function markAiImageJobFailed(
   authorId: string,
   id: string,
