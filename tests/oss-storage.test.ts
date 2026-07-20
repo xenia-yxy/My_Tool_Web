@@ -3,7 +3,9 @@ import { test } from "node:test";
 import {
   buildOssObjectKey,
   buildOssObjectUrl,
+  buildOssProxyUrl,
   getAliyunOssConfig,
+  getOssObjectKeyFromUrl,
   isAliyunOssEnabled,
   normalizeOssObjectKey,
   shouldMigrateRuntimeUrl,
@@ -104,5 +106,27 @@ test("buildOssObjectUrl supports bucket endpoint and custom public domain", () =
       objectKey: "xenia/images/a.png",
     }),
     "https://design-yshine.cn-beijing.taihangcda.cn/xenia/images/a.png",
+  );
+});
+
+test("builds an application proxy URL for private OSS objects", () => {
+  assert.equal(
+    buildOssProxyUrl("xenia/references/a b.png"),
+    "/api/uploads/oss/xenia/references/a%20b.png",
+  );
+});
+
+test("resolves an OSS proxy URL back to its object key", () => {
+  assert.equal(
+    getOssObjectKeyFromUrl(
+      "/api/uploads/oss/xenia/references/a%20b.png",
+      getAliyunOssConfig({
+        ALIYUN_OSS_ACCESS_KEY_ID: "id",
+        ALIYUN_OSS_ACCESS_KEY_SECRET: "secret",
+        ALIYUN_OSS_BUCKET: "design-yshine",
+        ALIYUN_OSS_ENDPOINT: "oss-cn-beijing.aliyuncs.com",
+      }),
+    ),
+    "xenia/references/a b.png",
   );
 });

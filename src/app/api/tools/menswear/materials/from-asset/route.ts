@@ -6,6 +6,7 @@ import { saveReferenceImageToRuntime } from "@/server/ai-image-tools";
 import { getAppSession } from "@/server/auth";
 import { canUseMemberTools } from "@/server/auth-permissions";
 import { createMenswearMaterial } from "@/server/menswear-studio";
+import { readAliyunOssObjectByUrl } from "@/server/oss-storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,6 +55,9 @@ async function readGeneratedAsset(imageUrl: string) {
   if (localMatch) {
     return readFile(path.join(process.cwd(), ".runtime", "uploads", "ai-images", localMatch[1]));
   }
+
+  const ossResponse = await readAliyunOssObjectByUrl(imageUrl).catch(() => null);
+  if (ossResponse) return Buffer.from(await ossResponse.arrayBuffer());
 
   if (!/^https?:\/\//i.test(imageUrl)) {
     throw new Error("生成图片地址不可复制");

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAppSession } from "@/server/auth";
 import { canUseMemberTools } from "@/server/auth-permissions";
+import { readAliyunOssObjectByUrl } from "@/server/oss-storage";
 import {
   editImageWithReferences,
   generateImageFromText,
@@ -103,7 +104,8 @@ async function materialToFile(
   material: { id: string; imageUrl: string },
   requestUrl: string,
 ) {
-  const response = await fetch(new URL(material.imageUrl, requestUrl));
+  const response = await readAliyunOssObjectByUrl(material.imageUrl).catch(() => null)
+    ?? await fetch(new URL(material.imageUrl, requestUrl));
   if (!response.ok) throw new Error("无法读取模特参考图片");
 
   const contentType = response.headers.get("content-type") || "image/png";

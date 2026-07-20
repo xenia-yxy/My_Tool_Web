@@ -6,6 +6,7 @@ import {
   getAiImageAsset,
   normalizeAiImageAssetZipDownloadInput,
 } from "@/server/ai-image-assets";
+import { readAliyunOssObjectByUrl } from "@/server/oss-storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,8 +34,9 @@ export async function POST(request: Request) {
     let contentLength = 0;
     const entries = [];
     for (const asset of assets) {
-      const assetUrl = new URL(asset.downloadUrl || asset.imageUrl, request.url);
-      const response = await fetch(assetUrl);
+      const imageUrl = asset.downloadUrl || asset.imageUrl;
+      const response = await readAliyunOssObjectByUrl(imageUrl).catch(() => null)
+        ?? await fetch(new URL(imageUrl, request.url));
       if (!response.ok) {
         throw new Error(`无法下载图片：${asset.fileName}`);
       }

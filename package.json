@@ -16,7 +16,8 @@
     "prisma:seed": "prisma db seed",
     "verify:prisma": "tsx scripts/verify-prisma.ts",
     "oss:verify": "tsx scripts/verify-oss-storage.ts",
-    "oss:migrate-runtime": "tsx scripts/migrate-runtime-images-to-oss.ts"
+    "oss:migrate-runtime": "tsx scripts/migrate-runtime-images-to-oss.ts",
+    "oss:convert-private-urls": "tsx scripts/convert-oss-image-urls-to-proxy.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "latest",

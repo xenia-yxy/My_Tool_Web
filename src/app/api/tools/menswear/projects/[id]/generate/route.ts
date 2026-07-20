@@ -26,6 +26,7 @@ import {
 import { getAppSession } from "@/server/auth";
 import { canUseMemberTools } from "@/server/auth-permissions";
 import { getMenswearProject } from "@/server/menswear-studio";
+import { readAliyunOssObjectByUrl } from "@/server/oss-storage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -223,7 +224,8 @@ async function materialToFile(
   material: { id: string; imageUrl: string; name: string },
   requestUrl: string,
 ) {
-  const response = await fetch(new URL(material.imageUrl, requestUrl));
+  const response = await readAliyunOssObjectByUrl(material.imageUrl).catch(() => null)
+    ?? await fetch(new URL(material.imageUrl, requestUrl));
   if (!response.ok) {
     throw new Error(`无法读取参考素材：${material.name}`);
   }

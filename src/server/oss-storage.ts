@@ -73,6 +73,10 @@ export function buildOssObjectUrl(input: BuildOssUrlInput) {
   return `${baseUrl}/${encodeObjectKey(input.objectKey)}`;
 }
 
+export function buildOssProxyUrl(objectKey: string) {
+  return `/api/uploads/oss/${encodeObjectKey(objectKey)}`;
+}
+
 export async function uploadBufferToAliyunOss(input: {
   buffer: Buffer;
   fileName: string;
@@ -110,20 +114,56 @@ export async function uploadBufferToAliyunOss(input: {
 
   return {
     objectKey,
-    imageUrl: buildOssObjectUrl({
-      bucket: config.bucket,
-      endpoint: config.endpoint,
-      publicBaseUrl: config.publicBaseUrl,
-      objectKey,
-    }),
+    imageUrl: buildOssProxyUrl(objectKey),
   };
+}
+
+export async function readAliyunOssObject(objectKey: string, config: AliyunOssConfig = getAliyunOssConfig()) {
+  const normalizedObjectKey = normalizeOssObjectKey("", objectKey);
+  if (!normalizedObjectKey || !isObjectKeyWithinPrefix(normalizedObjectKey, config.prefix)) {
+    throw new Error("OSS 对象路径无效");
+  }
+
+  const date = new Date().toUTCString();
+  const resource = `/${config.bucket}/${normalizedObjectKey}`;
+  const signature = signOssRequest({
+    accessKeySecret: config.accessKeySecret,
+    method: "GET",
+    contentType: "",
+    date,
+    resource,
+  });
+  const response = await fetch(
+    `https://${config.bucket}.${config.endpoint}/${encodeObjectKey(normalizedObjectKey)}`,
+    {
+      headers: {
+        Authorization: `OSS ${config.accessKeyId}:${signature}`,
+        Date: date,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`OSS 读取失败：${response.status}`);
+  }
+
+  return response;
+}
+
+export async function readAliyunOssObjectByUrl(
+  imageUrl: string,
+  config: AliyunOssConfig = getAliyunOssConfig(),
+) {
+  const objectKey = getOssObjectKeyFromUrl(imageUrl, config);
+  if (!objectKey) return null;
+  return readAliyunOssObject(objectKey, config);
 }
 
 export async function deleteAliyunOssObjectByUrl(
   imageUrl: string,
   config: AliyunOssConfig = getAliyunOssConfig(),
 ) {
-  const objectKey = extractObjectKeyFromUrl(imageUrl, config);
+  const objectKey = getOssObjectKeyFromUrl(imageUrl, config);
 
   if (!objectKey) {
     return false;
@@ -152,7 +192,7 @@ export async function deleteAliyunOssObjectByUrl(
 
 function signOssRequest(input: {
   accessKeySecret: string;
-  method: "PUT" | "DELETE";
+  method: "GET" | "PUT" | "DELETE";
   contentType: string;
   date: string;
   resource: string;
@@ -170,7 +210,12 @@ function signOssRequest(input: {
     .digest("base64");
 }
 
-function extractObjectKeyFromUrl(imageUrl: string, config: AliyunOssConfig) {
+export function getOssObjectKeyFromUrl(imageUrl: string, config: AliyunOssConfig) {
+  const proxyPrefix = "/api/uploads/oss/";
+  if (imageUrl.startsWith(proxyPrefix)) {
+    return decodeURIComponent(imageUrl.slice(proxyPrefix.length));
+  }
+
   let parsed: URL;
 
   try {
@@ -189,6 +234,11 @@ function extractObjectKeyFromUrl(imageUrl: string, config: AliyunOssConfig) {
   }
 
   return decodeURIComponent(parsed.pathname.replace(/^\/+/, ""));
+}
+
+function isObjectKeyWithinPrefix(objectKey: string, prefix: string) {
+  const normalizedPrefix = normalizePathPrefix(prefix);
+  return objectKey === normalizedPrefix || objectKey.startsWith(`${normalizedPrefix}/`);
 }
 
 function normalizeEndpoint(value: string) {

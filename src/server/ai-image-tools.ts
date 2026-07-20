@@ -4,6 +4,7 @@ import path from "node:path";
 import { buildAiRuntimeConfigsForUser } from "@/server/ai-model-configs";
 import { createAiGateway } from "@/server/ai-gateway/provider-registry";
 import {
+  readAliyunOssObjectByUrl,
   shouldUseRuntimeStorage,
   uploadBufferToAliyunOss,
 } from "@/server/oss-storage";
@@ -386,6 +387,13 @@ async function hydrateReferenceImage(imageUrl: string): Promise<File | null> {
       if (!/^ref-[\w-]+\.(png|jpe?g|webp)$/i.test(fileName)) return null;
       const filePath = path.join(process.cwd(), ".runtime", "uploads", "ai-images", fileName);
       return new File([await readFile(filePath)], fileName, { type: mimeTypeForFileName(fileName) });
+    }
+
+    const ossResponse = await readAliyunOssObjectByUrl(imageUrl).catch(() => null);
+    if (ossResponse) {
+      const contentType = ossResponse.headers.get("content-type")?.split(";", 1)[0] || "image/png";
+      const fileName = path.basename(new URL(imageUrl, "http://local").pathname) || "reference.png";
+      return new File([await ossResponse.arrayBuffer()], fileName, { type: contentType });
     }
 
     if (!/^https?:\/\//i.test(imageUrl)) return null;
