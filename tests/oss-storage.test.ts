@@ -6,6 +6,7 @@ import {
   getAliyunOssConfig,
   isAliyunOssEnabled,
   normalizeOssObjectKey,
+  shouldMigrateRuntimeUrl,
   shouldUseRuntimeStorage,
 } from "../src/server/oss-storage";
 
@@ -74,6 +75,14 @@ test("uses runtime storage only when OSS credentials are unavailable", () => {
       ALIYUN_OSS_BUCKET: "design-yshine",
       ALIYUN_OSS_ENDPOINT: "oss-cn-beijing.aliyuncs.com",
     }),
+    false,
+  );
+});
+
+test("migrates only local runtime image URLs", () => {
+  assert.equal(shouldMigrateRuntimeUrl("/api/uploads/ai-images/ref-2026-07-20-a.png"), true);
+  assert.equal(
+    shouldMigrateRuntimeUrl("https://design-yshine.oss-cn-beijing.aliyuncs.com/xenia/references/a.png"),
     false,
   );
 });

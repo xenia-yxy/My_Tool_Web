@@ -14,7 +14,9 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "prisma db seed",
-    "verify:prisma": "tsx scripts/verify-prisma.ts"
+    "verify:prisma": "tsx scripts/verify-prisma.ts",
+    "oss:verify": "tsx scripts/verify-oss-storage.ts",
+    "oss:migrate-runtime": "tsx scripts/migrate-runtime-images-to-oss.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "latest",

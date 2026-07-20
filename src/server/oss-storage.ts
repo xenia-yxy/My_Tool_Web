@@ -33,6 +33,10 @@ export function shouldUseRuntimeStorage(env: EnvSource = process.env) {
   return !isAliyunOssEnabled(env);
 }
 
+export function shouldMigrateRuntimeUrl(value: string) {
+  return /^\/api\/uploads\/ai-images\/[\w.-]+$/i.test(value);
+}
+
 export function getAliyunOssConfig(env: EnvSource = process.env): AliyunOssConfig {
   const missing = requiredEnvKeys.filter((key) => !env[key]?.trim());
 
