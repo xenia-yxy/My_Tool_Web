@@ -1,4 +1,20 @@
 services:
+  my-web-postgres:
+    image: postgres:16-alpine
+    container_name: my-web-postgres
+    environment:
+      POSTGRES_DB: my_web
+      POSTGRES_USER: my_web
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U my_web -d my_web"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - my-web-postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
   my-web:
     image: my-web:${IMAGE_TAG}
     container_name: my-web
@@ -8,10 +24,14 @@ services:
       NODE_ENV: production
       PORT: 3000
       HOSTNAME: 0.0.0.0
+      DATABASE_URL: postgresql://my_web:${POSTGRES_PASSWORD}@my-web-postgres:5432/my_web?schema=public
     ports:
       - "${WEB_PORT:-3000}:3000"
     volumes:
       - /opt/my-web/runtime:/app/.runtime
+    depends_on:
+      my-web-postgres:
+        condition: service_healthy
     restart: unless-stopped
 
   my-web-worker:
@@ -19,6 +39,8 @@ services:
     container_name: my-web-worker
     env_file:
       - .env.production
+    environment:
+      DATABASE_URL: postgresql://my_web:${POSTGRES_PASSWORD}@my-web-postgres:5432/my_web?schema=public
     command:
       - sh
       - -c
@@ -30,5 +52,11 @@ services:
     volumes:
       - /opt/my-web/runtime:/app/.runtime
     depends_on:
-      - my-web
+      my-web:
+        condition: service_started
+      my-web-postgres:
+        condition: service_healthy
     restart: unless-stopped
+
+volumes:
+  my-web-postgres-data:
