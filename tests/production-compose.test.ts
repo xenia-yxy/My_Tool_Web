@@ -8,6 +8,7 @@ test("production compose provides a local postgres database for app services", (
   assert.match(compose, /my-web-postgres:/);
   assert.match(compose, /postgres:16-alpine/);
   assert.match(compose, /my-web-postgres-data:/);
-  assert.match(compose, /DATABASE_URL:\s*postgresql:\/\/my_web:\$\{POSTGRES_PASSWORD\}@my-web-postgres:5432\/my_web\?schema=public/);
+  assert.doesNotMatch(compose, /db\.prisma\.io/);
+  assert.match(compose, /my-web-postgres:[\s\S]*env_file:[\s\S]*- \.env\.production/);
   assert.match(compose, /depends_on:[\s\S]*my-web-postgres/);
 });
