@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  buildOssObjectKey,
   buildOssObjectUrl,
   getAliyunOssConfig,
   isAliyunOssEnabled,
   normalizeOssObjectKey,
+  shouldUseRuntimeStorage,
 } from "../src/server/oss-storage";
 
 test("isAliyunOssEnabled requires every server-side credential field", () => {
@@ -49,6 +51,30 @@ test("normalizeOssObjectKey keeps generated files under the configured prefix", 
   assert.equal(
     normalizeOssObjectKey("", "/nested/test.png"),
     "nested/test.png",
+  );
+});
+
+test("builds separate OSS keys for generated and reference images", () => {
+  assert.equal(
+    buildOssObjectKey("xenia", "generated", "2026-07-20-image.png"),
+    "xenia/generated/2026-07-20-image.png",
+  );
+  assert.equal(
+    buildOssObjectKey("xenia", "references", "face.jpg"),
+    "xenia/references/face.jpg",
+  );
+});
+
+test("uses runtime storage only when OSS credentials are unavailable", () => {
+  assert.equal(shouldUseRuntimeStorage({}), true);
+  assert.equal(
+    shouldUseRuntimeStorage({
+      ALIYUN_OSS_ACCESS_KEY_ID: "id",
+      ALIYUN_OSS_ACCESS_KEY_SECRET: "secret",
+      ALIYUN_OSS_BUCKET: "design-yshine",
+      ALIYUN_OSS_ENDPOINT: "oss-cn-beijing.aliyuncs.com",
+    }),
+    false,
   );
 });
 

@@ -29,6 +29,10 @@ export function isAliyunOssEnabled(env: EnvSource = process.env) {
   return requiredEnvKeys.every((key) => Boolean(env[key]?.trim()));
 }
 
+export function shouldUseRuntimeStorage(env: EnvSource = process.env) {
+  return !isAliyunOssEnabled(env);
+}
+
 export function getAliyunOssConfig(env: EnvSource = process.env): AliyunOssConfig {
   const missing = requiredEnvKeys.filter((key) => !env[key]?.trim());
 
@@ -53,6 +57,10 @@ export function normalizeOssObjectKey(prefix: string, fileName: string) {
   return [normalizedPrefix, normalizedFileName].filter(Boolean).join("/");
 }
 
+export function buildOssObjectKey(prefix: string, folder: string, fileName: string) {
+  return normalizeOssObjectKey(prefix, `${normalizePathPrefix(folder)}/${fileName}`);
+}
+
 export function buildOssObjectUrl(input: BuildOssUrlInput) {
   const baseUrl =
     input.publicBaseUrl?.replace(/\/+$/, "") ||
@@ -66,9 +74,12 @@ export async function uploadBufferToAliyunOss(input: {
   fileName: string;
   contentType: string;
   config?: AliyunOssConfig;
+  folder?: string;
 }) {
   const config = input.config ?? getAliyunOssConfig();
-  const objectKey = normalizeOssObjectKey(config.prefix, input.fileName);
+  const objectKey = input.folder
+    ? buildOssObjectKey(config.prefix, input.folder, input.fileName)
+    : normalizeOssObjectKey(config.prefix, input.fileName);
   const date = new Date().toUTCString();
   const resource = `/${config.bucket}/${objectKey}`;
   const signature = signOssRequest({

@@ -4,7 +4,7 @@ import path from "node:path";
 import { buildAiRuntimeConfigsForUser } from "@/server/ai-model-configs";
 import { createAiGateway } from "@/server/ai-gateway/provider-registry";
 import {
-  isAliyunOssEnabled,
+  shouldUseRuntimeStorage,
   uploadBufferToAliyunOss,
 } from "@/server/oss-storage";
 import {
@@ -319,17 +319,13 @@ export async function saveGeneratedImageToRuntime(
 ) {
   const buffer = await generatedImageToBuffer(image.imageUrl);
   const fileName = `${new Date().toISOString().slice(0, 10)}-${randomUUID()}.png`;
-  const uploadDir = path.join(process.cwd(), ".runtime", "uploads", "ai-images");
 
-  await mkdir(uploadDir, { recursive: true });
-  await writeFile(path.join(uploadDir, fileName), buffer);
-  const localUrl = `/api/uploads/ai-images/${fileName}`;
-
-  if (isAliyunOssEnabled()) {
+  if (!shouldUseRuntimeStorage()) {
     const uploaded = await uploadBufferToAliyunOss({
       buffer,
       fileName,
       contentType: image.mimeType,
+      folder: "generated",
     });
 
     return {
@@ -340,6 +336,11 @@ export async function saveGeneratedImageToRuntime(
       storedImageUrl: uploaded.imageUrl,
     } satisfies SavedGeneratedImage;
   }
+
+  const uploadDir = path.join(process.cwd(), ".runtime", "uploads", "ai-images");
+  await mkdir(uploadDir, { recursive: true });
+  await writeFile(path.join(uploadDir, fileName), buffer);
+  const localUrl = `/api/uploads/ai-images/${fileName}`;
 
   return {
     ...image,
@@ -352,20 +353,23 @@ export async function saveGeneratedImageToRuntime(
 
 export async function saveReferenceImageToRuntime(file: File): Promise<string> {
   const buffer = Buffer.from(await file.arrayBuffer());
-  const fileName = `ref-${new Date().toISOString().slice(0, 10)}-${randomUUID()}.png`;
-  const uploadDir = path.join(process.cwd(), ".runtime", "uploads", "ai-images");
-  await mkdir(uploadDir, { recursive: true });
-  await writeFile(path.join(uploadDir, fileName), buffer);
+  const contentType = normalizeImageMimeType(file.type);
+  const fileName = `ref-${new Date().toISOString().slice(0, 10)}-${randomUUID()}.${extensionForMimeType(contentType)}`;
 
-  if (isAliyunOssEnabled()) {
+  if (!shouldUseRuntimeStorage()) {
     const uploaded = await uploadBufferToAliyunOss({
       buffer,
       fileName,
-      contentType: file.type || "image/png",
+      contentType,
+      folder: "references",
     });
 
     return uploaded.imageUrl;
   }
+
+  const uploadDir = path.join(process.cwd(), ".runtime", "uploads", "ai-images");
+  await mkdir(uploadDir, { recursive: true });
+  await writeFile(path.join(uploadDir, fileName), buffer);
 
   return `/api/uploads/ai-images/${fileName}`;
 }
@@ -379,9 +383,9 @@ async function hydrateReferenceImage(imageUrl: string): Promise<File | null> {
   try {
     if (imageUrl.startsWith("/api/uploads/ai-images/")) {
       const fileName = path.basename(imageUrl);
-      if (!/^ref-[\w-]+\.png$/i.test(fileName)) return null;
+      if (!/^ref-[\w-]+\.(png|jpe?g|webp)$/i.test(fileName)) return null;
       const filePath = path.join(process.cwd(), ".runtime", "uploads", "ai-images", fileName);
-      return new File([await readFile(filePath)], fileName, { type: "image/png" });
+      return new File([await readFile(filePath)], fileName, { type: mimeTypeForFileName(fileName) });
     }
 
     if (!/^https?:\/\//i.test(imageUrl)) return null;
@@ -394,6 +398,24 @@ async function hydrateReferenceImage(imageUrl: string): Promise<File | null> {
   } catch {
     return null;
   }
+}
+
+function normalizeImageMimeType(value: string) {
+  return value === "image/jpeg" || value === "image/webp" || value === "image/png"
+    ? value
+    : "image/png";
+}
+
+function extensionForMimeType(value: string) {
+  if (value === "image/jpeg") return "jpg";
+  if (value === "image/webp") return "webp";
+  return "png";
+}
+
+function mimeTypeForFileName(fileName: string) {
+  if (/\.jpe?g$/i.test(fileName)) return "image/jpeg";
+  if (/\.webp$/i.test(fileName)) return "image/webp";
+  return "image/png";
 }
 
 async function generatedImageToBuffer(imageUrl: string) {
