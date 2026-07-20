@@ -32,6 +32,10 @@ export function mergeRestoredSession<T extends Pick<WorkbenchSessionState, "id" 
     return serverSession;
   }
 
+  if (cachedSession?.status === "RUNNING") {
+    return null;
+  }
+
   return cachedSession;
 }
 

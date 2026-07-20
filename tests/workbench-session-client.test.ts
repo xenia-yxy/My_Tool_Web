@@ -17,3 +17,14 @@ test("prefers a persisted server session over an older cached session", () => {
 
   assert.equal(result?.id, "server");
 });
+
+test("does not restore a cached running session when the server has no session", () => {
+  const result = mergeRestoredSession(null, {
+    id: "cache",
+    toolId: "menswear-flatlay-outfit-split",
+    status: "RUNNING",
+    updatedAt: "2026-07-13T11:00:00.000Z",
+  });
+
+  assert.equal(result, null);
+});
