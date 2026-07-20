@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
+import { buildStaleAiImageJobUpdate } from "../src/server/ai-image-assets";
+
+test("marks stale image jobs as failed instead of returning them to pending", () => {
+  assert.deepEqual(buildStaleAiImageJobUpdate(), {
+    errorMessage: "生成任务超时，请重新提交",
+    failedCount: 1,
+    status: "FAILED",
+  });
+});
 
 test("shared image generation queues work for the background worker instead of holding the browser request", () => {
   const route = readFileSync("src/app/api/tools/image-generation/route.ts", "utf8");

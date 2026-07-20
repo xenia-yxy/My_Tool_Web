@@ -9,9 +9,21 @@ import {
 import {
   buildDefaultAiRuntimeConfigs,
   createAiGateway,
+  fetchWithTimeout,
   selectModelForCapability,
   type AiModelRuntimeConfig,
 } from "../src/server/ai-gateway/provider-registry";
+
+test("fetchWithTimeout aborts a stalled model request", async () => {
+  const stalledFetch: typeof fetch = async (_input, init) => new Promise<Response>((_resolve, reject) => {
+    init?.signal?.addEventListener("abort", () => reject(new DOMException("Aborted", "AbortError")));
+  });
+
+  await assert.rejects(
+    () => fetchWithTimeout(stalledFetch, "https://api.example.com", {}, 5),
+    /模型请求超时，请重试/,
+  );
+});
 
 test("selectModelForCapability picks an enabled model that supports the task", () => {
   const models: AiModelRuntimeConfig[] = [

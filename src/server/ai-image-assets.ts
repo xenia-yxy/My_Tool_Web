@@ -394,16 +394,45 @@ export async function claimNextAiImageJob() {
 
 export async function requeueStaleAiImageJobs() {
   const staleBefore = new Date(Date.now() - 30 * 60 * 1000);
-  return prisma.aiImageJob.updateMany({
+  const staleJobs = await prisma.aiImageJob.findMany({
     where: {
       status: "RUNNING",
       startedAt: { lt: staleBefore },
     },
+    select: { id: true },
+  });
+
+  if (staleJobs.length === 0) {
+    return 0;
+  }
+
+  const staleIds = staleJobs.map((job) => job.id);
+  const result = await prisma.aiImageJob.updateMany({
+    where: { id: { in: staleIds }, status: "RUNNING" },
     data: {
-      status: "PENDING",
-      startedAt: null,
+      ...buildStaleAiImageJobUpdate(),
+      completedAt: new Date(),
     },
   });
+
+  await prisma.workbenchSession.updateMany({
+    where: { externalJobId: { in: staleIds }, status: "RUNNING" },
+    data: {
+      status: "FAILED",
+      errorMessage: "生成任务超时，请重新提交",
+      completedAt: new Date(),
+    },
+  });
+
+  return result.count;
+}
+
+export function buildStaleAiImageJobUpdate() {
+  return {
+    errorMessage: "生成任务超时，请重新提交",
+    failedCount: 1,
+    status: "FAILED" as const,
+  };
 }
 
 export async function markAiImageJobCompleted(

@@ -63,6 +63,27 @@ type EditImageInput = GenerateImageInput & {
   image: File | File[];
 };
 
+export async function fetchWithTimeout(
+  fetchImpl: typeof fetch,
+  input: RequestInfo | URL,
+  init: RequestInit,
+  timeoutMs = 120_000,
+) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetchImpl(input, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error("模型请求超时，请重试");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export function selectModelForCapability(
   models: AiModelRuntimeConfig[],
   capability: AiCapability,
@@ -160,7 +181,7 @@ export function createAiGateway(options: AiGatewayOptions) {
 
     async generateImage(input: GenerateImageInput) {
       const model = selectModelForCapability(options.models, "image.generate");
-      const response = await fetchImpl(
+      const response = await fetchWithTimeout(fetchImpl,
         buildOpenAiCompatibleEndpointForModel(
           model,
           model.imageGenerationPath || "/v1/images/generations",
@@ -191,7 +212,7 @@ export function createAiGateway(options: AiGatewayOptions) {
         formData.append("image", image);
       }
 
-      const response = await fetchImpl(
+      const response = await fetchWithTimeout(fetchImpl,
         buildOpenAiCompatibleEndpointForModel(
           model,
           model.imageEditPath || "/v1/images/edits",
@@ -213,7 +234,7 @@ async function generateOpenAiCompatibleText(
   model: AiModelRuntimeConfig,
   input: GenerateTextInput,
 ) {
-  const response = await fetchImpl(
+  const response = await fetchWithTimeout(fetchImpl,
     buildOpenAiCompatibleEndpointForModel(
       model,
       model.chatPath || "/v1/chat/completions",
@@ -247,7 +268,7 @@ async function generateOpenAiCompatibleVisionText(
   model: AiModelRuntimeConfig,
   input: GenerateVisionTextInput,
 ) {
-  const response = await fetchImpl(
+  const response = await fetchWithTimeout(fetchImpl,
     buildOpenAiCompatibleEndpointForModel(model, model.chatPath || "/v1/chat/completions"),
     {
       method: "POST",
@@ -297,7 +318,7 @@ async function generateAnthropicText(
       role: message.role === "assistant" ? "assistant" : "user",
       content: message.content,
     }));
-  const response = await fetchImpl(
+  const response = await fetchWithTimeout(fetchImpl,
     buildOpenAiCompatibleEndpointForModel(model, "/v1/messages"),
     {
       method: "POST",
@@ -345,7 +366,7 @@ async function generateGoogleText(
     .filter((message) => message.role === "system")
     .map((message) => message.content)
     .join("\n\n");
-  const response = await fetchImpl(
+  const response = await fetchWithTimeout(fetchImpl,
     buildOpenAiCompatibleEndpointForModel(
       model,
       `/v1beta/models/${encodeURIComponent(model.model)}:generateContent`,
