@@ -187,9 +187,8 @@ export async function listMenswearMaterials(input: {
     : undefined;
   const query = input.query?.trim();
 
-  return prisma.menswearMaterial.findMany({
+  const materials = await prisma.menswearMaterial.findMany({
     where: {
-      ...(category ? { category } : {}),
       ...(query
         ? {
             OR: [
@@ -202,6 +201,44 @@ export async function listMenswearMaterials(input: {
     orderBy: [{ updatedAt: "desc" }],
     take: 120,
   });
+
+  return materials
+    .map((material) => ({
+      ...material,
+      category: resolveMaterialCategory(material),
+    }))
+    .filter((material) => !category || material.category === category);
+}
+
+export function resolveMaterialCategory(input: {
+  category?: unknown;
+  name?: unknown;
+  tags?: unknown;
+}) {
+  const category = typeof input.category === "string" ? input.category : "other";
+  if (category !== "other") return category;
+
+  const tags = Array.isArray(input.tags)
+    ? input.tags.filter((tag): tag is string => typeof tag === "string")
+    : [];
+  const haystack = `${typeof input.name === "string" ? input.name : ""} ${tags.join(" ")}`.toLowerCase();
+
+  if (/(脸部|人脸|面部|肖像|头像)/.test(haystack)) return "model_face";
+  if (/(全身|身体|身材|体型)/.test(haystack)) return "model_body";
+  if (/(姿势|动作|站姿|坐姿)/.test(haystack)) return "pose";
+  if (/(背景|场景|街景|室内)/.test(haystack)) return "background";
+  if (/(构图|镜头|机位)/.test(haystack)) return "composition";
+  if (/(光线|灯光|光影)/.test(haystack)) return "lighting";
+  if (/(氛围|风格|色调)/.test(haystack)) return "mood";
+  if (/(鞋|靴)/.test(haystack)) return "shoes";
+  if (/(包|背包|手提)/.test(haystack)) return "bag";
+  if (/(裤|牛仔)/.test(haystack)) return "bottom";
+  if (/(内搭|背心|打底)/.test(haystack)) return "inner";
+  if (/(上衣|衬衫|t恤|短袖|外套|夹克|毛衣|卫衣)/i.test(haystack)) return "top";
+  if (/(整套|穿搭|套装)/.test(haystack)) return "outfit";
+  if (/(帽|眼镜|饰品|配饰)/.test(haystack)) return "accessory";
+
+  return "other";
 }
 
 export async function createMenswearMaterial(authorId: string, input: Parameters<typeof normalizeMenswearMaterialInput>[0]) {

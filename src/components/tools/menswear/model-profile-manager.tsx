@@ -197,7 +197,7 @@ export function ModelProfileManager() {
       </section>
       {error ? <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
       {isLoading ? <div className="grid min-h-48 place-items-center"><Loader2 className="h-5 w-5 animate-spin text-slate-400" /></div> : null}
-      {!isLoading && profiles.length === 0 ? <div className="grid min-h-48 place-items-center border border-dashed border-slate-300 text-sm text-slate-500">暂无模特档案。可先上传公开脸部或身体参考图，也可以先创建档案再生成模特图。</div> : null}
+      {!isLoading && profiles.length === 0 ? <div className="grid min-h-48 place-items-center border border-dashed border-slate-300 px-5 text-center text-sm leading-6 text-slate-500">暂无模特档案。请在上方上传或从公开素材中选择脸部、身体参考图后创建档案；历史恢复图片显示为待分类时，先到素材中心改为脸部或身体分类。</div> : null}
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {profiles.map((profile) => (
           <article className="grid gap-3 rounded-md border border-slate-200 bg-white p-4" key={profile.id}>

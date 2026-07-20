@@ -28,6 +28,8 @@ const categories = [
   ["other", "其他"],
 ] as const;
 
+const categoryLabels = Object.fromEntries(categories) as Record<string, string>;
+
 export function MaterialLibrary({
   onSelect,
 }: {
@@ -249,7 +251,7 @@ export function MaterialLibrary({
             </button>
             <div className="grid gap-2 p-3">
               <p className="truncate text-sm font-semibold text-slate-900">{material.name}</p>
-              <p className="text-xs text-slate-500">{material.category} · 私人选品</p>
+              <p className="text-xs text-slate-500">{material.category === "other" ? "待分类" : categoryLabels[material.category] || material.category} · 公开素材</p>
               {material.promptNotes ? <p className="line-clamp-2 text-xs leading-5 text-slate-600">{material.promptNotes}</p> : null}
               <div className="flex flex-wrap gap-1">{material.tags.slice(0, 3).map((tag) => <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600" key={tag}>{tag}</span>)}</div>
               <div className="flex justify-between gap-2">
