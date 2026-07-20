@@ -48,9 +48,9 @@ export function getWorkbenchToolForPathname(pathname: string) {
     return getWorkbenchTool("overview");
   }
 
-  return workbenchTools.find(
-    (tool) => tool.href !== "/tools" && pathname.startsWith(tool.href),
-  ) ?? null;
+  return workbenchTools
+    .filter((tool) => tool.href !== "/tools" && pathname.startsWith(tool.href))
+    .sort((left, right) => right.href.length - left.href.length)[0] ?? null;
 }
 
 export function buildWorkbenchPrompt(toolLabel: string, fields: WorkbenchPromptField[]) {

@@ -13,6 +13,17 @@ test("resolves a workbench tool from its route", () => {
   assert.equal(getWorkbenchToolForPathname("/tools")?.id, "overview");
 });
 
+test("resolves the most specific workbench tool for nested workflow paths", () => {
+  assert.equal(
+    getWorkbenchToolForPathname("/tools/menswear/style-reference")?.id,
+    "menswear-style-reference",
+  );
+  assert.equal(
+    getWorkbenchToolForPathname("/tools/womenswear/flatlay-outfit-split")?.id,
+    "womenswear-flatlay-outfit-split",
+  );
+});
+
 test("maps every navigation item to a session tool", () => {
   for (const item of navGroups.flatMap((group) => group.items)) {
     assert.ok(workbenchTools.some((tool) => tool.id === item.id));

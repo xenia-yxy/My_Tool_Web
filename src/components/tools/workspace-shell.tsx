@@ -199,11 +199,11 @@ function WorkspacePageActions({
       <div className="flex flex-wrap justify-end gap-2">
         <Button className="gap-2" onClick={openPrompt} type="button" variant="secondary">
           <FileText aria-hidden="true" className="h-4 w-4" />
-          完整提示词
+          工作记录提示词
         </Button>
         <ToolHistoryLink toolId={toolId} />
         <PromptEditorDialog
-          description="可查看或修改当前工具的完整提示词，保存后会写入当前工作记录。"
+          description="用于保存当前页面的工作记录。实际生图提示词请在生成前的“确认生图提示词”窗口中编辑。"
           onClose={() => setPromptOpen(false)}
           onSave={savePrompt}
           open={promptOpen}
