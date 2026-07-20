@@ -37,7 +37,7 @@ export async function getProduct(authorId: string, id: string) {
 export async function createProduct(authorId: string, input: Parameters<typeof normalizeProductInput>[0]) {
   const data = normalizeProductInput(input);
   await assertCategory(authorId, data.categoryId);
-  return prisma.product.create({ data: { authorId, categoryId: data.categoryId, name: data.name, description: data.description, tags: data.tags, sellPoints: data.sellPoints, scenes: data.scenes, keywords: data.keywords, images: { create: data.imageUrls.map((imageUrl, position) => ({ imageUrl, position, isPrimary: imageUrl === data.primaryImageUrl })) } }, include: { category: true, images: { orderBy: { position: "asc" } } } });
+  return prisma.product.create({ data: { authorId, categoryId: data.categoryId, name: data.name, description: data.description, tags: data.tags, sellPoints: data.sellPoints, scenes: data.scenes, keywords: data.keywords, aiAnalysis: toProductAnalysis(data.aiAnalysis ?? {}), aiAnalyzedAt: data.aiAnalyzed ? new Date() : null, images: { create: data.imageUrls.map((imageUrl, position) => ({ imageUrl, position, isPrimary: imageUrl === data.primaryImageUrl })) } }, include: { category: true, images: { orderBy: { position: "asc" } } } });
 }
 
 export async function updateProduct(authorId: string, id: string, input: Parameters<typeof normalizeProductInput>[0]) {
@@ -45,7 +45,7 @@ export async function updateProduct(authorId: string, id: string, input: Paramet
   if (!existing) return null;
   const data = normalizeProductInput(input);
   await assertCategory(authorId, data.categoryId);
-  return prisma.product.update({ where: { id }, data: { categoryId: data.categoryId, name: data.name, description: data.description, tags: data.tags, sellPoints: data.sellPoints, scenes: data.scenes, keywords: data.keywords, images: { deleteMany: {}, create: data.imageUrls.map((imageUrl, position) => ({ imageUrl, position, isPrimary: imageUrl === data.primaryImageUrl })) } }, include: { category: true, images: { orderBy: { position: "asc" } } } });
+  return prisma.product.update({ where: { id }, data: { categoryId: data.categoryId, name: data.name, description: data.description, tags: data.tags, sellPoints: data.sellPoints, scenes: data.scenes, keywords: data.keywords, aiAnalysis: data.aiAnalysis ? toProductAnalysis(data.aiAnalysis) : undefined, aiAnalyzedAt: data.aiAnalyzed ? new Date() : undefined, images: { deleteMany: {}, create: data.imageUrls.map((imageUrl, position) => ({ imageUrl, position, isPrimary: imageUrl === data.primaryImageUrl })) } }, include: { category: true, images: { orderBy: { position: "asc" } } } });
 }
 
 export async function deleteProduct(authorId: string, id: string) {

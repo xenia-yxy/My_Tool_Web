@@ -33,6 +33,8 @@ test("normalizes a product with multiple images and one primary image", () => {
     sellPoints: ["宽松版型", "浅色"],
     tags: ["夏季", "短袖", "夏季"],
   }), {
+    aiAnalysis: null,
+    aiAnalyzed: false,
     categoryId: "category-1",
     description: "夏季男士短袖，实拍可见的浅色面料。",
     imageUrls: ["/uploads/a.png", "/uploads/b.png"],
@@ -68,4 +70,27 @@ test("product editor uploads its own images and saves a multi-image product", ()
   assert.match(editor, /\/api\/tools\/products\/\$\{productId\}/);
   assert.match(uploadRoute, /saveReferenceImageToRuntime/);
   assert.doesNotMatch(editor, /menswear\/materials/);
+});
+
+test("product input keeps editable AI analysis and editor exposes AI analysis", () => {
+  const product = normalizeProductInput({
+    name: "浅蓝短袖衬衫",
+    imageUrls: ["/uploads/a.png"],
+    aiAnalyzed: true,
+    aiAnalysis: {
+      targetAudience: ["通勤人群"],
+      visibleAttributes: ["翻领"],
+      riskNotes: ["材质成分需人工核对"],
+    },
+  });
+  const editor = readFileSync("src/components/tools/product-catalog/product-editor.tsx", "utf8");
+
+  assert.equal(product.aiAnalyzed, true);
+  assert.deepEqual(product.aiAnalysis, {
+    targetAudience: ["通勤人群"],
+    visibleAttributes: ["翻领"],
+    riskNotes: ["材质成分需人工核对"],
+  });
+  assert.match(editor, /products\/analyze/);
+  assert.match(editor, /AI 识别商品/);
 });

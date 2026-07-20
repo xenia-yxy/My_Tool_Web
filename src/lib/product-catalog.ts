@@ -9,6 +9,8 @@ export function normalizeProductCategoryInput(input: {
 }
 
 export function normalizeProductInput(input: {
+  aiAnalysis?: unknown;
+  aiAnalyzed?: unknown;
   categoryId?: unknown;
   description?: unknown;
   imageUrls?: unknown;
@@ -24,6 +26,8 @@ export function normalizeProductInput(input: {
   const requestedPrimary = optionalText(input.primaryImageUrl);
 
   return {
+    aiAnalysis: normalizeAnalysis(input.aiAnalysis),
+    aiAnalyzed: input.aiAnalyzed === true,
     categoryId: optionalText(input.categoryId),
     description: optionalText(input.description),
     imageUrls,
@@ -36,6 +40,11 @@ export function normalizeProductInput(input: {
     sellPoints: uniqueStrings(input.sellPoints, 12),
     tags: uniqueStrings(input.tags, 20),
   };
+}
+
+function normalizeAnalysis(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
 }
 
 function requiredText(value: unknown, message: string) {

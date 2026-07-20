@@ -47,7 +47,8 @@ type GenerateTextInput = {
 };
 
 type GenerateVisionTextInput = {
-  imageDataUrl: string;
+  imageDataUrl?: string;
+  imageDataUrls?: string[];
   prompt: string;
   systemPrompt: string;
   temperature?: number;
@@ -268,6 +269,13 @@ async function generateOpenAiCompatibleVisionText(
   model: AiModelRuntimeConfig,
   input: GenerateVisionTextInput,
 ) {
+  const imageDataUrls = input.imageDataUrls?.filter(Boolean).slice(0, 8)
+    ?? (input.imageDataUrl ? [input.imageDataUrl] : []);
+
+  if (imageDataUrls.length === 0) {
+    throw new Error("视觉识别至少需要一张图片");
+  }
+
   const response = await fetchWithTimeout(fetchImpl,
     buildOpenAiCompatibleEndpointForModel(model, model.chatPath || "/v1/chat/completions"),
     {
@@ -281,7 +289,10 @@ async function generateOpenAiCompatibleVisionText(
             role: "user",
             content: [
               { type: "text", text: input.prompt },
-              { type: "image_url", image_url: { url: input.imageDataUrl } },
+              ...imageDataUrls.map((imageDataUrl) => ({
+                type: "image_url",
+                image_url: { url: imageDataUrl },
+              })),
             ],
           },
         ],

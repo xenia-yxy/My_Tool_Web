@@ -330,6 +330,35 @@ test("createAiGateway can send multiple image edit references", async () => {
   assert.equal(formData.getAll("image").length, 2);
 });
 
+test("createAiGateway sends every product image to the vision model", async () => {
+  const calls: Array<{ url: string; init: RequestInit }> = [];
+  const gateway = createAiGateway({
+    models: [{
+      id: "vision",
+      provider: "openai-compatible",
+      baseUrl: "https://api.example.com",
+      apiKey: "vision-key",
+      model: "vision-model",
+      capabilities: ["vision"],
+      enabled: true,
+    }],
+    fetch: async (url, init) => {
+      calls.push({ url: String(url), init: init ?? {} });
+      return Response.json({ choices: [{ message: { content: "{}" } }] });
+    },
+  });
+
+  await gateway.generateVisionText({
+    imageDataUrls: ["data:image/png;base64,first", "data:image/png;base64,second"],
+    prompt: "分析商品",
+    systemPrompt: "只返回 JSON",
+  });
+
+  const body = JSON.parse(String(calls[0].init.body));
+  const content = body.messages[1].content;
+  assert.equal(content.filter((item: { type: string }) => item.type === "image_url").length, 2);
+});
+
 test("createAiGateway keeps the upstream HTTP status when an image request fails", async () => {
   const gateway = createAiGateway({
     models: [
