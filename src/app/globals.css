@@ -203,6 +203,25 @@ html[data-home-theme="dark"] .home-ribbon-three {
   transition: transform 220ms ease, background-color 400ms ease;
 }
 
+.home-login-button {
+  display: inline-flex;
+  height: 40px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--home-ink);
+  background: var(--home-ink);
+  color: var(--home-bg);
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: transform 220ms ease, opacity 220ms ease;
+}
+
+.home-login-button:hover {
+  opacity: 0.86;
+  transform: translateY(-2px);
+}
+
 .home-icon-button:hover {
   transform: translateY(-2px);
 }

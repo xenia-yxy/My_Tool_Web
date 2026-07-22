@@ -18,12 +18,11 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-2">
           <Link
-            aria-label="进入工作台"
-            className="home-icon-button"
-            href="/tools"
-            title="进入工作台"
+            className="home-login-button"
+            href="/login?callbackUrl=%2Ftools"
           >
             <LogIn aria-hidden="true" className="h-4 w-4" />
+            登录
           </Link>
           <ThemeSwitch />
         </div>
