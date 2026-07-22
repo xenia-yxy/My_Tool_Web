@@ -1,32 +1,31 @@
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
-import { LoginPrompt } from "@/components/home/login-prompt";
+import { LogIn } from "lucide-react";
+import { ThemeSwitch } from "@/components/home/theme-switch";
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-30 border-b border-white/70 bg-white/66 backdrop-blur-xl">
-      <div className="mx-auto flex w-full max-w-[1500px] items-center justify-between gap-4 px-5 py-4 lg:px-8">
+    <header className="relative z-20">
+      <div className="mx-auto flex w-full max-w-[1600px] items-center justify-between gap-4 px-5 py-5 lg:px-8">
         <Link
-          className="group inline-flex min-w-0 items-center gap-2 text-sm font-semibold text-slate-950"
+          aria-label="返回首页"
+          className="home-logo group grid h-10 w-10 place-items-center"
           href="/"
         >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-blue-200 bg-blue-50 text-blue-700 shadow-sm transition-colors group-hover:bg-blue-100">
-            <Sparkles aria-hidden="true" className="h-4 w-4" />
-          </span>
-          <span className="flex min-w-0 flex-col leading-none">
-            <span>Xenia Tools</span>
-            <span className="mt-1 text-xs font-normal text-slate-500">个人库</span>
-          </span>
+          <span className="home-logo-layer home-logo-layer-one" />
+          <span className="home-logo-layer home-logo-layer-two" />
+          <span className="home-logo-layer home-logo-layer-three" />
         </Link>
 
         <div className="flex items-center gap-2">
           <Link
-            className="inline-flex h-10 shrink-0 items-center rounded-full px-3 text-sm font-semibold text-slate-700 transition-colors hover:text-slate-950"
-            href="mailto:hello@xenia.local"
+            aria-label="进入工作台"
+            className="home-icon-button"
+            href="/tools"
+            title="进入工作台"
           >
-            联系
+            <LogIn aria-hidden="true" className="h-4 w-4" />
           </Link>
-          <LoginPrompt />
+          <ThemeSwitch />
         </div>
       </div>
     </header>

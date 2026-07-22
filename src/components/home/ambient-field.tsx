@@ -2,14 +2,13 @@
 
 import { useEffect, useRef } from "react";
 
-const particles = [
-  { left: "8%", top: "18%", size: "h-2 w-2", delay: "0s" },
-  { left: "18%", top: "68%", size: "h-1.5 w-1.5", delay: "1.4s" },
-  { left: "42%", top: "12%", size: "h-2.5 w-2.5", delay: "0.8s" },
-  { left: "67%", top: "28%", size: "h-1.5 w-1.5", delay: "2.1s" },
-  { left: "82%", top: "62%", size: "h-2 w-2", delay: "1.1s" },
-  { left: "58%", top: "82%", size: "h-1.5 w-1.5", delay: "2.6s" },
-];
+const particles = Array.from({ length: 28 }, (_, index) => ({
+  delay: `${(index % 9) * -0.7}s`,
+  duration: `${10 + (index % 7) * 2}s`,
+  left: `${(index * 29 + 7) % 100}%`,
+  size: `${3 + (index % 4) * 2}px`,
+  top: `${(index * 43 + 11) % 100}%`,
+}));
 
 export function AmbientField() {
   const ref = useRef<HTMLDivElement>(null);
@@ -46,18 +45,21 @@ export function AmbientField() {
       className="pointer-events-none absolute inset-0 overflow-hidden"
       ref={ref}
     >
-      <div className="ambient-grid absolute inset-0" />
-      <div className="ambient-glow absolute inset-0" />
-      <div className="absolute -left-32 top-16 h-80 w-80 rounded-full bg-blue-100/45 blur-3xl" />
-      <div className="absolute -right-28 top-48 h-96 w-96 rounded-full bg-slate-200/35 blur-3xl" />
-      <div className="absolute bottom-0 left-1/4 h-72 w-72 rounded-full bg-blue-200/20 blur-3xl" />
+      <div className="home-grid absolute inset-0" />
+      <div className="home-cursor-light absolute inset-0" />
+      <div className="home-ribbon home-ribbon-one" />
+      <div className="home-ribbon home-ribbon-two" />
+      <div className="home-ribbon home-ribbon-three" />
       {particles.map((particle) => (
         <span
-          className={`float-slow absolute rounded-full bg-white shadow-[0_0_28px_rgba(37,99,235,0.24)] ring-1 ring-blue-200/70 ${particle.size}`}
-          key={`${particle.left}-${particle.top}`}
+          className="home-particle"
+          key={`${particle.left}-${particle.top}-${particle.size}`}
           style={{
             animationDelay: particle.delay,
+            animationDuration: particle.duration,
             left: particle.left,
+            height: particle.size,
+            width: particle.size,
             top: particle.top,
           }}
         />

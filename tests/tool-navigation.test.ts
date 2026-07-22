@@ -56,6 +56,18 @@ test("IP derivative factory route activates create sidebar entry", () => {
   assert.equal(getActiveGroupId("/tools/ip-factory"), "create");
 });
 
+test("emotional release route activates the create sidebar entry", () => {
+  const create = navGroups.find((group) => group.id === "create");
+
+  assert.ok(create);
+  assert.equal(
+    create.items.some((item) => item.id === "emotional-release"),
+    true,
+  );
+  assert.equal(getActiveNavId("/tools/release"), "emotional-release");
+  assert.equal(getActiveGroupId("/tools/release"), "create");
+});
+
 test("creative center exposes canvas and Skill management as a top-level group", () => {
   const creativeCenter = navGroups.find((group) => group.id === "creative-center");
 

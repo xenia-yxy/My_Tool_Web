@@ -1,6 +1,7 @@
 import {
   CalendarDays,
   ClipboardList,
+  CloudLightning,
   Flame,
   Home,
   ImageIcon,
@@ -95,6 +96,12 @@ export const navGroups: NavGroup[] = [
         label: "热点查询",
         href: "/tools/hotspots",
         icon: Flame,
+      },
+      {
+        id: "emotional-release",
+        label: "情绪解压",
+        href: "/tools/release",
+        icon: CloudLightning,
       },
     ],
   },
