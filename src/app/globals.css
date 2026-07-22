@@ -222,6 +222,12 @@ html[data-home-theme="dark"] .home-ribbon-three {
   transform: translateY(-2px);
 }
 
+.home-session-state {
+  color: var(--home-muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .home-icon-button:hover {
   transform: translateY(-2px);
 }
