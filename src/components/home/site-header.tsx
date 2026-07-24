@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { LoginPrompt } from "@/components/home/login-prompt";
+import { homeCopy } from "@/content/home-copy";
 
 export function SiteHeader() {
   return (
@@ -14,8 +15,8 @@ export function SiteHeader() {
             <Sparkles aria-hidden="true" className="h-4 w-4" />
           </span>
           <span className="flex min-w-0 flex-col leading-none">
-            <span>Xenia Tools</span>
-            <span className="mt-1 text-xs font-normal text-slate-500">个人库</span>
+            <span>{homeCopy.brand}</span>
+            <span className="mt-1 text-xs font-normal text-slate-500">{homeCopy.brandSubtitle}</span>
           </span>
         </Link>
 
