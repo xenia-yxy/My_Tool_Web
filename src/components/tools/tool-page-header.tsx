@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { buildUserLoginHref } from "@/server/user-auth-redirects";
 
 type ToolPageHeaderProps = {
   backHref?: string;
@@ -22,7 +23,7 @@ export function ToolPageHeader({
 
       <Link
         className="inline-flex h-10 items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-4 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100"
-        href="/login"
+        href={buildUserLoginHref(backHref)}
       >
         <LogIn aria-hidden="true" className="h-4 w-4" />
         登录

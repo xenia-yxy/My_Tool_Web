@@ -27,7 +27,7 @@ export function SiteHeader() {
           >
             联系
           </Link>
-          <LoginPrompt />
+          <LoginPrompt autoOpenFromQuery />
         </div>
       </div>
     </header>

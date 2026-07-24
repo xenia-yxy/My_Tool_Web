@@ -16,5 +16,5 @@ export function normalizeUserCallbackPath(
 export function buildUserLoginHref(targetPath: string) {
   const callbackUrl = normalizeUserCallbackPath(targetPath);
 
-  return `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`;
+  return `/?login=1&callbackUrl=${encodeURIComponent(callbackUrl)}`;
 }

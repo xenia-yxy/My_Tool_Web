@@ -1,11 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LogIn, X } from "lucide-react";
 import { LoginForm } from "@/components/auth/login-form";
 
-export function LoginPrompt() {
+type LoginPromptProps = {
+  autoOpenFromQuery?: boolean;
+  defaultCallbackUrl?: string;
+};
+
+export function LoginPrompt({
+  autoOpenFromQuery = false,
+  defaultCallbackUrl = "/tools",
+}: LoginPromptProps) {
   const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!autoOpenFromQuery) {
+      return;
+    }
+
+    const searchParams = new URLSearchParams(window.location.search);
+
+    if (searchParams.get("login") === "1") {
+      const timeoutId = window.setTimeout(() => setIsOpen(true), 0);
+
+      return () => window.clearTimeout(timeoutId);
+    }
+  }, [autoOpenFromQuery]);
 
   return (
     <>
@@ -48,7 +70,7 @@ export function LoginPrompt() {
             </div>
 
             <LoginForm
-              defaultCallbackUrl="/tools"
+              defaultCallbackUrl={defaultCallbackUrl}
               submitLabel="进入个人库"
               variant="modal"
             />

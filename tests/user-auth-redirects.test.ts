@@ -22,11 +22,11 @@ test("normalizeUserCallbackPath rejects unsafe or missing paths", () => {
   assert.equal(normalizeUserCallbackPath(["/tools", "/account"]), "/tools");
 });
 
-test("buildUserLoginHref encodes callback URLs", () => {
-  assert.equal(buildUserLoginHref("/account"), "/login?callbackUrl=%2Faccount");
-  assert.equal(buildUserLoginHref("/tools"), "/login?callbackUrl=%2Ftools");
+test("buildUserLoginHref opens the homepage login prompt with callback URLs", () => {
+  assert.equal(buildUserLoginHref("/account"), "/?login=1&callbackUrl=%2Faccount");
+  assert.equal(buildUserLoginHref("/tools"), "/?login=1&callbackUrl=%2Ftools");
   assert.equal(
     buildUserLoginHref("/knowledge/article-1"),
-    "/login?callbackUrl=%2Fknowledge%2Farticle-1",
+    "/?login=1&callbackUrl=%2Fknowledge%2Farticle-1",
   );
 });
