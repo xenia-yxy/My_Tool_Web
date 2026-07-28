@@ -3,7 +3,10 @@ import { test } from "node:test";
 import {
   getAiProviderPreset,
   normalizeAiModelConfigInput,
+  normalizeAiModelRouteInput,
   normalizeAiModelConfigUpdateInput,
+  resolveAiModelSelectionForCapability,
+  serializeAiModelRoute,
   resolveAiModelConfigTestCapability,
   serializeAiModelConfig,
   toRuntimeModelConfig,
@@ -145,6 +148,139 @@ test("serializeAiModelConfig never exposes encrypted API keys", () => {
   );
 });
 
+test("normalizeAiModelRouteInput validates explicit route selections", () => {
+  assert.deepEqual(
+    normalizeAiModelRouteInput({
+      capability: "image.generate",
+      targetType: "CREDENTIAL",
+      credentialId: "model_image",
+    }),
+    {
+      capability: "image.generate",
+      targetType: "CREDENTIAL",
+      credentialId: "model_image",
+    },
+  );
+
+  assert.deepEqual(
+    normalizeAiModelRouteInput({
+      capability: "text",
+      targetType: "AUTO",
+      credentialId: "ignored",
+    }),
+    {
+      capability: "text",
+      targetType: "AUTO",
+      credentialId: null,
+    },
+  );
+
+  assert.throws(
+    () =>
+      normalizeAiModelRouteInput({
+        capability: "image.edit",
+        targetType: "CREDENTIAL",
+      }),
+    /请选择要使用的模型配置/,
+  );
+});
+
+test("explicit credential route wins over automatic model order", () => {
+  const newerModel = selectableModel("newer", "新模型", ["image.generate"]);
+  const chosenModel = selectableModel("chosen", "指定模型", ["image.generate"]);
+  const resolved = resolveAiModelSelectionForCapability({
+    capability: "image.generate",
+    route: {
+      capability: "image.generate",
+      targetType: "CREDENTIAL",
+      credentialId: "chosen",
+    },
+    userConfigs: [newerModel, chosenModel],
+    systemConfigs: [],
+  });
+
+  assert.equal(resolved.routeStatus, "ok");
+  assert.equal(resolved.match?.id, "chosen");
+});
+
+test("system route ignores user configs when system supports the capability", () => {
+  const userModel = selectableModel("user-text", "用户文本", ["text"]);
+  const systemModel = selectableModel("system-text", "系统文本", ["text"], "system");
+  const resolved = resolveAiModelSelectionForCapability({
+    capability: "text",
+    route: {
+      capability: "text",
+      targetType: "SYSTEM",
+      credentialId: null,
+    },
+    userConfigs: [userModel],
+    systemConfigs: [systemModel],
+  });
+
+  assert.equal(resolved.routeStatus, "ok");
+  assert.equal(resolved.match?.id, "system-text");
+  assert.equal(resolved.match?.source, "system");
+});
+
+test("auto route keeps user-first fallback behavior", () => {
+  const userModel = selectableModel("user-vision", "用户识图", ["vision"]);
+  const systemModel = selectableModel("system-vision", "系统识图", ["vision"], "system");
+  const resolved = resolveAiModelSelectionForCapability({
+    capability: "vision",
+    route: {
+      capability: "vision",
+      targetType: "AUTO",
+      credentialId: null,
+    },
+    userConfigs: [userModel],
+    systemConfigs: [systemModel],
+  });
+
+  assert.equal(resolved.routeStatus, "ok");
+  assert.equal(resolved.match?.id, "user-vision");
+});
+
+test("invalid explicit credential degrades to auto instead of crashing later", () => {
+  const fallbackModel = selectableModel("fallback", "兜底模型", ["image.edit"]);
+  const resolved = resolveAiModelSelectionForCapability({
+    capability: "image.edit",
+    route: {
+      capability: "image.edit",
+      targetType: "CREDENTIAL",
+      credentialId: "disabled",
+    },
+    userConfigs: [
+      selectableModel("disabled", "停用模型", ["image.edit"], "user", false),
+      fallbackModel,
+    ],
+    systemConfigs: [],
+  });
+
+  assert.equal(resolved.routeStatus, "fallback");
+  assert.equal(resolved.match?.id, "fallback");
+});
+
+test("serializeAiModelRoute never exposes credential secrets", () => {
+  assert.deepEqual(
+    serializeAiModelRoute({
+      id: "route_1",
+      capability: "text",
+      targetType: "CREDENTIAL",
+      credentialId: "model_1",
+      createdAt: new Date("2026-07-28T00:00:00.000Z"),
+      updatedAt: new Date("2026-07-28T01:00:00.000Z"),
+    }),
+    {
+      id: "route_1",
+      capability: "text",
+      targetType: "CREDENTIAL",
+      credentialId: "model_1",
+      createdAt: "2026-07-28T00:00:00.000Z",
+      updatedAt: "2026-07-28T01:00:00.000Z",
+    },
+  );
+});
+
 test("toRuntimeModelConfig decrypts stored keys only on the server", () => {
   assert.deepEqual(
     toRuntimeModelConfig(
@@ -214,3 +350,31 @@ test("toRuntimeModelConfig applies provider default base URLs", () => {
     "https://generativelanguage.googleapis.com",
   );
 });
+
+function selectableModel(
+  id: string,
+  displayName: string,
+  capabilities: Array<"text" | "vision" | "image.generate" | "image.edit">,
+  source: "user" | "system" = "user",
+  enabled = true,
+) {
+  return {
+    id,
+    provider: "custom" as const,
+    displayName,
+    baseUrl: "https://api.example.com",
+    model: id,
+    capabilities,
+    enabled,
+    source,
+    runtime: {
+      id,
+      provider: "custom" as const,
+      baseUrl: "https://api.example.com",
+      model: id,
+      apiKey: "secret",
+      capabilities,
+      enabled,
+    },
+  };
+}

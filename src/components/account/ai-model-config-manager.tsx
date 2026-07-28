@@ -42,6 +42,22 @@ type ActiveAiModelSelection = {
   model: string | null;
   baseUrlHost: string | null;
   enabled: boolean;
+  routeTargetType: "AUTO" | "SYSTEM" | "CREDENTIAL";
+  routeCredentialId: string | null;
+  routeStatus: "ok" | "fallback" | "missing";
+  routeMessage: string | null;
+  candidates: ActiveAiModelRouteCandidate[];
+};
+
+type ActiveAiModelRouteCandidate = {
+  value: string;
+  targetType: "AUTO" | "SYSTEM" | "CREDENTIAL";
+  credentialId: string | null;
+  label: string;
+  source: "auto" | "system" | "user";
+  provider: string | null;
+  model: string | null;
+  baseUrlHost: string | null;
 };
 
 type ProviderPreset = {
@@ -158,6 +174,7 @@ export function AiModelConfigManager() {
   const [notice, setNotice] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [testingId, setTestingId] = useState<string | null>(null);
+  const [routingCapability, setRoutingCapability] = useState<string | null>(null);
 
   function resetForm() {
     setForm(emptyForm);
@@ -292,6 +309,37 @@ export function AiModelConfigManager() {
     await Promise.all([mutate(), mutateActive()]);
   }
 
+  async function updateRoute(capability: string, value: string) {
+    const route = parseRouteValue(value);
+
+    setError("");
+    setNotice("");
+    setRoutingCapability(capability);
+    const response = await fetch("/api/ai-model-configs/routes", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        capability,
+        targetType: route.targetType,
+        credentialId: route.credentialId,
+      }),
+    });
+    const payload = (await response.json().catch(() => ({}))) as {
+      selections?: ActiveAiModelSelection[];
+      error?: string;
+    };
+    setRoutingCapability(null);
+
+    if (!response.ok || !payload.selections) {
+      setError(payload.error || "当前生效模型切换失败");
+      await mutateActive();
+      return;
+    }
+
+    await mutateActive({ selections: payload.selections }, false);
+    setNotice(`${capabilityLabel(capability)} 已切换模型`);
+  }
+
   function toggleCapability(value: string) {
     setSelectedCapabilities((current) =>
       current.includes(value)
@@ -304,6 +352,8 @@ export function AiModelConfigManager() {
     <div className="grid gap-5">
       <CurrentModelPanel
         error={activeLoadError instanceof Error ? activeLoadError.message : ""}
+        onRouteChange={(capability, value) => void updateRoute(capability, value)}
+        routingCapability={routingCapability}
         selections={activeSelections}
       />
 
@@ -395,9 +445,13 @@ export function AiModelConfigManager() {
 
 function CurrentModelPanel({
   error,
+  onRouteChange,
+  routingCapability,
   selections,
 }: {
   error: string;
+  onRouteChange: (capability: string, value: string) => void;
+  routingCapability: string | null;
   selections: ActiveAiModelSelection[];
 }) {
   const visibleCapabilities = [
@@ -418,6 +472,11 @@ function CurrentModelPanel({
         model: null,
         baseUrlHost: null,
         enabled: false,
+        routeTargetType: "AUTO" as const,
+        routeCredentialId: null,
+        routeStatus: "missing" as const,
+        routeMessage: "当前能力没有可用模型",
+        candidates: [{ value: "AUTO", targetType: "AUTO" as const, credentialId: null, label: "自动选择（你的模型优先）", source: "auto" as const, provider: null, model: null, baseUrlHost: null }],
       },
   );
 
@@ -426,13 +485,20 @@ function CurrentModelPanel({
       <CardHeader>
         <CardTitle>当前生效模型</CardTitle>
         <CardDescription>
-          前端只显示供应商、模型 ID 和来源；API Key 不会回传浏览器。用户已启用配置优先，缺少能力时使用系统默认配置。
+          每个能力都可以单独切换。保存后下一次 Agent、识图、生图、图生图会立即使用这里的选择；API Key 不会回传浏览器。
         </CardDescription>
       </CardHeader>
       <CardContent>
         {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          {visibleSelections.map((selection) => (
+          {visibleSelections.map((selection) => {
+            const selectedValue = routeValueForSelection(selection);
+            const hasSelectedCandidate = selection.candidates.some(
+              (candidate) => candidate.value === selectedValue,
+            );
+            const isRouting = routingCapability === selection.capability;
+
+            return (
             <div
               className="rounded-lg border border-slate-200 bg-slate-50 p-3"
               key={selection.capability}
@@ -441,10 +507,28 @@ function CurrentModelPanel({
                 <span className="text-sm font-semibold text-slate-950">
                   {capabilityLabel(selection.capability)}
                 </span>
-                <Badge variant={selection.source === "missing" ? "secondary" : "success"}>
-                  {activeSourceLabel(selection.source)}
+                <Badge variant={selection.routeStatus === "ok" ? "success" : "secondary"}>
+                  {selection.routeStatus === "fallback" ? "临时兜底" : activeSourceLabel(selection.source)}
                 </Badge>
               </div>
+              <label className="mt-3 grid gap-1">
+                <span className="text-xs text-slate-500">使用模型</span>
+                <select
+                  className="h-9 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  disabled={isRouting}
+                  onChange={(event) => onRouteChange(selection.capability, event.target.value)}
+                  value={selectedValue}
+                >
+                  {!hasSelectedCandidate ? (
+                    <option disabled value={selectedValue}>当前已选模型不可用</option>
+                  ) : null}
+                  {selection.candidates.map((candidate) => (
+                    <option key={candidate.value} value={candidate.value}>
+                      {candidate.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <p className="mt-2 truncate text-sm font-medium text-slate-700">
                 {selection.displayName}
               </p>
@@ -456,8 +540,20 @@ function CurrentModelPanel({
                   {selection.baseUrlHost}
                 </p>
               ) : null}
+              {selection.routeMessage ? (
+                <p className="mt-2 text-xs leading-5 text-amber-700">
+                  {selection.routeMessage}
+                </p>
+              ) : null}
+              {isRouting ? (
+                <p className="mt-2 flex items-center gap-1 text-xs text-slate-500">
+                  <Loader2 aria-hidden="true" className="h-3 w-3 animate-spin" />
+                  切换中
+                </p>
+              ) : null}
             </div>
-          ))}
+            );
+          })}
         </div>
       </CardContent>
     </Card>
@@ -488,4 +584,26 @@ function activeSourceLabel(value: ActiveAiModelSelection["source"]) {
 
 function usesBillableConnectionTest(config: AiModelConfig) {
   return !config.capabilities.includes("text") && !config.capabilities.includes("vision") && (config.capabilities.includes("image.generate") || config.capabilities.includes("image.edit"));
+}
+
+function parseRouteValue(value: string) {
+  if (value.startsWith("CREDENTIAL:")) {
+    return {
+      targetType: "CREDENTIAL" as const,
+      credentialId: value.slice("CREDENTIAL:".length),
+    };
+  }
+
+  return {
+    targetType: value === "SYSTEM" ? "SYSTEM" as const : "AUTO" as const,
+    credentialId: null,
+  };
+}
+
+function routeValueForSelection(selection: ActiveAiModelSelection) {
+  if (selection.routeTargetType === "CREDENTIAL") {
+    return `CREDENTIAL:${selection.routeCredentialId || ""}`;
+  }
+
+  return selection.routeTargetType;
 }

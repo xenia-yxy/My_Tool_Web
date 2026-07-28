@@ -46,6 +46,14 @@ export type AiModelConfigInput = {
   enabled?: unknown;
 };
 
+export type AiModelRouteTargetType = "AUTO" | "SYSTEM" | "CREDENTIAL";
+
+export type AiModelRouteInput = {
+  capability?: unknown;
+  targetType?: unknown;
+  credentialId?: unknown;
+};
+
 type StoredApiKey = Pick<AiModelConfigRecord, "encryptedApiKey" | "apiKeyPreview">;
 
 type AiProviderPreset = {
@@ -116,6 +124,49 @@ export type ActiveAiModelSelection = {
   model: string | null;
   baseUrlHost: string | null;
   enabled: boolean;
+  routeTargetType: AiModelRouteTargetType;
+  routeCredentialId: string | null;
+  routeStatus: "ok" | "fallback" | "missing";
+  routeMessage: string | null;
+  candidates: ActiveAiModelRouteCandidate[];
+};
+
+export type ActiveAiModelRouteCandidate = {
+  value: string;
+  targetType: AiModelRouteTargetType;
+  credentialId: string | null;
+  label: string;
+  source: "auto" | "system" | "user";
+  provider: string | null;
+  model: string | null;
+  baseUrlHost: string | null;
+};
+
+type AiModelRouteRecord = {
+  capability: string;
+  targetType: string;
+  credentialId: string | null;
+};
+
+type SelectableAiModelConfig = {
+  id: string;
+  provider: AiProvider;
+  displayName: string;
+  baseUrl: string | null;
+  model: string;
+  capabilities: AiCapability[];
+  enabled: boolean;
+  source: "user" | "system";
+  runtime?: AiModelRuntimeConfig;
+};
+
+type ResolvedAiModelSelection = {
+  capability: AiCapability;
+  routeTargetType: AiModelRouteTargetType;
+  routeCredentialId: string | null;
+  routeStatus: "ok" | "fallback" | "missing";
+  routeMessage: string | null;
+  match: SelectableAiModelConfig | null;
 };
 
 const displayCapabilities: AiCapability[] = [
@@ -223,36 +274,32 @@ export async function listUserAiModelConfigs(userId: string) {
 }
 
 export async function listActiveAiModelSelectionsForUser(userId: string) {
-  const records = await prisma.aiProviderCredential.findMany({
-    where: { userId, enabled: true },
-    orderBy: { createdAt: "desc" },
-  });
-  const userConfigs = records.map((record) => ({
-    id: record.id,
-    provider: record.provider,
-    displayName: record.displayName,
-    baseUrl: record.baseUrl,
-    model: record.model,
-    capabilities: normalizeCapabilities(record.capabilities),
-    enabled: record.enabled,
-    source: "user" as const,
-  }));
-  const systemConfigs = buildDefaultAiRuntimeConfigs().map((config) => ({
-    id: config.id,
-    provider: config.provider,
-    displayName: config.id.includes("image") ? "系统默认图片模型" : "系统默认文本模型",
-    baseUrl: config.baseUrl || null,
-    model: config.model,
-    capabilities: normalizeCapabilities(config.capabilities),
-    enabled: config.enabled,
-    source: "system" as const,
-  }));
-  const orderedConfigs = [...userConfigs, ...systemConfigs];
+  const [records, routes] = await Promise.all([
+    prisma.aiProviderCredential.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.aiModelRoute.findMany({
+      where: { userId },
+    }),
+  ]);
+  const userConfigs = records.map((record) => toSelectableUserConfig(record));
+  const systemConfigs = buildSelectableSystemConfigs();
+  const routeMap = buildRouteMap(routes);
 
   return displayCapabilities.map((capability): ActiveAiModelSelection => {
-    const match = orderedConfigs.find(
-      (config) => config.enabled && config.capabilities.includes(capability),
+    const resolved = resolveAiModelSelectionForCapability({
+      capability,
+      route: routeMap.get(capability),
+      userConfigs,
+      systemConfigs,
+    });
+    const candidates = buildRouteCandidatesForCapability(
+      capability,
+      userConfigs,
+      systemConfigs,
     );
+    const match = resolved.match;
 
     if (!match) {
       return {
@@ -264,6 +311,11 @@ export async function listActiveAiModelSelectionsForUser(userId: string) {
         model: null,
         baseUrlHost: null,
         enabled: false,
+        routeTargetType: resolved.routeTargetType,
+        routeCredentialId: resolved.routeCredentialId,
+        routeStatus: "missing",
+        routeMessage: resolved.routeMessage || "当前能力没有可用模型，请先添加或启用模型配置",
+        candidates,
       };
     }
 
@@ -276,8 +328,84 @@ export async function listActiveAiModelSelectionsForUser(userId: string) {
       model: match.model,
       baseUrlHost: getSafeBaseUrlHost(match.baseUrl),
       enabled: match.enabled,
+      routeTargetType: resolved.routeTargetType,
+      routeCredentialId: resolved.routeCredentialId,
+      routeStatus: resolved.routeStatus,
+      routeMessage: resolved.routeMessage,
+      candidates,
     };
   });
+}
+
+export async function updateAiModelRouteForUser(
+  userId: string,
+  input: AiModelRouteInput,
+) {
+  const normalized = normalizeAiModelRouteInput(input);
+
+  if (normalized.targetType === "SYSTEM") {
+    const hasSystemModel = buildSelectableSystemConfigs().some(
+      (config) =>
+        config.enabled && config.capabilities.includes(normalized.capability),
+    );
+
+    if (!hasSystemModel) {
+      throw new Error("系统默认模型暂不支持这个能力");
+    }
+  }
+
+  if (normalized.targetType === "CREDENTIAL") {
+    const credential = await prisma.aiProviderCredential.findFirst({
+      where: {
+        id: normalized.credentialId || "",
+        userId,
+      },
+    });
+
+    if (!credential) {
+      throw new Error("模型配置不存在");
+    }
+
+    if (!credential.enabled) {
+      throw new Error("这个模型已停用，不能设为当前生效模型");
+    }
+
+    if (!normalizeCapabilities(credential.capabilities).includes(normalized.capability)) {
+      throw new Error("这个模型不支持当前功能所需能力");
+    }
+  }
+
+  const route = await prisma.aiModelRoute.upsert({
+    where: {
+      userId_capability: {
+        userId,
+        capability: normalized.capability,
+      },
+    },
+    create: {
+      userId,
+      capability: normalized.capability,
+      targetType: normalized.targetType,
+      credentialId:
+        normalized.targetType === "CREDENTIAL" ? normalized.credentialId : null,
+    },
+    update: {
+      targetType: normalized.targetType,
+      credentialId:
+        normalized.targetType === "CREDENTIAL" ? normalized.credentialId : null,
+    },
+  });
+
+  return serializeAiModelRoute(route);
+}
+
+export async function listAiModelRoutesForUser(userId: string) {
+  const routes = await prisma.aiModelRoute.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return routes.map(serializeAiModelRoute);
 }
 
 export async function createUserAiModelConfig(
@@ -406,16 +534,292 @@ export async function buildAiRuntimeConfigsForUser(userId?: string) {
     return envConfigs;
   }
 
-  const records = await prisma.aiProviderCredential.findMany({
-    where: { userId, enabled: true },
-    orderBy: { createdAt: "desc" },
-  });
+  const [records, routes] = await Promise.all([
+    prisma.aiProviderCredential.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.aiModelRoute.findMany({
+      where: { userId },
+    }),
+  ]);
   const secret = getAiCredentialEncryptionSecret();
   const userConfigs = records.map((record) =>
-    toRuntimeModelConfig(record, (value) => decryptApiKey(value, secret)),
+    toSelectableUserConfig(record, (value) => decryptApiKey(value, secret)),
+  );
+  const systemConfigs = buildSelectableSystemConfigs(envConfigs);
+  const routeMap = buildRouteMap(routes);
+  const routedConfigs: AiModelRuntimeConfig[] = [];
+
+  for (const capability of displayCapabilities) {
+    const resolved = resolveAiModelSelectionForCapability({
+      capability,
+      route: routeMap.get(capability),
+      userConfigs,
+      systemConfigs,
+    });
+
+    if (resolved.match?.runtime) {
+      routedConfigs.push({
+        ...resolved.match.runtime,
+        capabilities: [capability],
+      });
+    }
+  }
+
+  return routedConfigs;
+}
+
+export function normalizeAiModelRouteInput(input: AiModelRouteInput) {
+  const capability = readTrimmedString(input.capability) as AiCapability;
+  const targetType = readTrimmedString(input.targetType) as AiModelRouteTargetType;
+  const credentialId = readTrimmedString(input.credentialId);
+
+  if (!supportedCapabilities.has(capability)) {
+    throw new Error("不支持的模型能力");
+  }
+
+  if (!["AUTO", "SYSTEM", "CREDENTIAL"].includes(targetType)) {
+    throw new Error("不支持的模型路由类型");
+  }
+
+  if (targetType === "CREDENTIAL" && !credentialId) {
+    throw new Error("请选择要使用的模型配置");
+  }
+
+  return {
+    capability,
+    targetType,
+    credentialId: targetType === "CREDENTIAL" ? credentialId : null,
+  };
+}
+
+export function serializeAiModelRoute(record: {
+  id: string;
+  capability: string;
+  targetType: string;
+  credentialId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}) {
+  return {
+    id: record.id,
+    capability: record.capability,
+    targetType: normalizeRouteTargetType(record.targetType),
+    credentialId: record.credentialId,
+    createdAt: record.createdAt.toISOString(),
+    updatedAt: record.updatedAt.toISOString(),
+  };
+}
+
+export function resolveAiModelSelectionForCapability({
+  capability,
+  route,
+  userConfigs,
+  systemConfigs,
+}: {
+  capability: AiCapability;
+  route?: AiModelRouteRecord;
+  userConfigs: SelectableAiModelConfig[];
+  systemConfigs: SelectableAiModelConfig[];
+}): ResolvedAiModelSelection {
+  const routeTargetType = normalizeRouteTargetType(route?.targetType);
+  const routeCredentialId =
+    routeTargetType === "CREDENTIAL" ? route?.credentialId || null : null;
+  const autoMatch = pickFirstCapableModel(capability, [
+    ...userConfigs,
+    ...systemConfigs,
+  ]);
+
+  if (routeTargetType === "AUTO") {
+    return {
+      capability,
+      routeTargetType,
+      routeCredentialId: null,
+      routeStatus: autoMatch ? "ok" : "missing",
+      routeMessage: autoMatch ? null : "自动选择没有找到可用模型",
+      match: autoMatch,
+    };
+  }
+
+  if (routeTargetType === "SYSTEM") {
+    const systemMatch = pickFirstCapableModel(capability, systemConfigs);
+
+    if (systemMatch) {
+      return {
+        capability,
+        routeTargetType,
+        routeCredentialId: null,
+        routeStatus: "ok",
+        routeMessage: null,
+        match: systemMatch,
+      };
+    }
+
+    return {
+      capability,
+      routeTargetType,
+      routeCredentialId: null,
+      routeStatus: autoMatch ? "fallback" : "missing",
+      routeMessage: autoMatch
+        ? "系统默认模型当前不可用，已临时自动选择可用模型"
+        : "系统默认模型当前不可用",
+      match: autoMatch,
+    };
+  }
+
+  const credentialMatch = userConfigs.find(
+    (config) =>
+      config.id === routeCredentialId &&
+      config.enabled &&
+      config.capabilities.includes(capability),
   );
 
-  return [...userConfigs, ...envConfigs];
+  if (credentialMatch) {
+    return {
+      capability,
+      routeTargetType,
+      routeCredentialId,
+      routeStatus: "ok",
+      routeMessage: null,
+      match: credentialMatch,
+    };
+  }
+
+  return {
+    capability,
+    routeTargetType,
+    routeCredentialId,
+    routeStatus: autoMatch ? "fallback" : "missing",
+    routeMessage: autoMatch
+      ? "已选模型当前不可用或不支持该能力，已临时自动选择可用模型"
+      : "已选模型当前不可用或不支持该能力",
+    match: autoMatch,
+  };
+}
+
+function buildRouteMap(records: AiModelRouteRecord[]) {
+  const map = new Map<AiCapability, AiModelRouteRecord>();
+
+  for (const record of records) {
+    const capability = readTrimmedString(record.capability) as AiCapability;
+
+    if (supportedCapabilities.has(capability)) {
+      map.set(capability, record);
+    }
+  }
+
+  return map;
+}
+
+function toSelectableUserConfig(
+  record: AiModelConfigRecord,
+  decrypt?: (value: string) => string,
+): SelectableAiModelConfig {
+  const runtime = decrypt ? toRuntimeModelConfig(record, decrypt) : undefined;
+  const provider = normalizeProvider(record.provider);
+
+  return {
+    id: record.id,
+    provider,
+    displayName: record.displayName,
+    baseUrl: record.baseUrl || getDefaultProviderBaseUrl(provider),
+    model: record.model,
+    capabilities: normalizeCapabilities(record.capabilities),
+    enabled: record.enabled,
+    source: "user",
+    runtime,
+  };
+}
+
+function buildSelectableSystemConfigs(
+  runtimeConfigs = buildDefaultAiRuntimeConfigs(),
+): SelectableAiModelConfig[] {
+  return runtimeConfigs.map((config) => ({
+    id: config.id,
+    provider: config.provider,
+    displayName: config.id.includes("image")
+      ? "系统默认图片模型"
+      : "系统默认文本模型",
+    baseUrl: config.baseUrl || null,
+    model: config.model,
+    capabilities: normalizeCapabilities(config.capabilities),
+    enabled: config.enabled,
+    source: "system",
+    runtime: config,
+  }));
+}
+
+function pickFirstCapableModel(
+  capability: AiCapability,
+  configs: SelectableAiModelConfig[],
+) {
+  return (
+    configs.find(
+      (config) => config.enabled && config.capabilities.includes(capability),
+    ) || null
+  );
+}
+
+function buildRouteCandidatesForCapability(
+  capability: AiCapability,
+  userConfigs: SelectableAiModelConfig[],
+  systemConfigs: SelectableAiModelConfig[],
+): ActiveAiModelRouteCandidate[] {
+  const candidates: ActiveAiModelRouteCandidate[] = [
+    {
+      value: buildRouteCandidateValue("AUTO"),
+      targetType: "AUTO",
+      credentialId: null,
+      label: "自动选择（你的模型优先）",
+      source: "auto",
+      provider: null,
+      model: null,
+      baseUrlHost: null,
+    },
+  ];
+  const systemMatch = pickFirstCapableModel(capability, systemConfigs);
+
+  if (systemMatch) {
+    candidates.push({
+      value: buildRouteCandidateValue("SYSTEM"),
+      targetType: "SYSTEM",
+      credentialId: null,
+      label: `系统默认：${systemMatch.displayName} / ${systemMatch.model}`,
+      source: "system",
+      provider: systemMatch.provider,
+      model: systemMatch.model,
+      baseUrlHost: getSafeBaseUrlHost(systemMatch.baseUrl),
+    });
+  }
+
+  for (const config of userConfigs) {
+    if (!config.enabled || !config.capabilities.includes(capability)) continue;
+
+    candidates.push({
+      value: buildRouteCandidateValue("CREDENTIAL", config.id),
+      targetType: "CREDENTIAL",
+      credentialId: config.id,
+      label: `${config.displayName} / ${config.model}`,
+      source: "user",
+      provider: config.provider,
+      model: config.model,
+      baseUrlHost: getSafeBaseUrlHost(config.baseUrl),
+    });
+  }
+
+  return candidates;
+}
+
+function normalizeRouteTargetType(value: unknown): AiModelRouteTargetType {
+  return value === "SYSTEM" || value === "CREDENTIAL" ? value : "AUTO";
+}
+
+function buildRouteCandidateValue(
+  targetType: AiModelRouteTargetType,
+  credentialId?: string | null,
+) {
+  return targetType === "CREDENTIAL" ? `CREDENTIAL:${credentialId || ""}` : targetType;
 }
 
 function getAiCredentialEncryptionSecret(env: Record<string, string | undefined> = process.env) {

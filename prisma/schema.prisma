@@ -67,6 +67,7 @@ model User {
   ipPrototypeProjects IpPrototypeProject[]
   ipPrototypeGenerations IpPrototypeGeneration[]
   aiProviderCredentials AiProviderCredential[]
+  aiModelRoutes AiModelRoute[]
   websiteBookmarks WebsiteBookmark[]
     dailyPlanItems DailyPlanItem[]
     workbenchSessions WorkbenchSession[]
@@ -400,11 +401,27 @@ model AiProviderCredential {
   lastUsedAt      DateTime?
   userId          String
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  routes          AiModelRoute[]
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   @@index([userId, enabled])
   @@index([provider, model])
+}
+
+model AiModelRoute {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  capability   String
+  targetType   String   @default("AUTO")
+  credentialId String?
+  credential   AiProviderCredential? @relation(fields: [credentialId], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, capability])
+  @@index([credentialId])
 }
 
 model WebsiteBookmark {
