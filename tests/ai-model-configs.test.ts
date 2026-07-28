@@ -1,10 +1,69 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
+  getAiProviderPreset,
   normalizeAiModelConfigInput,
+  normalizeAiModelConfigUpdateInput,
+  resolveAiModelConfigTestCapability,
   serializeAiModelConfig,
   toRuntimeModelConfig,
 } from "../src/server/ai-model-configs";
+
+test("getAiProviderPreset gives an editable starting point for supported providers", () => {
+  assert.deepEqual(getAiProviderPreset("openrouter"), {
+    baseUrl: "https://openrouter.ai/api",
+    model: "openai/gpt-4o-mini",
+    capabilities: ["text", "vision"],
+  });
+
+  assert.deepEqual(getAiProviderPreset("aizhzo"), {
+    baseUrl: "https://api.aizhzo.com",
+    model: "gpt-image-2",
+    capabilities: ["image.generate", "image.edit"],
+  });
+});
+
+test("resolveAiModelConfigTestCapability favors a no-cost text connection check", () => {
+  assert.equal(
+    resolveAiModelConfigTestCapability(["vision", "image.generate"]),
+    "vision",
+  );
+  assert.equal(
+    resolveAiModelConfigTestCapability(["image.generate", "image.edit"]),
+    "image.generate",
+  );
+  assert.equal(
+    resolveAiModelConfigTestCapability(["image.edit"]),
+    "image.edit",
+  );
+});
+
+test("normalizeAiModelConfigUpdateInput keeps the stored key when no replacement is supplied", () => {
+  assert.deepEqual(
+    normalizeAiModelConfigUpdateInput(
+      {
+        provider: "openai-compatible",
+        displayName: "我的图像模型",
+        baseUrl: "https://api.example.com/",
+        model: "image-model-v2",
+        apiKey: "",
+        capabilities: ["image.generate"],
+        enabled: false,
+      },
+      { encryptedApiKey: "stored-ciphertext", apiKeyPreview: "sk-a...wxyz" },
+    ),
+    {
+      provider: "openai-compatible",
+      displayName: "我的图像模型",
+      baseUrl: "https://api.example.com",
+      model: "image-model-v2",
+      encryptedApiKey: "stored-ciphertext",
+      apiKeyPreview: "sk-a...wxyz",
+      capabilities: ["image.generate"],
+      enabled: false,
+    },
+  );
+});
 
 test("normalizeAiModelConfigInput prepares a user-owned model config", () => {
   assert.deepEqual(

@@ -18,3 +18,11 @@ export function buildUserLoginHref(targetPath: string) {
 
   return `/?login=1&callbackUrl=${encodeURIComponent(callbackUrl)}`;
 }
+
+export function removeUserLoginPromptQuery(search: string) {
+  const params = new URLSearchParams(search);
+  params.delete("login");
+  const next = params.toString();
+
+  return next ? `?${next}` : "";
+}

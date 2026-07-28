@@ -51,7 +51,8 @@ model User {
   emailVerified DateTime?
   image         String?
   passwordHash  String?
-  role          Role      @default(ADMIN)
+  role          Role      @default(USER)
+  authVersion   Int       @default(1)
   failedLoginCount Int     @default(0)
   lockedUntil   DateTime?
   lastLoginAt   DateTime?

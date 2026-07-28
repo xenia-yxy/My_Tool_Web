@@ -9,7 +9,10 @@ import type {
   AiModelRuntimeConfig,
   AiProvider,
 } from "@/server/ai-gateway/provider-registry";
-import { buildDefaultAiRuntimeConfigs } from "@/server/ai-gateway/provider-registry";
+import {
+  buildDefaultAiRuntimeConfigs,
+  createAiGateway,
+} from "@/server/ai-gateway/provider-registry";
 
 const supportedProviders = new Set<AiProvider>([
   "openai-compatible",
@@ -43,6 +46,52 @@ export type AiModelConfigInput = {
   enabled?: unknown;
 };
 
+type StoredApiKey = Pick<AiModelConfigRecord, "encryptedApiKey" | "apiKeyPreview">;
+
+type AiProviderPreset = {
+  baseUrl: string;
+  model: string;
+  capabilities: AiCapability[];
+};
+
+const providerPresets: Record<AiProvider, AiProviderPreset> = {
+  "openai-compatible": {
+    baseUrl: "https://api.openai.com",
+    model: "gpt-4o-mini",
+    capabilities: ["text", "vision"],
+  },
+  openai: {
+    baseUrl: "https://api.openai.com",
+    model: "gpt-4o-mini",
+    capabilities: ["text", "vision"],
+  },
+  openrouter: {
+    baseUrl: "https://openrouter.ai/api",
+    model: "openai/gpt-4o-mini",
+    capabilities: ["text", "vision"],
+  },
+  anthropic: {
+    baseUrl: "https://api.anthropic.com",
+    model: "claude-sonnet-4-5",
+    capabilities: ["text"],
+  },
+  google: {
+    baseUrl: "https://generativelanguage.googleapis.com",
+    model: "gemini-2.5-pro",
+    capabilities: ["text", "vision"],
+  },
+  aizhzo: {
+    baseUrl: "https://api.aizhzo.com",
+    model: "gpt-image-2",
+    capabilities: ["image.generate", "image.edit"],
+  },
+  custom: {
+    baseUrl: "",
+    model: "",
+    capabilities: ["text"],
+  },
+};
+
 export type AiModelConfigRecord = {
   id: string;
   provider: string;
@@ -58,39 +107,53 @@ export type AiModelConfigRecord = {
   lastUsedAt: Date | null;
 };
 
+export function getAiProviderPreset(value: unknown): AiProviderPreset {
+  const preset = providerPresets[normalizeProvider(value)];
+
+  return {
+    baseUrl: preset.baseUrl,
+    model: preset.model,
+    capabilities: [...preset.capabilities],
+  };
+}
+
+export function resolveAiModelConfigTestCapability(
+  capabilities: readonly string[],
+): AiCapability {
+  const normalized = normalizeCapabilities(capabilities);
+
+  if (normalized.includes("text")) return "text";
+  if (normalized.includes("vision")) return "vision";
+  if (normalized.includes("image.generate")) return "image.generate";
+  if (normalized.includes("image.edit")) return "image.edit";
+
+  throw new Error("该配置没有可测试的文本、视觉或图片能力");
+}
+
 export function normalizeAiModelConfigInput(input: AiModelConfigInput) {
-  const provider = normalizeProvider(input.provider);
-  const displayName = readTrimmedString(input.displayName);
-  const baseUrl = trimTrailingSlash(readTrimmedString(input.baseUrl));
-  const model = readTrimmedString(input.model);
   const apiKey = readTrimmedString(input.apiKey);
-  const capabilities = normalizeCapabilities(input.capabilities);
-
-  if (!displayName) {
-    throw new Error("模型名称不能为空");
-  }
-
-  if (!model) {
-    throw new Error("模型 ID 不能为空");
-  }
 
   if (!apiKey) {
     throw new Error("API Key 不能为空");
   }
 
-  if (capabilities.length === 0) {
-    throw new Error("至少选择一个模型能力");
-  }
-
   return {
-    provider,
-    displayName,
-    baseUrl,
-    model,
+    ...normalizeAiModelConfigFields(input),
     apiKey,
     apiKeyPreview: maskApiKey(apiKey),
-    capabilities,
-    enabled: input.enabled === false ? false : true,
+  };
+}
+
+export function normalizeAiModelConfigUpdateInput(
+  input: AiModelConfigInput,
+  existingKey: StoredApiKey,
+) {
+  const apiKey = readTrimmedString(input.apiKey);
+
+  return {
+    ...normalizeAiModelConfigFields(input),
+    encryptedApiKey: apiKey || existingKey.encryptedApiKey,
+    apiKeyPreview: apiKey ? maskApiKey(apiKey) : existingKey.apiKeyPreview,
   };
 }
 
@@ -176,6 +239,85 @@ export async function deleteUserAiModelConfig(userId: string, id: string) {
   return { ok: true };
 }
 
+export async function updateUserAiModelConfig(
+  userId: string,
+  id: string,
+  input: AiModelConfigInput,
+) {
+  const record = await prisma.aiProviderCredential.findFirst({
+    where: { id, userId },
+  });
+
+  if (!record) {
+    throw new Error("模型配置不存在");
+  }
+
+  const normalized = normalizeAiModelConfigUpdateInput(input, record);
+  const replacementApiKey = readTrimmedString(input.apiKey);
+  const encryptedApiKey = replacementApiKey
+    ? encryptApiKey(replacementApiKey, getAiCredentialEncryptionSecret())
+    : normalized.encryptedApiKey;
+  const updated = await prisma.aiProviderCredential.update({
+    where: { id },
+    data: {
+      provider: normalized.provider,
+      displayName: normalized.displayName,
+      baseUrl: normalized.baseUrl || null,
+      model: normalized.model,
+      encryptedApiKey,
+      apiKeyPreview: normalized.apiKeyPreview,
+      capabilities: normalized.capabilities,
+      enabled: normalized.enabled,
+    },
+  });
+
+  return serializeAiModelConfig(updated);
+}
+
+export async function testUserAiModelConfig(userId: string, id: string) {
+  const record = await prisma.aiProviderCredential.findFirst({
+    where: { id, userId, enabled: true },
+  });
+
+  if (!record) {
+    throw new Error("模型配置不存在或尚未启用");
+  }
+
+  const runtimeConfig = toRuntimeModelConfig(
+    record,
+    (value) => decryptApiKey(value, getAiCredentialEncryptionSecret()),
+  );
+  const capability = resolveAiModelConfigTestCapability(runtimeConfig.capabilities);
+  const gateway = createAiGateway({ models: [runtimeConfig] });
+
+  if (capability === "text" || capability === "vision") {
+    await gateway.generateText({
+      messages: [{ role: "user", content: "Reply with OK only." }],
+      temperature: 0,
+    });
+  } else if (capability === "image.generate") {
+    await gateway.generateImage({
+      prompt: "A single plain white square. No text.",
+      size: "1024x1024",
+      quality: "low",
+    });
+  } else {
+    await gateway.editImage({
+      prompt: "Keep this image unchanged.",
+      size: "1024x1024",
+      quality: "low",
+      image: new File([transparentPng], "connection-test.png", { type: "image/png" }),
+    });
+  }
+
+  await prisma.aiProviderCredential.update({
+    where: { id: record.id },
+    data: { lastUsedAt: new Date() },
+  });
+
+  return { capability };
+}
+
 export async function buildAiRuntimeConfigsForUser(userId?: string) {
   const envConfigs = buildDefaultAiRuntimeConfigs();
 
@@ -231,6 +373,35 @@ function normalizeCapabilities(value: unknown): AiCapability[] {
   return items;
 }
 
+function normalizeAiModelConfigFields(input: AiModelConfigInput) {
+  const provider = normalizeProvider(input.provider);
+  const displayName = readTrimmedString(input.displayName);
+  const baseUrl = trimTrailingSlash(readTrimmedString(input.baseUrl));
+  const model = readTrimmedString(input.model);
+  const capabilities = normalizeCapabilities(input.capabilities);
+
+  if (!displayName) {
+    throw new Error("模型名称不能为空");
+  }
+
+  if (!model) {
+    throw new Error("模型 ID 不能为空");
+  }
+
+  if (capabilities.length === 0) {
+    throw new Error("至少选择一个模型能力");
+  }
+
+  return {
+    provider,
+    displayName,
+    baseUrl,
+    model,
+    capabilities,
+    enabled: input.enabled === false ? false : true,
+  };
+}
+
 function readTrimmedString(value: unknown) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -262,3 +433,11 @@ function getDefaultProviderBaseUrl(provider: AiProvider) {
 
   return "";
 }
+
+const transparentPng = new Uint8Array([
+  137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82,
+  0, 0, 0, 1, 0, 0, 0, 1, 8, 6, 0, 0, 0, 31, 21, 196, 137,
+  0, 0, 0, 13, 73, 68, 65, 84, 8, 215, 99, 248, 207, 192, 240,
+  31, 0, 5, 0, 1, 255, 137, 153, 61, 29, 0, 0, 0, 0, 73, 69,
+  78, 68, 174, 66, 96, 130,
+]);

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { LogIn, X } from "lucide-react";
 import { LoginForm } from "@/components/auth/login-form";
+import { removeUserLoginPromptQuery } from "@/server/user-auth-redirects";
 
 type LoginPromptProps = {
   autoOpenFromQuery?: boolean;
@@ -29,6 +30,28 @@ export function LoginPrompt({
     }
   }, [autoOpenFromQuery]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeModal();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen]);
+
+  function closeModal() {
+    setIsOpen(false);
+    const { hash, pathname, search } = window.location;
+    if (new URLSearchParams(search).get("login") === "1") {
+      window.history.replaceState(
+        null,
+        "",
+        `${pathname}${removeUserLoginPromptQuery(search)}${hash}`,
+      );
+    }
+  }
+
   return (
     <>
       <button
@@ -44,9 +67,13 @@ export function LoginPrompt({
         <div
           aria-modal="true"
           className="fixed inset-0 z-50 grid min-h-dvh place-items-center bg-slate-900/28 px-5 py-8 backdrop-blur-md"
+          onClick={closeModal}
           role="dialog"
         >
-          <div className="max-h-[calc(100dvh-4rem)] w-full max-w-[430px] overflow-y-auto rounded-2xl border border-white/90 bg-white/96 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.22)] backdrop-blur-xl">
+          <div
+            className="max-h-[calc(100dvh-4rem)] w-full max-w-[430px] overflow-y-auto rounded-2xl border border-white/90 bg-white/96 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.22)] backdrop-blur-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm font-semibold text-blue-700">
@@ -62,7 +89,7 @@ export function LoginPrompt({
               <button
                 aria-label="关闭登录提示"
                 className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-950"
-                onClick={() => setIsOpen(false)}
+                onClick={closeModal}
                 type="button"
               >
                 <X aria-hidden="true" className="h-4 w-4" />

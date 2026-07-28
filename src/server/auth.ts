@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { buildAdminCredentialWhere } from "@/server/admin-credentials";
 import {
   canAccessAdmin,
+  canUseActiveSession,
   canUseMemberTools,
 } from "@/server/auth-permissions";
 import { buildUserLoginHref } from "@/server/user-auth-redirects";
@@ -130,6 +131,7 @@ export const authOptions: NextAuthOptions = {
           name: user.name,
           email: user.email,
           role: user.role,
+          authVersion: user.authVersion,
         };
       },
     }),
@@ -139,14 +141,16 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = user.role;
+        token.authVersion = user.authVersion;
       }
 
       return token;
     },
     async session({ session, token }) {
-      if (session.user && token.id && typeof token.role === "string") {
+      if (session.user && token.id && typeof token.role === "string" && typeof token.authVersion === "number") {
         session.user.id = token.id;
         session.user.role = token.role;
+        session.user.authVersion = token.authVersion;
       }
 
       return session;
@@ -210,8 +214,24 @@ function queueLoginSuccessSideEffects(input: {
   });
 }
 
-export function getAppSession() {
-  return getServerSession(authOptions);
+export async function getAppSession() {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.id) {
+    return session;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { authVersion: true, disabledAt: true, role: true },
+  });
+
+  if (!user || !canUseActiveSession(user, session.user.authVersion)) {
+    return null;
+  }
+
+  session.user.role = user.role;
+  return session;
 }
 
 export async function requireAdminUser() {

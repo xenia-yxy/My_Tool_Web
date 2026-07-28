@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import {
   buildUserLoginHref,
+  removeUserLoginPromptQuery,
   normalizeUserCallbackPath,
 } from "../src/server/user-auth-redirects";
 
@@ -29,4 +30,12 @@ test("buildUserLoginHref opens the homepage login prompt with callback URLs", ()
     buildUserLoginHref("/knowledge/article-1"),
     "/?login=1&callbackUrl=%2Fknowledge%2Farticle-1",
   );
+});
+
+test("removeUserLoginPromptQuery closes the homepage modal without losing the safe return path", () => {
+  assert.equal(
+    removeUserLoginPromptQuery("?login=1&callbackUrl=%2Ftools"),
+    "?callbackUrl=%2Ftools",
+  );
+  assert.equal(removeUserLoginPromptQuery("?login=1"), "");
 });

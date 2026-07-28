@@ -1,5 +1,12 @@
 import Link from "next/link";
-import { ArrowRight, ImageIcon, KeyRound, LogOut, UserRound } from "lucide-react";
+import {
+  ArrowRight,
+  ImageIcon,
+  KeyRound,
+  LogOut,
+  UserRound,
+  UsersRound,
+} from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +18,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { requireSignedInUser } from "@/server/auth";
+import { canAccessAdmin } from "@/server/auth-permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -97,6 +105,29 @@ export default async function AccountPage() {
               </Link>
             </CardContent>
           </Card>
+
+          {canAccessAdmin(user.role) ? (
+            <Card>
+              <CardHeader>
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700">
+                  <UsersRound aria-hidden="true" className="h-5 w-5" />
+                </div>
+                <CardTitle>用户管理</CardTitle>
+                <CardDescription>
+                  创建、停用和维护网站登录账户。
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link
+                  className="inline-flex items-center text-sm font-medium text-emerald-700"
+                  href="/account/users"
+                >
+                  管理用户
+                  <ArrowRight aria-hidden="true" className="ml-1 h-4 w-4" />
+                </Link>
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
       </div>
     </main>
