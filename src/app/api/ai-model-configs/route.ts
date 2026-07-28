@@ -18,7 +18,10 @@ export async function GET() {
 
   const configs = await listUserAiModelConfigs(session.user.id);
 
-  return NextResponse.json({ configs });
+  return NextResponse.json(
+    { configs },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }
 
 export async function POST(request: Request) {
@@ -35,11 +38,14 @@ export async function POST(request: Request) {
     >;
     const config = await createUserAiModelConfig(session.user.id, body);
 
-    return NextResponse.json({ config }, { status: 201 });
+    return NextResponse.json(
+      { config },
+      { headers: { "Cache-Control": "no-store" }, status: 201 },
+    );
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "模型配置保存失败" },
-      { status: 400 },
+      { headers: { "Cache-Control": "no-store" }, status: 400 },
     );
   }
 }

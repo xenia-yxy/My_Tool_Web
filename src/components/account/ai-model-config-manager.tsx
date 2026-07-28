@@ -33,6 +33,17 @@ type AiModelConfig = {
   lastUsedAt?: string | null;
 };
 
+type ActiveAiModelSelection = {
+  capability: string;
+  source: "user" | "system" | "missing";
+  id: string | null;
+  provider: string | null;
+  displayName: string;
+  model: string | null;
+  baseUrlHost: string | null;
+  enabled: boolean;
+};
+
 type ProviderPreset = {
   baseUrl: string;
   model: string;
@@ -114,12 +125,29 @@ async function fetchModelConfigs(url: string) {
   return { configs: payload.configs || [] };
 }
 
+async function fetchActiveModelSelections(url: string) {
+  const response = await fetch(url, { cache: "no-store" });
+  const payload = (await response.json().catch(() => ({}))) as {
+    selections?: ActiveAiModelSelection[];
+    error?: string;
+  };
+
+  if (!response.ok) throw new Error(payload.error || "当前模型加载失败");
+  return { selections: payload.selections || [] };
+}
+
 export function AiModelConfigManager() {
   const { data, error: loadError, isLoading, mutate } = useSWR(
     "/api/ai-model-configs",
     fetchModelConfigs,
   );
+  const {
+    data: activeData,
+    error: activeLoadError,
+    mutate: mutateActive,
+  } = useSWR("/api/ai-model-configs/active", fetchActiveModelSelections);
   const configs = data?.configs || [];
+  const activeSelections = activeData?.selections || [];
   const [form, setForm] = useState(emptyForm);
   const [selectedCapabilities, setSelectedCapabilities] = useState<string[]>([
     "text",
@@ -181,6 +209,7 @@ export function AiModelConfigManager() {
       },
       false,
     );
+    await mutateActive();
     setNotice(editingId ? "模型配置已更新" : "模型配置已保存");
     resetForm();
   }
@@ -228,6 +257,7 @@ export function AiModelConfigManager() {
       { configs: configs.map((item) => (item.id === payload.config?.id ? payload.config : item)) },
       false,
     );
+    await mutateActive();
   }
 
   async function deleteConfig(id: string) {
@@ -239,6 +269,7 @@ export function AiModelConfigManager() {
       return;
     }
     await mutate({ configs: configs.filter((config) => config.id !== id) }, false);
+    await mutateActive();
     if (editingId === id) resetForm();
   }
 
@@ -258,7 +289,7 @@ export function AiModelConfigManager() {
       return;
     }
     setNotice(`${config.displayName} 连接正常，已验证 ${capabilityLabel(payload.capability || "")}`);
-    await mutate();
+    await Promise.all([mutate(), mutateActive()]);
   }
 
   function toggleCapability(value: string) {
@@ -270,7 +301,13 @@ export function AiModelConfigManager() {
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,420px)_1fr]">
+    <div className="grid gap-5">
+      <CurrentModelPanel
+        error={activeLoadError instanceof Error ? activeLoadError.message : ""}
+        selections={activeSelections}
+      />
+
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,420px)_1fr]">
       <Card>
         <CardHeader>
           <CardTitle>{editingId ? "编辑模型" : "新增模型"}</CardTitle>
@@ -351,7 +388,79 @@ export function AiModelConfigManager() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
+  );
+}
+
+function CurrentModelPanel({
+  error,
+  selections,
+}: {
+  error: string;
+  selections: ActiveAiModelSelection[];
+}) {
+  const visibleCapabilities = [
+    "text",
+    "vision",
+    "image.generate",
+    "image.edit",
+    "tools",
+  ];
+  const visibleSelections = visibleCapabilities.map(
+    (capability) =>
+      selections.find((item) => item.capability === capability) || {
+        capability,
+        source: "missing" as const,
+        id: null,
+        provider: null,
+        displayName: "未配置",
+        model: null,
+        baseUrlHost: null,
+        enabled: false,
+      },
+  );
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>当前生效模型</CardTitle>
+        <CardDescription>
+          前端只显示供应商、模型 ID 和来源；API Key 不会回传浏览器。用户已启用配置优先，缺少能力时使用系统默认配置。
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          {visibleSelections.map((selection) => (
+            <div
+              className="rounded-lg border border-slate-200 bg-slate-50 p-3"
+              key={selection.capability}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold text-slate-950">
+                  {capabilityLabel(selection.capability)}
+                </span>
+                <Badge variant={selection.source === "missing" ? "secondary" : "success"}>
+                  {activeSourceLabel(selection.source)}
+                </Badge>
+              </div>
+              <p className="mt-2 truncate text-sm font-medium text-slate-700">
+                {selection.displayName}
+              </p>
+              <p className="mt-1 truncate text-xs text-slate-500">
+                {selection.model || "暂无模型"}
+              </p>
+              {selection.baseUrlHost ? (
+                <p className="mt-1 truncate text-xs text-slate-400">
+                  {selection.baseUrlHost}
+                </p>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -369,6 +478,12 @@ function capabilityLabel(value: string) {
 
 function providerLabel(value: string) {
   return providerOptions.find(([key]) => key === value)?.[1] || value;
+}
+
+function activeSourceLabel(value: ActiveAiModelSelection["source"]) {
+  if (value === "user") return "你的配置";
+  if (value === "system") return "系统默认";
+  return "缺少配置";
 }
 
 function usesBillableConnectionTest(config: AiModelConfig) {

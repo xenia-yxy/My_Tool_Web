@@ -6,6 +6,7 @@ import {
   isSafeAuthRedirect,
   validateAdminPasswordPolicy,
 } from "../src/server/admin-login-security";
+import nextConfig from "../next.config";
 
 test("validateAdminPasswordPolicy requires enterprise baseline strength", () => {
   assert.equal(validateAdminPasswordPolicy("Short1!").ok, false);
@@ -50,4 +51,34 @@ test("isSafeAuthRedirect allows relative and same-origin redirects only", () => 
     false,
   );
   assert.equal(isSafeAuthRedirect("javascript:alert(1)", "https://example.com"), false);
+});
+
+test("sensitive login and model routes are protected by no-store security headers", async () => {
+  const headers = await nextConfig.headers?.();
+  const accountModels = headers?.find(
+    (item) => item.source === "/api/ai-model-configs/:path*",
+  );
+  const accountPages = headers?.find((item) => item.source === "/account/:path*");
+  const globalHeaders = headers?.find((item) => item.source === "/:path*");
+
+  assert.ok(accountModels);
+  assert.ok(accountPages);
+  assert.equal(
+    accountModels.headers.some(
+      (header) => header.key === "Cache-Control" && header.value === "no-store",
+    ),
+    true,
+  );
+  assert.equal(
+    accountPages.headers.some(
+      (header) => header.key === "Cache-Control" && header.value === "no-store",
+    ),
+    true,
+  );
+  assert.equal(
+    globalHeaders?.headers.some(
+      (header) => header.key === "X-Frame-Options" && header.value === "DENY",
+    ),
+    true,
+  );
 });

@@ -24,11 +24,13 @@ export async function DELETE(_request: Request, context: RouteContext) {
     const { id } = await context.params;
     const result = await deleteUserAiModelConfig(session.user.id, id);
 
-    return NextResponse.json(result);
+    return NextResponse.json(result, {
+      headers: { "Cache-Control": "no-store" },
+    });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "模型配置删除失败" },
-      { status: 404 },
+      { headers: { "Cache-Control": "no-store" }, status: 404 },
     );
   }
 }
@@ -45,11 +47,14 @@ export async function PUT(request: Request, context: RouteContext) {
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     const config = await updateUserAiModelConfig(session.user.id, id, body);
 
-    return NextResponse.json({ config });
+    return NextResponse.json(
+      { config },
+      { headers: { "Cache-Control": "no-store" } },
+    );
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "模型配置更新失败" },
-      { status: 400 },
+      { headers: { "Cache-Control": "no-store" }, status: 400 },
     );
   }
 }

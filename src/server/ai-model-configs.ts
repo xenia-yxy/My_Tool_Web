@@ -107,6 +107,29 @@ export type AiModelConfigRecord = {
   lastUsedAt: Date | null;
 };
 
+export type ActiveAiModelSelection = {
+  capability: AiCapability;
+  source: "user" | "system" | "missing";
+  id: string | null;
+  provider: string | null;
+  displayName: string;
+  model: string | null;
+  baseUrlHost: string | null;
+  enabled: boolean;
+};
+
+const displayCapabilities: AiCapability[] = [
+  "text",
+  "vision",
+  "image.generate",
+  "image.edit",
+  "audio.transcribe",
+  "audio.speech",
+  "embedding",
+  "video.generate",
+  "tools",
+];
+
 export function getAiProviderPreset(value: unknown): AiProviderPreset {
   const preset = providerPresets[normalizeProvider(value)];
 
@@ -197,6 +220,64 @@ export async function listUserAiModelConfigs(userId: string) {
   });
 
   return records.map(serializeAiModelConfig);
+}
+
+export async function listActiveAiModelSelectionsForUser(userId: string) {
+  const records = await prisma.aiProviderCredential.findMany({
+    where: { userId, enabled: true },
+    orderBy: { createdAt: "desc" },
+  });
+  const userConfigs = records.map((record) => ({
+    id: record.id,
+    provider: record.provider,
+    displayName: record.displayName,
+    baseUrl: record.baseUrl,
+    model: record.model,
+    capabilities: normalizeCapabilities(record.capabilities),
+    enabled: record.enabled,
+    source: "user" as const,
+  }));
+  const systemConfigs = buildDefaultAiRuntimeConfigs().map((config) => ({
+    id: config.id,
+    provider: config.provider,
+    displayName: config.id.includes("image") ? "系统默认图片模型" : "系统默认文本模型",
+    baseUrl: config.baseUrl || null,
+    model: config.model,
+    capabilities: normalizeCapabilities(config.capabilities),
+    enabled: config.enabled,
+    source: "system" as const,
+  }));
+  const orderedConfigs = [...userConfigs, ...systemConfigs];
+
+  return displayCapabilities.map((capability): ActiveAiModelSelection => {
+    const match = orderedConfigs.find(
+      (config) => config.enabled && config.capabilities.includes(capability),
+    );
+
+    if (!match) {
+      return {
+        capability,
+        source: "missing",
+        id: null,
+        provider: null,
+        displayName: "未配置",
+        model: null,
+        baseUrlHost: null,
+        enabled: false,
+      };
+    }
+
+    return {
+      capability,
+      source: match.source,
+      id: match.id,
+      provider: match.provider,
+      displayName: match.displayName,
+      model: match.model,
+      baseUrlHost: getSafeBaseUrlHost(match.baseUrl),
+      enabled: match.enabled,
+    };
+  });
 }
 
 export async function createUserAiModelConfig(
@@ -432,6 +513,16 @@ function getDefaultProviderBaseUrl(provider: AiProvider) {
   }
 
   return "";
+}
+
+function getSafeBaseUrlHost(value: string | null | undefined) {
+  if (!value) return null;
+
+  try {
+    return new URL(value).host;
+  } catch {
+    return value.replace(/^https?:\/\//, "").split("/")[0] || null;
+  }
 }
 
 const transparentPng = new Uint8Array([
