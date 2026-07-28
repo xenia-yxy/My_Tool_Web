@@ -80,6 +80,20 @@ test("creative center exposes canvas and Skill management as a top-level group",
   assert.equal(getActiveGroupId("/tools/creative-center/skills"), "creative-center");
 });
 
+test("account settings are visible from workspace navigation", () => {
+  const account = navGroups.find((group) => group.id === "account");
+
+  assert.ok(account);
+  assert.deepEqual(
+    account.items.map((item) => item.id),
+    ["account-models", "account-users", "account-home"],
+  );
+  assert.equal(getActiveNavId("/account/models"), "account-models");
+  assert.equal(getActiveNavId("/account/users"), "account-users");
+  assert.equal(getActiveNavId("/account"), "account-home");
+  assert.equal(getActiveGroupId("/account/models"), "account");
+});
+
 test("legacy fashion prompt route redirects to isolated gender tools", () => {
   assert.equal(resolveFashionPromptsRedirectTarget(), "/tools/menswear");
   assert.equal(resolveFashionPromptsRedirectTarget("menswear"), "/tools/menswear");

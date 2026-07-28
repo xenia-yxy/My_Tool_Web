@@ -6,14 +6,18 @@ import {
   Home,
   ImageIcon,
   Images,
+  KeyRound,
   LayoutGrid,
   LineChart,
   PackageCheck,
   PanelsTopLeft,
+  Settings,
   Shapes,
   Shirt,
   Sparkles,
   Store,
+  UserRound,
+  UsersRound,
   type LucideIcon,
 } from "lucide-react";
 
@@ -186,6 +190,31 @@ export const navGroups: NavGroup[] = [
       },
     ],
   },
+  {
+    id: "account",
+    label: "账户设置",
+    icon: Settings,
+    items: [
+      {
+        id: "account-models",
+        label: "模型配置",
+        href: "/account/models",
+        icon: KeyRound,
+      },
+      {
+        id: "account-users",
+        label: "登录用户",
+        href: "/account/users",
+        icon: UsersRound,
+      },
+      {
+        id: "account-home",
+        label: "用户中心",
+        href: "/account",
+        icon: UserRound,
+      },
+    ],
+  },
 ];
 
 /** 根据 pathname 获取当前激活的导航项 ID */
@@ -194,28 +223,27 @@ export function getActiveNavId(pathname: string): string | null {
     return "overview";
   }
 
-  for (const group of navGroups) {
-    for (const item of group.items) {
-      if (pathname.startsWith(item.href)) {
-        return item.id;
-      }
-    }
-  }
+  const activeItem = navGroups
+    .flatMap((group) => group.items)
+    .filter((item) => pathname.startsWith(item.href))
+    .sort((left, right) => right.href.length - left.href.length)[0];
 
-  return null;
+  return activeItem?.id ?? null;
 }
 
 /** 根据 pathname 获取当前激活的分组 ID */
 export function getActiveGroupId(pathname: string): string | null {
-  for (const group of navGroups) {
-    for (const item of group.items) {
-      if (pathname.startsWith(item.href)) {
-        return group.id;
-      }
-    }
-  }
+  const activeGroup = navGroups
+    .map((group) => ({
+      group,
+      item: group.items
+        .filter((item) => pathname.startsWith(item.href))
+        .sort((left, right) => right.href.length - left.href.length)[0],
+    }))
+    .filter((entry) => entry.item)
+    .sort((left, right) => right.item.href.length - left.item.href.length)[0];
 
-  return null;
+  return activeGroup?.group.id ?? null;
 }
 
 /** 获取所有导航项的扁平列表（含总览），用于移动端横向滚动导航 */

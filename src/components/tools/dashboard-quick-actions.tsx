@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, FileText, ImageIcon, LayoutGrid } from "lucide-react";
+import { CalendarDays, ImageIcon, KeyRound, UserRound } from "lucide-react";
 
 type QuickActionConfig = {
   label: string;
@@ -22,22 +22,22 @@ const actions: QuickActionConfig[] = [
     accent: "border-cyan-100 bg-cyan-50 text-cyan-700",
   },
   {
-    label: "写文章",
-    href: "/admin/notes/new",
-    icon: FileText,
+    label: "模型配置",
+    href: "/account/models",
+    icon: KeyRound,
     accent: "border-violet-100 bg-violet-50 text-violet-700",
   },
   {
-    label: "看书签",
-    href: "/tools/sites",
-    icon: LayoutGrid,
+    label: "用户中心",
+    href: "/account",
+    icon: UserRound,
     accent: "border-emerald-100 bg-emerald-50 text-emerald-700",
   },
 ];
 
 /**
  * 工作台快捷操作区。
- * 提供 4 个常用入口按钮：新建计划、快速生图、写文章、看书签。
+ * 提供 4 个常用入口按钮：新建计划、快速生图、模型配置、用户中心。
  */
 export function DashboardQuickActions() {
   return (
