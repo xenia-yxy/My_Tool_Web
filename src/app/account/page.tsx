@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   ArrowRight,
+  HardDrive,
   ImageIcon,
   KeyRound,
   LogOut,
@@ -107,26 +108,49 @@ export default async function AccountPage() {
           </Card>
 
           {canAccessAdmin(user.role) ? (
-            <Card>
-              <CardHeader>
-                <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700">
-                  <UsersRound aria-hidden="true" className="h-5 w-5" />
-                </div>
-                <CardTitle>用户管理</CardTitle>
-                <CardDescription>
-                  创建、停用和维护网站登录账户。
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link
-                  className="inline-flex items-center text-sm font-medium text-emerald-700"
-                  href="/account/users"
-                >
-                  管理用户
-                  <ArrowRight aria-hidden="true" className="ml-1 h-4 w-4" />
-                </Link>
-              </CardContent>
-            </Card>
+            <>
+              <Card>
+                <CardHeader>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700">
+                    <UsersRound aria-hidden="true" className="h-5 w-5" />
+                  </div>
+                  <CardTitle>用户管理</CardTitle>
+                  <CardDescription>
+                    创建、停用和维护网站登录账户。
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Link
+                    className="inline-flex items-center text-sm font-medium text-emerald-700"
+                    href="/account/users"
+                  >
+                    管理用户
+                    <ArrowRight aria-hidden="true" className="ml-1 h-4 w-4" />
+                  </Link>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-amber-200 bg-amber-50 text-amber-700">
+                    <HardDrive aria-hidden="true" className="h-5 w-5" />
+                  </div>
+                  <CardTitle>图片清理</CardTitle>
+                  <CardDescription>
+                    统计和清理 OSS、画廊、素材、选品和本地残留图片。
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Link
+                    className="inline-flex items-center text-sm font-medium text-amber-700"
+                    href="/account/storage"
+                  >
+                    进入清理中心
+                    <ArrowRight aria-hidden="true" className="ml-1 h-4 w-4" />
+                  </Link>
+                </CardContent>
+              </Card>
+            </>
           ) : null}
         </div>
       </div>

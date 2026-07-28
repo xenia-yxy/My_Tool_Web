@@ -86,10 +86,11 @@ test("account settings are visible from workspace navigation", () => {
   assert.ok(account);
   assert.deepEqual(
     account.items.map((item) => item.id),
-    ["account-models", "account-users", "account-home"],
+    ["account-models", "account-users", "account-storage", "account-home"],
   );
   assert.equal(getActiveNavId("/account/models"), "account-models");
   assert.equal(getActiveNavId("/account/users"), "account-users");
+  assert.equal(getActiveNavId("/account/storage"), "account-storage");
   assert.equal(getActiveNavId("/account"), "account-home");
   assert.equal(getActiveGroupId("/account/models"), "account");
 });

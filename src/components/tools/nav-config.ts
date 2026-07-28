@@ -3,6 +3,7 @@ import {
   ClipboardList,
   CloudLightning,
   Flame,
+  HardDrive,
   Home,
   ImageIcon,
   Images,
@@ -45,11 +46,11 @@ export const overviewNav: NavItem = {
   icon: Home,
 };
 
-/** 分组导航配置（4 组：规划/创作/电商/资源） */
+/** 分组导航配置：按真实工作流聚合，减少工具堆叠感。 */
 export const navGroups: NavGroup[] = [
   {
     id: "planning",
-    label: "规划",
+    label: "计划",
     icon: CalendarDays,
     items: [
       {
@@ -62,7 +63,7 @@ export const navGroups: NavGroup[] = [
   },
   {
     id: "create",
-    label: "创作",
+    label: "内容创作",
     icon: Sparkles,
     items: [
       {
@@ -111,7 +112,7 @@ export const navGroups: NavGroup[] = [
   },
   {
     id: "creative-center",
-    label: "智能创作中心",
+    label: "画布与 Skill",
     icon: PanelsTopLeft,
     items: [
       {
@@ -130,7 +131,7 @@ export const navGroups: NavGroup[] = [
   },
   {
     id: "ecommerce",
-    label: "电商",
+    label: "商品视觉",
     icon: PackageCheck,
     items: [
       {
@@ -173,7 +174,7 @@ export const navGroups: NavGroup[] = [
   },
   {
     id: "resource",
-    label: "资源",
+    label: "资源管理",
     icon: LayoutGrid,
     items: [
       {
@@ -206,6 +207,12 @@ export const navGroups: NavGroup[] = [
         label: "登录用户",
         href: "/account/users",
         icon: UsersRound,
+      },
+      {
+        id: "account-storage",
+        label: "图片清理",
+        href: "/account/storage",
+        icon: HardDrive,
       },
       {
         id: "account-home",

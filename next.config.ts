@@ -35,6 +35,10 @@ const nextConfig: NextConfig = {
         headers: noStoreHeaders,
       },
       {
+        source: "/api/admin/:path*",
+        headers: noStoreHeaders,
+      },
+      {
         source: "/api/ai-model-configs/:path*",
         headers: noStoreHeaders,
       },
