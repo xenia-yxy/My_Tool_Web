@@ -3,12 +3,21 @@
 import { useState, type FormEvent } from "react";
 import useSWR from "swr";
 import {
+  AlertTriangle,
+  Bot,
+  CheckCircle2,
+  Eye,
   FlaskConical,
+  ImageIcon,
   KeyRound,
   Loader2,
   Pencil,
   Power,
+  Server,
+  Sparkles,
   Trash2,
+  Wand2,
+  Wrench,
   X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -479,42 +488,80 @@ function CurrentModelPanel({
         candidates: [{ value: "AUTO", targetType: "AUTO" as const, credentialId: null, label: "自动选择（你的模型优先）", source: "auto" as const, provider: null, model: null, baseUrlHost: null }],
       },
   );
+  const healthyCount = visibleSelections.filter(
+    (selection) => selection.routeStatus === "ok",
+  ).length;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>当前生效模型</CardTitle>
-        <CardDescription>
-          每个能力都可以单独切换。保存后下一次 Agent、识图、生图、图生图会立即使用这里的选择；API Key 不会回传浏览器。
-        </CardDescription>
+    <Card className="overflow-hidden border-slate-200 bg-white shadow-sm">
+      <CardHeader className="border-b border-slate-100 bg-gradient-to-br from-slate-950 via-slate-900 to-blue-950 text-white">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs text-blue-100">
+              <Sparkles aria-hidden="true" className="h-3.5 w-3.5" />
+              实时路由
+            </div>
+            <CardTitle className="mt-4 text-2xl text-white">当前生效模型</CardTitle>
+            <CardDescription className="mt-2 max-w-3xl text-sm leading-6 text-slate-200">
+              每个能力单独选择模型，保存后下一次 Agent、识图、生图、图生图会立即生效。API Key 只在服务端加密保存，不会回传浏览器。
+            </CardDescription>
+          </div>
+          <div className="rounded-xl border border-white/15 bg-white/10 px-4 py-3 text-right">
+            <p className="text-2xl font-semibold">{healthyCount}/{visibleSelections.length}</p>
+            <p className="mt-1 text-xs text-blue-100">能力可用</p>
+          </div>
+        </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-5">
         {error ? <StatusMessage tone="error">{error}</StatusMessage> : null}
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {visibleSelections.map((selection) => {
             const selectedValue = routeValueForSelection(selection);
             const hasSelectedCandidate = selection.candidates.some(
               (candidate) => candidate.value === selectedValue,
             );
             const isRouting = routingCapability === selection.capability;
+            const Icon = capabilityIcon(selection.capability);
+            const isHealthy = selection.routeStatus === "ok";
 
             return (
             <div
-              className="rounded-lg border border-slate-200 bg-slate-50 p-3"
+              className="min-w-0 rounded-xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm transition hover:border-blue-200 hover:bg-white hover:shadow-md"
               key={selection.capability}
             >
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold text-slate-950">
-                  {capabilityLabel(selection.capability)}
-                </span>
-                <Badge variant={selection.routeStatus === "ok" ? "success" : "secondary"}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-blue-100 bg-white text-blue-700">
+                    <Icon aria-hidden="true" className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0">
+                    <h3 className="truncate text-base font-semibold text-slate-950">
+                      {capabilityLabel(selection.capability)}
+                    </h3>
+                    <p className="mt-0.5 truncate text-xs text-slate-500">
+                      {routeModeLabel(selection.routeTargetType)}
+                    </p>
+                  </div>
+                </div>
+                <span
+                  className={
+                    isHealthy
+                      ? "inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700"
+                      : "inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700"
+                  }
+                >
+                  {isHealthy ? (
+                    <CheckCircle2 aria-hidden="true" className="h-3.5 w-3.5" />
+                  ) : (
+                    <AlertTriangle aria-hidden="true" className="h-3.5 w-3.5" />
+                  )}
                   {selection.routeStatus === "fallback" ? "临时兜底" : activeSourceLabel(selection.source)}
-                </Badge>
+                </span>
               </div>
-              <label className="mt-3 grid gap-1">
-                <span className="text-xs text-slate-500">使用模型</span>
+              <label className="mt-4 grid min-w-0 gap-1.5">
+                <span className="text-xs font-medium text-slate-500">使用模型</span>
                 <select
-                  className="h-9 rounded-md border border-slate-200 bg-white px-2 text-xs text-slate-900 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                  className="h-10 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:cursor-wait disabled:bg-slate-100"
                   disabled={isRouting}
                   onChange={(event) => onRouteChange(selection.capability, event.target.value)}
                   value={selectedValue}
@@ -529,19 +576,22 @@ function CurrentModelPanel({
                   ))}
                 </select>
               </label>
-              <p className="mt-2 truncate text-sm font-medium text-slate-700">
-                {selection.displayName}
-              </p>
-              <p className="mt-1 truncate text-xs text-slate-500">
-                {selection.model || "暂无模型"}
-              </p>
-              {selection.baseUrlHost ? (
-                <p className="mt-1 truncate text-xs text-slate-400">
-                  {selection.baseUrlHost}
-                </p>
-              ) : null}
+              <div className="mt-4 rounded-lg border border-slate-200 bg-white px-3 py-3">
+                <div className="flex min-w-0 items-center gap-2">
+                  <Server aria-hidden="true" className="h-4 w-4 shrink-0 text-slate-400" />
+                  <p className="truncate text-sm font-medium text-slate-800">
+                    {selection.displayName}
+                  </p>
+                </div>
+                <div className="mt-2 grid gap-1 text-xs leading-5 text-slate-500">
+                  <p className="truncate">{selection.model || "暂无模型"}</p>
+                  {selection.baseUrlHost ? (
+                    <p className="truncate text-slate-400">{selection.baseUrlHost}</p>
+                  ) : null}
+                </div>
+              </div>
               {selection.routeMessage ? (
-                <p className="mt-2 text-xs leading-5 text-amber-700">
+                <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-700">
                   {selection.routeMessage}
                 </p>
               ) : null}
@@ -558,6 +608,15 @@ function CurrentModelPanel({
       </CardContent>
     </Card>
   );
+}
+
+function capabilityIcon(value: string) {
+  if (value === "text") return Bot;
+  if (value === "vision") return Eye;
+  if (value === "image.generate") return ImageIcon;
+  if (value === "image.edit") return Wand2;
+  if (value === "tools") return Wrench;
+  return Sparkles;
 }
 
 function TextField({ label, name, onChange, placeholder, required = true, type = "text", value }: { label: string; name: string; onChange: (value: string) => void; placeholder: string; required?: boolean; type?: string; value: string }) {
@@ -580,6 +639,12 @@ function activeSourceLabel(value: ActiveAiModelSelection["source"]) {
   if (value === "user") return "你的配置";
   if (value === "system") return "系统默认";
   return "缺少配置";
+}
+
+function routeModeLabel(value: ActiveAiModelSelection["routeTargetType"]) {
+  if (value === "CREDENTIAL") return "指定模型";
+  if (value === "SYSTEM") return "系统默认";
+  return "自动选择";
 }
 
 function usesBillableConnectionTest(config: AiModelConfig) {
