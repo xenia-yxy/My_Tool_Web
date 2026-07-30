@@ -41,6 +41,9 @@ export type AiModelConfigInput = {
   displayName?: unknown;
   baseUrl?: unknown;
   model?: unknown;
+  chatPath?: unknown;
+  imageGenerationPath?: unknown;
+  imageEditPath?: unknown;
   apiKey?: unknown;
   capabilities?: unknown;
   enabled?: unknown;
@@ -106,6 +109,9 @@ export type AiModelConfigRecord = {
   displayName: string;
   baseUrl: string | null;
   model: string;
+  chatPath?: string | null;
+  imageGenerationPath?: string | null;
+  imageEditPath?: string | null;
   encryptedApiKey: string;
   apiKeyPreview: string;
   capabilities: string[];
@@ -238,6 +244,9 @@ export function serializeAiModelConfig(record: AiModelConfigRecord) {
     displayName: record.displayName,
     baseUrl: record.baseUrl,
     model: record.model,
+    chatPath: record.chatPath,
+    imageGenerationPath: record.imageGenerationPath,
+    imageEditPath: record.imageEditPath,
     apiKeyPreview: record.apiKeyPreview,
     capabilities: record.capabilities,
     enabled: record.enabled,
@@ -252,8 +261,10 @@ export function toRuntimeModelConfig(
   decrypt: (value: string) => string,
 ): AiModelRuntimeConfig {
   const provider = normalizeProvider(record.provider);
-
-  return {
+  const chatPath = normalizeEndpointPathForRuntime(record.chatPath);
+  const imageGenerationPath = normalizeEndpointPathForRuntime(record.imageGenerationPath);
+  const imageEditPath = normalizeEndpointPathForRuntime(record.imageEditPath);
+  const config: AiModelRuntimeConfig = {
     id: record.id,
     provider,
     baseUrl: trimTrailingSlash(record.baseUrl || getDefaultProviderBaseUrl(provider)),
@@ -262,6 +273,12 @@ export function toRuntimeModelConfig(
     capabilities: normalizeCapabilities(record.capabilities),
     enabled: record.enabled,
   };
+
+  if (chatPath) config.chatPath = chatPath;
+  if (imageGenerationPath) config.imageGenerationPath = imageGenerationPath;
+  if (imageEditPath) config.imageEditPath = imageEditPath;
+
+  return config;
 }
 
 export async function listUserAiModelConfigs(userId: string) {
@@ -420,6 +437,9 @@ export async function createUserAiModelConfig(
       displayName: normalized.displayName,
       baseUrl: normalized.baseUrl || null,
       model: normalized.model,
+      chatPath: normalized.chatPath || null,
+      imageGenerationPath: normalized.imageGenerationPath || null,
+      imageEditPath: normalized.imageEditPath || null,
       encryptedApiKey: encryptApiKey(
         normalized.apiKey,
         getAiCredentialEncryptionSecret(),
@@ -473,6 +493,9 @@ export async function updateUserAiModelConfig(
       displayName: normalized.displayName,
       baseUrl: normalized.baseUrl || null,
       model: normalized.model,
+      chatPath: normalized.chatPath || null,
+      imageGenerationPath: normalized.imageGenerationPath || null,
+      imageEditPath: normalized.imageEditPath || null,
       encryptedApiKey,
       apiKeyPreview: normalized.apiKeyPreview,
       capabilities: normalized.capabilities,
@@ -525,6 +548,76 @@ export async function testUserAiModelConfig(userId: string, id: string) {
   });
 
   return { capability };
+}
+
+export async function testActiveAiModelCapability(
+  userId: string,
+  capabilityInput: unknown,
+) {
+  const capability = readTrimmedString(capabilityInput) as AiCapability;
+
+  if (!supportedCapabilities.has(capability)) {
+    throw new Error("不支持的模型能力");
+  }
+
+  if (!["text", "vision", "image.generate", "image.edit"].includes(capability)) {
+    throw new Error("当前能力暂不支持自动请求测试，请使用具体功能验证");
+  }
+
+  const selections = await listActiveAiModelSelectionsForUser(userId);
+  const selection = selections.find((item) => item.capability === capability);
+
+  if (!selection || selection.source === "missing") {
+    throw new Error("当前能力没有可用模型");
+  }
+
+  const gateway = createAiGateway({
+    models: await buildAiRuntimeConfigsForUser(userId),
+  });
+
+  if (capability === "text") {
+    await gateway.generateText({
+      messages: [{ role: "user", content: "Reply with OK only." }],
+      temperature: 0,
+    });
+  } else if (capability === "vision") {
+    await gateway.generateVisionText({
+      imageDataUrl: transparentPngDataUrl,
+      prompt: "这是一张 1 像素透明 PNG。请只回复 OK。",
+      systemPrompt: "只回复 OK。",
+      temperature: 0,
+    });
+  } else if (capability === "image.generate") {
+    await gateway.generateImage({
+      prompt: "A single plain white square. No text.",
+      size: "1024x1024",
+      quality: "low",
+    });
+  } else {
+    await gateway.editImage({
+      prompt: "Keep this image unchanged.",
+      size: "1024x1024",
+      quality: "low",
+      image: new File([transparentPng], "active-route-test.png", { type: "image/png" }),
+    });
+  }
+
+  if (selection.source === "user" && selection.id) {
+    await prisma.aiProviderCredential.update({
+      where: { id: selection.id },
+      data: { lastUsedAt: new Date() },
+    });
+  }
+
+  return {
+    capability,
+    source: selection.source,
+    id: selection.id,
+    provider: selection.provider,
+    displayName: selection.displayName,
+    model: selection.model,
+    routeTargetType: selection.routeTargetType,
+  };
 }
 
 export async function buildAiRuntimeConfigsForUser(userId?: string) {
@@ -864,6 +957,9 @@ function normalizeAiModelConfigFields(input: AiModelConfigInput) {
   const baseUrl = trimTrailingSlash(readTrimmedString(input.baseUrl));
   const model = readTrimmedString(input.model);
   const capabilities = normalizeCapabilities(input.capabilities);
+  const chatPath = normalizeEndpointPathInput(input.chatPath);
+  const imageGenerationPath = normalizeEndpointPathInput(input.imageGenerationPath);
+  const imageEditPath = normalizeEndpointPathInput(input.imageEditPath);
 
   if (!displayName) {
     throw new Error("模型名称不能为空");
@@ -882,6 +978,9 @@ function normalizeAiModelConfigFields(input: AiModelConfigInput) {
     displayName,
     baseUrl,
     model,
+    chatPath,
+    imageGenerationPath,
+    imageEditPath,
     capabilities,
     enabled: input.enabled === false ? false : true,
   };
@@ -893,6 +992,20 @@ function readTrimmedString(value: unknown) {
 
 function trimTrailingSlash(value: string) {
   return value.replace(/\/+$/, "");
+}
+
+function normalizeEndpointPathInput(value: unknown) {
+  const path = readTrimmedString(value);
+
+  if (!path) return "";
+
+  return `/${path.replace(/^\/+/, "")}`;
+}
+
+function normalizeEndpointPathForRuntime(value: string | null | undefined) {
+  const path = normalizeEndpointPathInput(value);
+
+  return path || undefined;
 }
 
 function getDefaultProviderBaseUrl(provider: AiProvider) {
@@ -936,3 +1049,6 @@ const transparentPng = new Uint8Array([
   31, 0, 5, 0, 1, 255, 137, 153, 61, 29, 0, 0, 0, 0, 73, 69,
   78, 68, 174, 66, 96, 130,
 ]);
+
+const transparentPngDataUrl =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=";

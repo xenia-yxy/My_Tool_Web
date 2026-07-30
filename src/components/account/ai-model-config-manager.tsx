@@ -36,6 +36,9 @@ type AiModelConfig = {
   displayName: string;
   baseUrl: string | null;
   model: string;
+  chatPath?: string | null;
+  imageGenerationPath?: string | null;
+  imageEditPath?: string | null;
   apiKeyPreview: string;
   capabilities: string[];
   enabled: boolean;
@@ -72,6 +75,9 @@ type ActiveAiModelRouteCandidate = {
 type ProviderPreset = {
   baseUrl: string;
   model: string;
+  chatPath: string;
+  imageGenerationPath: string;
+  imageEditPath: string;
   capabilities: string[];
 };
 
@@ -89,34 +95,59 @@ const providerPresets: Record<string, ProviderPreset> = {
   "openai-compatible": {
     baseUrl: "https://api.openai.com",
     model: "gpt-4o-mini",
+    chatPath: "/v1/chat/completions",
+    imageGenerationPath: "/v1/images/generations",
+    imageEditPath: "/v1/images/edits",
     capabilities: ["text", "vision"],
   },
   openai: {
     baseUrl: "https://api.openai.com",
     model: "gpt-4o-mini",
+    chatPath: "/v1/chat/completions",
+    imageGenerationPath: "/v1/images/generations",
+    imageEditPath: "/v1/images/edits",
     capabilities: ["text", "vision"],
   },
   openrouter: {
     baseUrl: "https://openrouter.ai/api",
     model: "openai/gpt-4o-mini",
+    chatPath: "/v1/chat/completions",
+    imageGenerationPath: "/v1/images/generations",
+    imageEditPath: "/v1/images/edits",
     capabilities: ["text", "vision"],
   },
   anthropic: {
     baseUrl: "https://api.anthropic.com",
     model: "claude-sonnet-4-5",
+    chatPath: "/v1/messages",
+    imageGenerationPath: "",
+    imageEditPath: "",
     capabilities: ["text"],
   },
   google: {
     baseUrl: "https://generativelanguage.googleapis.com",
     model: "gemini-2.5-pro",
+    chatPath: "/v1beta/models/{model}:generateContent",
+    imageGenerationPath: "",
+    imageEditPath: "",
     capabilities: ["text", "vision"],
   },
   aizhzo: {
     baseUrl: "https://api.aizhzo.com",
     model: "gpt-image-2",
+    chatPath: "/v1/chat/completions",
+    imageGenerationPath: "/v1/images/generations",
+    imageEditPath: "/v1/images/edits",
     capabilities: ["image.generate", "image.edit"],
   },
-  custom: { baseUrl: "", model: "", capabilities: ["text"] },
+  custom: {
+    baseUrl: "",
+    model: "",
+    chatPath: "/v1/chat/completions",
+    imageGenerationPath: "/v1/images/generations",
+    imageEditPath: "/v1/images/edits",
+    capabilities: ["text"],
+  },
 };
 
 const capabilityOptions = [
@@ -136,6 +167,9 @@ const emptyForm = {
   displayName: "",
   baseUrl: providerPresets["openai-compatible"].baseUrl,
   model: providerPresets["openai-compatible"].model,
+  chatPath: providerPresets["openai-compatible"].chatPath,
+  imageGenerationPath: providerPresets["openai-compatible"].imageGenerationPath,
+  imageEditPath: providerPresets["openai-compatible"].imageEditPath,
   apiKey: "",
 };
 
@@ -183,6 +217,7 @@ export function AiModelConfigManager() {
   const [notice, setNotice] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [testingId, setTestingId] = useState<string | null>(null);
+  const [activeTestingCapability, setActiveTestingCapability] = useState<string | null>(null);
   const [routingCapability, setRoutingCapability] = useState<string | null>(null);
 
   function resetForm() {
@@ -198,6 +233,9 @@ export function AiModelConfigManager() {
       provider,
       baseUrl: preset.baseUrl,
       model: preset.model,
+      chatPath: preset.chatPath,
+      imageGenerationPath: preset.imageGenerationPath,
+      imageEditPath: preset.imageEditPath,
     }));
     setSelectedCapabilities(preset.capabilities);
   }
@@ -249,6 +287,10 @@ export function AiModelConfigManager() {
       displayName: config.displayName,
       baseUrl: config.baseUrl || "",
       model: config.model,
+      chatPath: config.chatPath || providerPresets.custom.chatPath,
+      imageGenerationPath:
+        config.imageGenerationPath || providerPresets.custom.imageGenerationPath,
+      imageEditPath: config.imageEditPath || providerPresets.custom.imageEditPath,
       apiKey: "",
     });
     setSelectedCapabilities(config.capabilities);
@@ -264,6 +306,10 @@ export function AiModelConfigManager() {
         displayName: values.displayName ?? config.displayName,
         baseUrl: values.baseUrl ?? config.baseUrl ?? "",
         model: values.model ?? config.model,
+        chatPath: values.chatPath ?? config.chatPath ?? "",
+        imageGenerationPath:
+          values.imageGenerationPath ?? config.imageGenerationPath ?? "",
+        imageEditPath: values.imageEditPath ?? config.imageEditPath ?? "",
         apiKey: "",
         capabilities: values.capabilities ?? config.capabilities,
         enabled: values.enabled ?? config.enabled,
@@ -349,6 +395,33 @@ export function AiModelConfigManager() {
     setNotice(`${capabilityLabel(capability)} 已切换模型`);
   }
 
+  async function testActiveCapability(capability: string) {
+    setError("");
+    setNotice("");
+    setActiveTestingCapability(capability);
+    const response = await fetch("/api/ai-model-configs/active/test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ capability }),
+    });
+    const payload = (await response.json().catch(() => ({}))) as {
+      displayName?: string;
+      model?: string;
+      error?: string;
+    };
+    setActiveTestingCapability(null);
+
+    if (!response.ok) {
+      setError(payload.error || "当前模型测试失败");
+      return;
+    }
+
+    setNotice(
+      `${capabilityLabel(capability)} 当前路由真实请求成功：${payload.displayName || "当前模型"} / ${payload.model || ""}`,
+    );
+    await Promise.all([mutate(), mutateActive()]);
+  }
+
   function toggleCapability(value: string) {
     setSelectedCapabilities((current) =>
       current.includes(value)
@@ -361,7 +434,9 @@ export function AiModelConfigManager() {
     <div className="grid gap-5">
       <CurrentModelPanel
         error={activeLoadError instanceof Error ? activeLoadError.message : ""}
+        activeTestingCapability={activeTestingCapability}
         onRouteChange={(capability, value) => void updateRoute(capability, value)}
+        onTestCapability={(capability) => void testActiveCapability(capability)}
         routingCapability={routingCapability}
         selections={activeSelections}
       />
@@ -389,6 +464,15 @@ export function AiModelConfigManager() {
             <TextField label="配置名称" name="displayName" onChange={(value) => setForm((current) => ({ ...current, displayName: value }))} placeholder="例如：我的生图模型" value={form.displayName} />
             <TextField label="Base URL" name="baseUrl" onChange={(value) => setForm((current) => ({ ...current, baseUrl: value }))} placeholder="https://api.openai.com" value={form.baseUrl} />
             <TextField label="模型 ID" name="model" onChange={(value) => setForm((current) => ({ ...current, model: value }))} placeholder="gpt-4o-mini 或 gpt-image-2" value={form.model} />
+            <fieldset className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+              <legend className="px-1 text-sm font-medium text-slate-700">高级接口路径</legend>
+              <TextField label="聊天 / 视觉接口路径" name="chatPath" onChange={(value) => setForm((current) => ({ ...current, chatPath: value }))} placeholder="/v1/chat/completions" required={false} value={form.chatPath} />
+              <TextField label="文生图接口路径" name="imageGenerationPath" onChange={(value) => setForm((current) => ({ ...current, imageGenerationPath: value }))} placeholder="/v1/images/generations" required={false} value={form.imageGenerationPath} />
+              <TextField label="图生图接口路径" name="imageEditPath" onChange={(value) => setForm((current) => ({ ...current, imageEditPath: value }))} placeholder="/v1/images/edits" required={false} value={form.imageEditPath} />
+              <p className="text-xs leading-5 text-slate-500">
+                OpenAI 兼容接口通常保持默认即可；如果厂商文档给的是完整地址，请把域名填到 Base URL，把后面的路径填在这里。
+              </p>
+            </fieldset>
             <TextField label={editingId ? "替换 API Key（留空则保留原 Key）" : "API Key"} name="apiKey" onChange={(value) => setForm((current) => ({ ...current, apiKey: value }))} placeholder="粘贴供应商 API Key" required={!editingId} type="password" value={form.apiKey} />
 
             <fieldset className="grid gap-2">
@@ -453,13 +537,17 @@ export function AiModelConfigManager() {
 }
 
 function CurrentModelPanel({
+  activeTestingCapability,
   error,
   onRouteChange,
+  onTestCapability,
   routingCapability,
   selections,
 }: {
+  activeTestingCapability: string | null;
   error: string;
   onRouteChange: (capability: string, value: string) => void;
+  onTestCapability: (capability: string) => void;
   routingCapability: string | null;
   selections: ActiveAiModelSelection[];
 }) {
@@ -521,8 +609,10 @@ function CurrentModelPanel({
               (candidate) => candidate.value === selectedValue,
             );
             const isRouting = routingCapability === selection.capability;
+            const isTesting = activeTestingCapability === selection.capability;
             const Icon = capabilityIcon(selection.capability);
             const isHealthy = selection.routeStatus === "ok";
+            const canTest = canTestCapability(selection.capability);
 
             return (
             <div
@@ -595,6 +685,25 @@ function CurrentModelPanel({
                   {selection.routeMessage}
                 </p>
               ) : null}
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <Button
+                  className="h-9 gap-2"
+                  disabled={!canTest || isTesting || selection.source === "missing"}
+                  onClick={() => onTestCapability(selection.capability)}
+                  type="button"
+                  variant="secondary"
+                >
+                  {isTesting ? (
+                    <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <FlaskConical aria-hidden="true" className="h-4 w-4" />
+                  )}
+                  {isTesting ? "真实测试中" : "测试当前路由"}
+                </Button>
+                {!canTest ? (
+                  <span className="text-xs text-slate-400">此能力需在具体功能内验证</span>
+                ) : null}
+              </div>
               {isRouting ? (
                 <p className="mt-2 flex items-center gap-1 text-xs text-slate-500">
                   <Loader2 aria-hidden="true" className="h-3 w-3 animate-spin" />
@@ -617,6 +726,10 @@ function capabilityIcon(value: string) {
   if (value === "image.edit") return Wand2;
   if (value === "tools") return Wrench;
   return Sparkles;
+}
+
+function canTestCapability(value: string) {
+  return ["text", "vision", "image.generate", "image.edit"].includes(value);
 }
 
 function TextField({ label, name, onChange, placeholder, required = true, type = "text", value }: { label: string; name: string; onChange: (value: string) => void; placeholder: string; required?: boolean; type?: string; value: string }) {

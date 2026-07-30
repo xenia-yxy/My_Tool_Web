@@ -260,6 +260,54 @@ test("createAiGateway sends chat and image calls through the selected model", as
   });
 });
 
+test("createAiGateway respects user-configured OpenAI-compatible endpoint paths", async () => {
+  const calls: Array<{ url: string; init: RequestInit }> = [];
+  const gateway = createAiGateway({
+    models: [
+      {
+        id: "chat",
+        provider: "openai-compatible",
+        baseUrl: "https://api.vendor.com/base",
+        apiKey: "chat-key",
+        model: "chat-model",
+        capabilities: ["text"],
+        chatPath: "/compat/chat",
+        enabled: true,
+      },
+      {
+        id: "image",
+        provider: "openai-compatible",
+        baseUrl: "https://api.vendor.com/base",
+        apiKey: "image-key",
+        model: "image-model",
+        capabilities: ["image.generate"],
+        imageGenerationPath: "/compat/images",
+        enabled: true,
+      },
+    ],
+    fetch: async (url, init) => {
+      calls.push({ url: String(url), init: init ?? {} });
+      return Response.json(
+        calls.length === 1
+          ? { choices: [{ message: { content: "OK" } }] }
+          : { data: [{ b64_json: "abc123" }] },
+      );
+    },
+  });
+
+  await gateway.generateText({
+    messages: [{ role: "user", content: "test" }],
+  });
+  await gateway.generateImage({
+    prompt: "test",
+    size: "1024x1024",
+    quality: "low",
+  });
+
+  assert.equal(calls[0].url, "https://api.vendor.com/base/compat/chat");
+  assert.equal(calls[1].url, "https://api.vendor.com/base/compat/images");
+});
+
 test("createAiGateway sends image edit calls as multipart without JSON content type", async () => {
   const calls: Array<{ url: string; init: RequestInit }> = [];
   const gateway = createAiGateway({

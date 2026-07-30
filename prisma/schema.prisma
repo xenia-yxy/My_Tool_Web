@@ -394,6 +394,9 @@ model AiProviderCredential {
   displayName     String
   baseUrl         String?
   model           String
+  chatPath        String?
+  imageGenerationPath String?
+  imageEditPath   String?
   encryptedApiKey String   @db.Text
   apiKeyPreview   String
   capabilities    String[] @default([])
