@@ -29,6 +29,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  aiInterfaceOptions,
+  aiProviderPresetGroups,
+  aiProviderPresets,
+  findAiProviderPreset,
+  findDefaultAiProviderPreset,
+} from "@/lib/ai-provider-presets";
 
 type AiModelConfig = {
   id: string;
@@ -72,82 +79,15 @@ type ActiveAiModelRouteCandidate = {
   baseUrlHost: string | null;
 };
 
-type ProviderPreset = {
+type AiModelConfigForm = {
+  provider: string;
+  displayName: string;
   baseUrl: string;
   model: string;
   chatPath: string;
   imageGenerationPath: string;
   imageEditPath: string;
-  capabilities: string[];
-};
-
-const providerOptions = [
-  ["openai-compatible", "OpenAI 兼容接口"],
-  ["openai", "OpenAI"],
-  ["openrouter", "OpenRouter"],
-  ["anthropic", "Claude"],
-  ["google", "Gemini"],
-  ["aizhzo", "AIZHZO"],
-  ["custom", "自定义接口"],
-] as const;
-
-const providerPresets: Record<string, ProviderPreset> = {
-  "openai-compatible": {
-    baseUrl: "https://api.openai.com",
-    model: "gpt-4o-mini",
-    chatPath: "/v1/chat/completions",
-    imageGenerationPath: "/v1/images/generations",
-    imageEditPath: "/v1/images/edits",
-    capabilities: ["text", "vision"],
-  },
-  openai: {
-    baseUrl: "https://api.openai.com",
-    model: "gpt-4o-mini",
-    chatPath: "/v1/chat/completions",
-    imageGenerationPath: "/v1/images/generations",
-    imageEditPath: "/v1/images/edits",
-    capabilities: ["text", "vision"],
-  },
-  openrouter: {
-    baseUrl: "https://openrouter.ai/api",
-    model: "openai/gpt-4o-mini",
-    chatPath: "/v1/chat/completions",
-    imageGenerationPath: "/v1/images/generations",
-    imageEditPath: "/v1/images/edits",
-    capabilities: ["text", "vision"],
-  },
-  anthropic: {
-    baseUrl: "https://api.anthropic.com",
-    model: "claude-sonnet-4-5",
-    chatPath: "/v1/messages",
-    imageGenerationPath: "",
-    imageEditPath: "",
-    capabilities: ["text"],
-  },
-  google: {
-    baseUrl: "https://generativelanguage.googleapis.com",
-    model: "gemini-2.5-pro",
-    chatPath: "/v1beta/models/{model}:generateContent",
-    imageGenerationPath: "",
-    imageEditPath: "",
-    capabilities: ["text", "vision"],
-  },
-  aizhzo: {
-    baseUrl: "https://api.aizhzo.com",
-    model: "gpt-image-2",
-    chatPath: "/v1/chat/completions",
-    imageGenerationPath: "/v1/images/generations",
-    imageEditPath: "/v1/images/edits",
-    capabilities: ["image.generate", "image.edit"],
-  },
-  custom: {
-    baseUrl: "",
-    model: "",
-    chatPath: "/v1/chat/completions",
-    imageGenerationPath: "/v1/images/generations",
-    imageEditPath: "/v1/images/edits",
-    capabilities: ["text"],
-  },
+  apiKey: string;
 };
 
 const capabilityOptions = [
@@ -162,14 +102,15 @@ const capabilityOptions = [
   ["tools", "工具调用"],
 ] as const;
 
-const emptyForm = {
+const emptyForm: AiModelConfigForm = {
   provider: "openai-compatible",
   displayName: "",
-  baseUrl: providerPresets["openai-compatible"].baseUrl,
-  model: providerPresets["openai-compatible"].model,
-  chatPath: providerPresets["openai-compatible"].chatPath,
-  imageGenerationPath: providerPresets["openai-compatible"].imageGenerationPath,
-  imageEditPath: providerPresets["openai-compatible"].imageEditPath,
+  baseUrl: findAiProviderPreset("openai-chat")?.baseUrl || "https://api.openai.com",
+  model: findAiProviderPreset("openai-chat")?.model || "gpt-4o-mini",
+  chatPath: findAiProviderPreset("openai-chat")?.chatPath || "/v1/chat/completions",
+  imageGenerationPath:
+    findAiProviderPreset("openai-chat")?.imageGenerationPath || "/v1/images/generations",
+  imageEditPath: findAiProviderPreset("openai-chat")?.imageEditPath || "/v1/images/edits",
   apiKey: "",
 };
 
@@ -208,6 +149,7 @@ export function AiModelConfigManager() {
   const configs = data?.configs || [];
   const activeSelections = activeData?.selections || [];
   const [form, setForm] = useState(emptyForm);
+  const [selectedPresetId, setSelectedPresetId] = useState("openai-chat");
   const [selectedCapabilities, setSelectedCapabilities] = useState<string[]>([
     "text",
     "vision",
@@ -219,25 +161,49 @@ export function AiModelConfigManager() {
   const [testingId, setTestingId] = useState<string | null>(null);
   const [activeTestingCapability, setActiveTestingCapability] = useState<string | null>(null);
   const [routingCapability, setRoutingCapability] = useState<string | null>(null);
+  const selectedPreset = findAiProviderPreset(selectedPresetId);
 
   function resetForm() {
     setForm(emptyForm);
+    setSelectedPresetId("openai-chat");
     setSelectedCapabilities(["text", "vision"]);
     setEditingId(null);
   }
 
   function changeProvider(provider: string) {
-    const preset = providerPresets[provider] || providerPresets.custom;
+    const preset =
+      findDefaultAiProviderPreset(provider as typeof aiInterfaceOptions[number][0]) ||
+      findAiProviderPreset("custom");
     setForm((current) => ({
       ...current,
       provider,
+      baseUrl: preset?.baseUrl || "",
+      model: preset?.model || "",
+      chatPath: preset?.chatPath || "",
+      imageGenerationPath: preset?.imageGenerationPath || "",
+      imageEditPath: preset?.imageEditPath || "",
+    }));
+    setSelectedPresetId("");
+    setSelectedCapabilities([...(preset?.capabilities || ["text"])]);
+  }
+
+  function applyVendorPreset(presetId: string) {
+    const preset = findAiProviderPreset(presetId);
+
+    setSelectedPresetId(presetId);
+    if (!preset) return;
+
+    setForm((current) => ({
+      ...current,
+      provider: preset.provider,
+      displayName: preset.displayName,
       baseUrl: preset.baseUrl,
       model: preset.model,
       chatPath: preset.chatPath,
       imageGenerationPath: preset.imageGenerationPath,
       imageEditPath: preset.imageEditPath,
     }));
-    setSelectedCapabilities(preset.capabilities);
+    setSelectedCapabilities([...preset.capabilities]);
   }
 
   async function submitConfig(event: FormEvent<HTMLFormElement>) {
@@ -282,15 +248,16 @@ export function AiModelConfigManager() {
     setError("");
     setNotice("");
     setEditingId(config.id);
+    setSelectedPresetId("");
     setForm({
       provider: config.provider,
       displayName: config.displayName,
       baseUrl: config.baseUrl || "",
       model: config.model,
-      chatPath: config.chatPath || providerPresets.custom.chatPath,
+      chatPath: config.chatPath || findAiProviderPreset("custom")?.chatPath || "/v1/chat/completions",
       imageGenerationPath:
-        config.imageGenerationPath || providerPresets.custom.imageGenerationPath,
-      imageEditPath: config.imageEditPath || providerPresets.custom.imageEditPath,
+        config.imageGenerationPath || findAiProviderPreset("custom")?.imageGenerationPath || "/v1/images/generations",
+      imageEditPath: config.imageEditPath || findAiProviderPreset("custom")?.imageEditPath || "/v1/images/edits",
       apiKey: "",
     });
     setSelectedCapabilities(config.capabilities);
@@ -452,14 +419,49 @@ export function AiModelConfigManager() {
         <CardContent>
           <form className="grid gap-4" onSubmit={submitConfig}>
             <label className="grid gap-2">
-              <span className="text-sm font-medium text-slate-700">供应商</span>
+              <span className="text-sm font-medium text-slate-700">厂商预设</span>
+              <select
+                className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                onChange={(event) => applyVendorPreset(event.target.value)}
+                value={selectedPresetId}
+              >
+                <option value="">不使用预设，手动配置</option>
+                {aiProviderPresetGroups.map((group) => {
+                  const groupPresets = aiProviderPresets.filter(
+                    (preset) => preset.group === group,
+                  );
+
+                  if (groupPresets.length === 0) return null;
+
+                  return (
+                    <optgroup key={group} label={group}>
+                      {groupPresets.map((preset) => (
+                        <option key={preset.id} value={preset.id}>
+                          {preset.label}
+                        </option>
+                      ))}
+                    </optgroup>
+                  );
+                })}
+              </select>
+              <p className="text-xs leading-5 text-slate-500">
+                {selectedPreset
+                  ? selectedPreset.description
+                  : "适合厂商文档有特殊域名、路径或模型名时使用。下面每个字段都可以修改。"}
+              </p>
+            </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-medium text-slate-700">底层接口类型</span>
               <select
                 className="h-10 rounded-md border border-slate-200 bg-white px-3 text-sm text-slate-950 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
                 onChange={(event) => changeProvider(event.target.value)}
                 value={form.provider}
               >
-                {providerOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                {aiInterfaceOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
               </select>
+              <p className="text-xs leading-5 text-slate-500">
+                国内外大多数厂商选择 OpenAI 兼容接口即可；Claude 原生、Gemini 原生只有服务端已适配的文本调用。
+              </p>
             </label>
             <TextField label="配置名称" name="displayName" onChange={(value) => setForm((current) => ({ ...current, displayName: value }))} placeholder="例如：我的生图模型" value={form.displayName} />
             <TextField label="Base URL" name="baseUrl" onChange={(value) => setForm((current) => ({ ...current, baseUrl: value }))} placeholder="https://api.openai.com" value={form.baseUrl} />
@@ -745,7 +747,7 @@ function capabilityLabel(value: string) {
 }
 
 function providerLabel(value: string) {
-  return providerOptions.find(([key]) => key === value)?.[1] || value;
+  return aiInterfaceOptions.find(([key]) => key === value)?.[1] || value;
 }
 
 function activeSourceLabel(value: ActiveAiModelSelection["source"]) {
